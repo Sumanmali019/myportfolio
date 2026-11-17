@@ -2,11 +2,14 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-// Set SITE_URL in Vercel (Project → Settings → Environment Variables) once you have a domain.
+// Set SITE_URL once you have a domain. GitHub Pages sets this in the deploy workflow.
 const site = process.env.SITE_URL ?? 'https://suman-day-portfolio.vercel.app';
+// Project Pages live under /<repo>/. Leave unset ('/') for Vercel and local preview.
+const base = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   site,
+  base,
   output: 'static',
   compressHTML: true,
   trailingSlash: 'ignore',

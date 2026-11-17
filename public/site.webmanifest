@@ -1,9 +1,9 @@
 {
   "name": "Suman Mali — The journey so far",
   "short_name": "Suman Mali",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#1b1a3a",
   "theme_color": "#1b1a3a",
-  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }

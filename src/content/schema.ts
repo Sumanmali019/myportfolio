@@ -142,13 +142,20 @@ export type SceneInput = z.input<typeof SceneSchema>;
 export type Link = z.infer<typeof LinkSchema>;
 export type Trigger = (typeof TRIGGERS)[number];
 
+/** Prefix root-relative public files when the site is served from a subpath (GitHub Pages). */
+function publicHref(href: string): string {
+  if (!href.startsWith('/') || href.startsWith('//')) return href;
+  const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/$/, '');
+  return `${base}${href}`;
+}
+
 /** Every link the site can show, keyed so scenes.ts can reference them by name. */
 export function buildLinks(p: Profile): Record<string, Link> {
   const links: Record<string, Link> = {
     email: { label: `Email ${p.contact.email}`, href: `mailto:${p.contact.email}` },
     linkedin: { label: 'LinkedIn profile', href: p.contact.linkedin },
     github: { label: 'GitHub profile', href: p.contact.github },
-    resume: { label: 'Download résumé (PDF)', href: p.contact.resume },
+    resume: { label: 'Download résumé (PDF)', href: publicHref(p.contact.resume) },
     'cta-mail': {
       label: 'Book the next flight',
       href: `mailto:${p.contact.email}?subject=${encodeURIComponent('Book the next flight')}`,

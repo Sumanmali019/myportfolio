@@ -12,7 +12,8 @@ interface Props {
 const { title, description, profile, noindex = false } = Astro.props;
 const site = Astro.site ?? new URL(Astro.url.origin);
 const canonical = new URL(Astro.url.pathname, site).href;
-const ogImage = new URL('/og.png', site).href;
+const baseUrl = new URL(import.meta.env.BASE_URL, site);
+const ogImage = new URL('og.png', baseUrl).href;
 const current = profile.experience[0];
 
 const person = {
@@ -21,7 +22,7 @@ const person = {
   name: profile.name,
   jobTitle: 'Technical Lead',
   description: profile.about,
-  url: new URL('/', site).href,
+  url: baseUrl.href,
   image: ogImage,
   address: {
     '@type': 'PostalAddress',
@@ -57,9 +58,9 @@ const jsonLd = JSON.stringify(person).replace(/</g, '\\u003c');
 {noindex && <meta name="robots" content="noindex" />}
 <meta name="theme-color" content="#1b1a3a" />
 <meta name="color-scheme" content="light" />
-<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-<link rel="manifest" href="/site.webmanifest" />
-<link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
+<link rel="manifest" href={`${import.meta.env.BASE_URL}site.webmanifest`} />
+<link rel="sitemap" href={`${import.meta.env.BASE_URL}sitemap-index.xml`} />
 
 <meta property="og:type" content="profile" />
 <meta property="og:site_name" content={profile.name} />
