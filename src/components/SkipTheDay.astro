@@ -1,0 +1,197 @@
+---
+/**
+ * "Skip the journey": every piece of portfolio content as plain, semantic HTML in a modal
+ * dialog (focus-trapped, Esc closes). It is also the fallback page when JavaScript is off or
+ * a scene fails to load.
+ */
+import {
+  formatDownloads,
+  totalDownloads,
+  type Link,
+  type Profile,
+  type SkillGroup,
+} from '../content/schema';
+
+interface Props {
+  profile: Profile;
+  skills: SkillGroup[];
+  links: Record<string, Link>;
+}
+
+const { profile, skills, links } = Astro.props;
+const ext = { target: '_blank', rel: 'noopener noreferrer' };
+const total = totalDownloads(profile.apps);
+const flutter = profile.projects.find((p) => p.key === 'flutter-pr');
+const sideProjects = profile.projects.filter((p) => p.key !== 'flutter-pr');
+---
+
+<button type="button" class="skip-open" id="skip-open" aria-haspopup="dialog" aria-controls="skip">
+  Skip<span class="skip-open__more"> the journey</span>
+</button>
+
+<dialog class="skip" id="skip" aria-labelledby="skip-title" data-lenis-prevent>
+  <button type="button" class="skip__close" id="skip-close"
+    >Close <span aria-hidden="true">✕</span></button
+  >
+  <div class="skip__inner">
+    <header>
+      <h1 id="skip-title">{profile.name}</h1>
+      <p><strong>{profile.headline}</strong> · {profile.city}</p>
+      <p>{profile.intro}</p>
+      {profile.status && <p class="muted">{profile.status}</p>}
+      <p>
+        <a href={links.email!.href}>Email</a> ·
+        <a href={profile.contact.linkedin} {...ext}>LinkedIn</a> ·
+        <a href={profile.contact.github} {...ext}>GitHub</a> ·
+        <a href={profile.contact.resume}>Résumé (PDF)</a>
+      </p>
+    </header>
+
+    <section aria-labelledby="skip-about">
+      <h2 id="skip-about">About</h2>
+      <p>{profile.about}</p>
+    </section>
+
+    <section aria-labelledby="skip-exp">
+      <h2 id="skip-exp">Experience</h2>
+      {
+        profile.experience.map((e) => (
+          <article>
+            <h3>
+              {e.company} — {e.role}
+            </h3>
+            <p class="muted">
+              {e.period} · {e.location}
+            </p>
+            {e.highlights.length > 0 && (
+              <ul>
+                {e.highlights.map((h) => (
+                  <li>{h}</li>
+                ))}
+              </ul>
+            )}
+            {e.stack.length > 0 && (
+              <ul class="tags" aria-label="Stack">
+                {e.stack.map((s) => (
+                  <li>{s}</li>
+                ))}
+              </ul>
+            )}
+          </article>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="skip-apps">
+      <h2 id="skip-apps">Apps along the way</h2>
+      <p class="muted">
+        {formatDownloads(total)} downloads across the apps with published figures.
+      </p>
+      <ul>
+        {
+          profile.apps.map((a) => (
+            <li>
+              <strong>{a.name}</strong> ({a.company}
+              {a.role ? `, ${a.role}` : ''}) — {a.summary}
+              {a.badge && <span class="badge">{a.badge}</span>}
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    {
+      flutter && (
+        <section aria-labelledby="skip-oss">
+          <h2 id="skip-oss">★ Open source</h2>
+          <p>
+            {flutter.summary}{' '}
+            <a href={flutter.url} {...ext}>
+              View the PR<span class="visually-hidden"> (opens in a new tab)</span>
+            </a>
+          </p>
+        </section>
+      )
+    }
+
+    <section aria-labelledby="skip-projects">
+      <h2 id="skip-projects">Side builds</h2>
+      {
+        sideProjects.map((p) => (
+          <article>
+            <h3>
+              <a href={p.url} {...ext}>
+                {p.name}
+                <span class="visually-hidden"> (opens in a new tab)</span>
+              </a>
+            </h3>
+            <p>{p.summary}</p>
+            <ul class="tags" aria-label="Stack">
+              {p.stack.map((s) => (
+                <li>{s}</li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="skip-skills">
+      <h2 id="skip-skills">Skills</h2>
+      {
+        skills.map((s) => (
+          <>
+            <h3>{s.group}</h3>
+            <ul class="tags">
+              {s.items.map((i) => (
+                <li>{i}</li>
+              ))}
+            </ul>
+          </>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="skip-writing">
+      <h2 id="skip-writing">Ideas</h2>
+      <ul>
+        {profile.writing.map((w) => <li>{w}</li>)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="skip-edu">
+      <h2 id="skip-edu">Education</h2>
+      <ul>
+        {
+          profile.education.map((e) => (
+            <li>
+              <strong>{e.school}</strong> — {e.course}, {e.period}
+            </li>
+          ))
+        }
+      </ul>
+      <h3>Certifications</h3>
+      <ul>
+        {profile.certifications.map((c) => <li>{c}</li>)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="skip-contact">
+      <h2 id="skip-contact">Contact</h2>
+      <ul>
+        <li><a href={links.email!.href}>{profile.contact.email}</a></li>
+        <li>
+          <a href={profile.contact.linkedin} {...ext}
+            >LinkedIn<span class="visually-hidden"> (opens in a new tab)</span></a
+          >
+        </li>
+        <li>
+          <a href={profile.contact.github} {...ext}
+            >GitHub<span class="visually-hidden"> (opens in a new tab)</span></a
+          >
+        </li>
+        <li><a href={profile.contact.resume}>Résumé (PDF)</a></li>
+      </ul>
+    </section>
+  </div>
+</dialog>

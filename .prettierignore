@@ -1,0 +1,13 @@
+dist
+.astro
+node_modules
+pnpm-lock.yaml
+public
+src/assets/scenes
+playwright-report
+test-results
+.lighthouseci
+tests/e2e/**/*-snapshots
+src/assets/lottie/graduation-cap-toss*.json
+scripts/art/assets
+src/assets/lottie/typing-top-view*.json

@@ -1,0 +1,38 @@
+---
+/**
+ * Visually hidden description of every chapter, in order — what a screen-reader user meets
+ * while the decorative stage (aria-hidden) plays. Also gives crawlers the whole story.
+ */
+import type { Beat, Profile, Scene } from '../content/schema';
+
+interface Props {
+  scenes: Scene[];
+  beats: Record<string, Beat[]>;
+  profile: Profile;
+}
+
+const { scenes, beats, profile } = Astro.props;
+---
+
+<main id="top" class="visually-hidden">
+  <h1>{profile.name} — the journey so far</h1>
+  <p>{profile.headline}. {profile.intro}</p>
+  {
+    scenes.map((s) => (
+      <section aria-labelledby={`scene-${s.id}`}>
+        <h2 id={`scene-${s.id}`}>{s.title}</h2>
+        <p>{s.description}</p>
+        {(beats[s.id] ?? []).length > 0 && (
+          <ul>
+            {(beats[s.id] ?? []).map((b) => (
+              <li>
+                {b.kind === 'thought' ? 'Thought: ' : b.who ? `${b.who}: ` : ''}
+                {b.text}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    ))
+  }
+</main>

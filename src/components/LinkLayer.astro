@@ -1,0 +1,64 @@
+---
+/**
+ * Real <a> links for each scene. The engine positions the current scene's links exactly over
+ * their `[data-link]` rects in the SVG; links of other scenes are "parked" (visually hidden
+ * but focusable — focusing one scrolls its scene on stage).
+ */
+import type { Link, Scene } from '../content/schema';
+
+interface Props {
+  scenes: Scene[];
+  links: Record<string, Link>;
+}
+
+const { scenes, links } = Astro.props;
+const CTA = new Set(['cta-mail', 'restart']);
+const ROW = new Set(['email', 'linkedin', 'github', 'resume']);
+const chip: Record<string, string> = {
+  'flutter-pr': 'View the PR →',
+  'sse-repo': 'View the repo →',
+  'quiet-shelf': 'Open thequietshelf.art ↗',
+  khyaati: 'Open khyaatiprakashan.store ↗',
+  resume: 'Résumé (PDF)',
+};
+---
+
+<nav class="link-layer" aria-label="Links on stage">
+  {
+    scenes.map((scene, index) =>
+      scene.links.map((key) => {
+        if (key === 'restart') {
+          return (
+            <a
+              href="#top"
+              class="scene-link scene-link--cta is-parked"
+              data-link="restart"
+              data-action="restart"
+              data-scene-index={index}
+            >
+              <span class="scene-link__chip">Replay the journey</span>
+            </a>
+          );
+        }
+        const link = links[key]!;
+        const external = link.href.startsWith('https://');
+        const isRow = ROW.has(key) && scene.links.includes('cta-mail');
+        const cls = CTA.has(key) ? 'scene-link--cta' : isRow ? 'scene-link--row' : '';
+        return (
+          <a
+            href={link.href}
+            class={`scene-link ${cls} is-parked`}
+            data-link={key}
+            data-scene-index={index}
+            aria-label={`${link.label}${external ? ' (opens in a new tab)' : ''}`}
+            {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+          >
+            <span class="scene-link__chip">
+              {CTA.has(key) ? link.label : isRow ? 'Open ↗' : (chip[key] ?? link.label)}
+            </span>
+          </a>
+        );
+      }),
+    )
+  }
+</nav>

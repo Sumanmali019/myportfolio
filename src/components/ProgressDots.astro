@@ -1,0 +1,36 @@
+---
+/**
+ * The route line: one clickable station per chapter. Transits are drawn as small diamonds,
+ * the highlight chapter as a star. The engine fills the line (`--route`) and marks the
+ * current station with aria-current="step".
+ */
+import type { Scene } from '../content/schema';
+
+interface Props {
+  scenes: Scene[];
+}
+
+const { scenes } = Astro.props;
+---
+
+<nav class="route" id="route" aria-label="Journey stations">
+  <ol>
+    {
+      scenes.map((s, i) => (
+        <li>
+          <button
+            type="button"
+            data-dot={i}
+            data-station={s.station}
+            aria-label={`Go to ${s.section}: ${s.title}`}
+          >
+            <span class="station__mark" aria-hidden="true" />
+            <span class="station__label" aria-hidden="true">
+              {s.section}
+            </span>
+          </button>
+        </li>
+      ))
+    }
+  </ol>
+</nav>

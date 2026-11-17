@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://suman-day-portfolio.vercel.app/sitemap-index.xml

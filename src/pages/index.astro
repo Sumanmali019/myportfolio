@@ -1,0 +1,116 @@
+---
+import '@fontsource/dm-mono/400.css';
+import '@fontsource/dm-mono/500.css';
+import '@fontsource/special-elite/400.css';
+import '../styles/tokens.css';
+import '../styles/palettes.css';
+import '../styles/global.css';
+
+import LinkLayer from '../components/LinkLayer.astro';
+import ProgressDots from '../components/ProgressDots.astro';
+import SceneText from '../components/SceneText.astro';
+import SeoHead from '../components/SeoHead.astro';
+import SkipTheDay from '../components/SkipTheDay.astro';
+import Stage from '../components/Stage.astro';
+import {
+  buildLinks,
+  downloadsByScene,
+  findPlaceholders,
+  loadContent,
+  resolveDate,
+} from '../content/schema';
+import { formatMonth, monthIndex } from '../engine/clock';
+import { buildTimeline } from '../engine/timeline';
+import type { EngineData } from '../engine/types';
+
+// Validates everything in src/content — an invalid file fails the build here.
+const content = loadContent();
+const placeholders = findPlaceholders(content);
+if (placeholders.length) {
+  console.warn(
+    `\n[content] Replace these placeholders before launch:\n  ${placeholders.join('\n  ')}\n`,
+  );
+}
+
+const { profile, skills, beats } = content;
+const scenes = content.scenes.map((s) => ({ ...s, date: resolveDate(s.date) }));
+const links = buildLinks(profile);
+const added = downloadsByScene(profile.apps);
+
+const data: EngineData = {
+  scenes,
+  beats,
+  skills,
+  links,
+  downloads: scenes.map((s) => added[s.id] ?? 0),
+  profile: {
+    name: profile.name,
+    headline: profile.headline,
+    city: profile.city,
+    experience: profile.experience,
+    projects: profile.projects,
+    apps: profile.apps,
+    now: profile.now,
+    education: profile.education,
+    certifications: profile.certifications,
+    contact: profile.contact,
+    status: profile.status,
+  },
+};
+const json = JSON.stringify(data).replace(/</g, '\\u003c');
+
+const timeline = buildTimeline(
+  scenes.map((s) => ({ id: s.id, weight: s.weight, beats: beats[s.id]?.length ?? 0 })),
+);
+const title = `${profile.name} — The journey so far`;
+const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;
+---
+
+<!doctype html>
+<html lang="en-IN" data-palette="night" data-scene={scenes[0]!.id}>
+  <head>
+    <SeoHead title={title} description={description} profile={profile} />
+    <noscript>
+      <style>
+        .stage,
+        .hud,
+        .route,
+        .bubble-layer,
+        .link-layer,
+        .skip-open,
+        .skip__close,
+        .track {
+          display: none !important;
+        }
+        html,
+        body {
+          background: #fbf6ee;
+        }
+        dialog.skip {
+          display: block;
+          position: static;
+          width: 100%;
+          max-width: 820px;
+          max-height: none;
+          margin: 0 auto;
+          border-radius: 0;
+        }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <SkipTheDay profile={profile} skills={skills} links={links} />
+    <Stage
+      screens={timeline.total + 1}
+      firstDate={formatMonth(monthIndex(scenes[0]!.date))}
+      firstCity={scenes[0]!.city}
+    />
+    <ProgressDots scenes={scenes} />
+    <LinkLayer scenes={scenes} links={links} />
+    <SceneText scenes={scenes} beats={beats} profile={profile} />
+    <script type="application/json" id="engine-data" set:html={json} />
+    <script>
+      import '../engine/index';
+    </script>
+  </body>
+</html>

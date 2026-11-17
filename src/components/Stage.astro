@@ -1,0 +1,41 @@
+---
+/**
+ * The fixed, decorative stage (aria-hidden): both intro SVGs inline (CSS shows the one that
+ * matches the layout, so first paint needs no JS), mount point for lazy scenes, the HUD
+ * counters, the bubble layer and the scroll track.
+ */
+import introDesktop from '../assets/scenes/desktop/00-intro.svg?raw';
+import introMobile from '../assets/scenes/mobile/00-intro.svg?raw';
+
+interface Props {
+  screens: number;
+  firstDate: string;
+  firstCity: string;
+}
+
+const { screens, firstDate, firstCity } = Astro.props;
+---
+
+<div class="stage" id="stage" aria-hidden="true">
+  <div class="scene is-on" data-intro="desktop" set:html={introDesktop} />
+  <div class="scene is-on" data-intro="mobile" set:html={introMobile} />
+</div>
+
+<div class="hud" aria-hidden="true">
+  <span class="hud__pill"
+    ><span class="hud__date" id="hud-date">{firstDate}</span><span class="hud__city" id="hud-city"
+      >{firstCity}</span
+    ></span
+  >
+  <span class="hud__pill" id="hud-odometer" hidden>
+    <span aria-hidden="true">⤓</span><span class="hud__odo-num" id="hud-odo">0</span><span
+      >downloads</span
+    >
+  </span>
+</div>
+
+<div class="bubble-layer" id="bubbles" aria-hidden="true">
+  <svg class="fx" id="fx" focusable="false"></svg>
+</div>
+
+<div class="track" id="track" style={`--screens:${screens}`}></div>

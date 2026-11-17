@@ -1,0 +1,84 @@
+---
+/** Title, description, canonical, Open Graph / Twitter cards and JSON-LD Person. */
+import type { Profile } from '../content/schema';
+
+interface Props {
+  title: string;
+  description: string;
+  profile: Profile;
+  noindex?: boolean;
+}
+
+const { title, description, profile, noindex = false } = Astro.props;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const canonical = new URL(Astro.url.pathname, site).href;
+const ogImage = new URL('/og.png', site).href;
+const current = profile.experience[0];
+
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  jobTitle: 'Technical Lead',
+  description: profile.about,
+  url: new URL('/', site).href,
+  image: ogImage,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Kolkata',
+    addressRegion: 'West Bengal',
+    addressCountry: 'IN',
+  },
+  worksFor: current ? { '@type': 'Organization', name: current.company } : undefined,
+  alumniOf: profile.education.map((e) => ({ '@type': 'CollegeOrUniversity', name: e.school })),
+  knowsAbout: [
+    'Flutter',
+    'React',
+    'Next.js',
+    'FastAPI',
+    'Go',
+    'AWS',
+    'Generative AI',
+    'Technical leadership',
+  ],
+  sameAs: [profile.contact.linkedin, profile.contact.github].filter(
+    (u) => !u.includes('your-username'),
+  ),
+};
+// Escape "<" so the JSON can never close the script element.
+const jsonLd = JSON.stringify(person).replace(/</g, '\\u003c');
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex" />}
+<meta name="theme-color" content="#1b1a3a" />
+<meta name="color-scheme" content="light" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="manifest" href="/site.webmanifest" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+<meta property="og:type" content="profile" />
+<meta property="og:site_name" content={profile.name} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta
+  property="og:image:alt"
+  content={`${profile.name} — his avatar waving hello on a night sky`}
+/>
+<meta property="profile:first_name" content={profile.name.split(' ')[0]} />
+<meta property="profile:last_name" content={profile.name.split(' ').slice(1).join(' ')} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<script type="application/ld+json" set:html={jsonLd} />

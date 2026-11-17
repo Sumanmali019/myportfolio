@@ -1,0 +1,56 @@
+# Optional: Vercel preview deploys for pull requests.
+# Needs repository secrets VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID
+# (from `vercel link` → .vercel/project.json). Skips itself when they are not set.
+name: Preview
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check for Vercel secrets
+        id: guard
+        run: echo "enabled=${{ env.VERCEL_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.enabled == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.guard.outputs.enabled == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Deploy preview
+        if: steps.guard.outputs.enabled == 'true'
+        id: deploy
+        run: |
+          pnpm install --frozen-lockfile
+          npx vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          npx vercel@latest build --token="$VERCEL_TOKEN"
+          url=$(npx vercel@latest deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL
+        if: steps.guard.outputs.enabled == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: `Preview: ${{ steps.deploy.outputs.url }}`,
+            });

@@ -1,0 +1,139 @@
+/*
+ * One block per scene palette (see `palette` in src/content/scenes.ts). The engine reads these
+ * once and blends between them during transitions. Values must be hex colours.
+ * The arc: night → warm campus dawn → bright day → orange dusk → indigo night.
+ */
+:root,
+[data-palette='night'] {
+  --sky-top: #1b1a3a;
+  --sky-bot: #3a2f63;
+  --wall: #2f2c57;
+  --wall-d: #26234a;
+  --floor: #3a3560;
+  --floor-d: #2f2a52;
+  --light: #ffe9a8;
+  --accent: #f2b84b;
+  --stage: #1b1a3a;
+}
+
+[data-palette='campus'] {
+  --sky-top: #f6bf98;
+  --sky-bot: #fbe6c4;
+  --wall: #f0dcc0;
+  --wall-d: #ddc4a3;
+  --floor: #c9a27e;
+  --floor-d: #b38b67;
+  --light: #ffe3a6;
+  --accent: #c8674a;
+  --stage: #f3d2b0;
+}
+
+[data-palette='morning'] {
+  --sky-top: #bfe0f0;
+  --sky-bot: #fdf0d8;
+  --wall: #f3e7d3;
+  --wall-d: #e2d2b8;
+  --floor: #cfae8a;
+  --floor-d: #b9946f;
+  --light: #fff1c2;
+  --accent: #3f8f8b;
+  --stage: #f1e4cf;
+}
+
+[data-palette='day'] {
+  --sky-top: #9fd0ea;
+  --sky-bot: #e8f4f6;
+  --wall: #e9ecdc;
+  --wall-d: #d3d8c2;
+  --floor: #c99e78;
+  --floor-d: #b0855f;
+  --light: #fff6d6;
+  --accent: #c8674a;
+  --stage: #e9eadc;
+}
+
+[data-palette='afternoon'] {
+  --sky-top: #f6d59a;
+  --sky-bot: #fbecc9;
+  --wall: #f1e2c8;
+  --wall-d: #ddc9a8;
+  --floor: #c4936b;
+  --floor-d: #a97a54;
+  --light: #ffe3a0;
+  --accent: #3f8f8b;
+  --stage: #efdcc0;
+}
+
+[data-palette='dusk'] {
+  --sky-top: #e9764a;
+  --sky-bot: #f9c27a;
+  --wall: #e9b48a;
+  --wall-d: #d49a6f;
+  --floor: #a8714d;
+  --floor-d: #8d5a3b;
+  --light: #ffcf8a;
+  --accent: #2f2c57;
+  --stage: #e6a676;
+}
+
+[data-palette='evening'] {
+  --sky-top: #3d3b78;
+  --sky-bot: #c26d6d;
+  --wall: #4a4573;
+  --wall-d: #3d3962;
+  --floor: #5a4f7a;
+  --floor-d: #4a4068;
+  --light: #ffd89a;
+  --accent: #f2b84b;
+  --stage: #3a3766;
+}
+
+[data-palette='late'] {
+  --sky-top: #141432;
+  --sky-bot: #2a2756;
+  --wall: #2b2850;
+  --wall-d: #221f42;
+  --floor: #34305a;
+  --floor-d: #2a274c;
+  --light: #ffe9a8;
+  --accent: #f2b84b;
+  --stage: #1e1c3e;
+}
+
+[data-palette='spot'] {
+  --sky-top: #0d0c1e;
+  --sky-bot: #1c1a36;
+  --wall: #23213e;
+  --wall-d: #1b1a33;
+  --floor: #2a2747;
+  --floor-d: #211f3b;
+  --light: #fff3c4;
+  --accent: #a68cf0;
+  --stage: #121124;
+}
+
+/* Palette-driven SVG surfaces. */
+.p-wall {
+  fill: var(--wall);
+}
+.p-wall-d {
+  fill: var(--wall-d);
+}
+.p-floor {
+  fill: var(--floor);
+}
+.p-floor-d {
+  fill: var(--floor-d);
+}
+.p-light {
+  fill: var(--light);
+}
+.p-accent {
+  fill: var(--accent);
+}
+.s-top {
+  stop-color: var(--sky-top);
+}
+.s-bot {
+  stop-color: var(--sky-bot);
+}

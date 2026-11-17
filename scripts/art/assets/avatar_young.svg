@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#6b6e75"/>
+      <stop offset="100%" stop-color="#2c2e33"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c6905f"/>
+      <stop offset="100%" stop-color="#b37c50"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bg)"/>
+
+  <!-- Backpack (behind body) -->
+  <rect x="96" y="268" width="208" height="160" rx="40" fill="#2f6b4f"/>
+  <path d="M104,296 Q104,270 140,268 L260,268 Q296,270 296,296 Z" fill="#3a805f"/>
+  <path d="M176,268 Q200,248 224,268" stroke="#24543d" stroke-width="7" fill="none" stroke-linecap="round"/>
+
+  <!-- Neck -->
+  <path d="M172,228 L228,228 L232,296 Q200,312 168,296 Z" fill="#a6704a"/>
+
+  <!-- T-shirt -->
+  <path d="M38,400 C46,330 108,302 160,290 L240,290 C292,302 354,330 362,400 Z" fill="#d94f45"/>
+  <path d="M164,290 Q200,322 236,290" stroke="#b73d35" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M96,336 Q104,366 100,400 M304,336 Q296,366 300,400" stroke="#b73d35" stroke-width="3" fill="none"/>
+
+  <!-- Backpack straps over shoulders -->
+  <path d="M120,300 C130,296 146,294 152,296 L140,400 L112,400 Z" fill="#2f6b4f"/>
+  <path d="M280,300 C270,296 254,294 248,296 L260,400 L288,400 Z" fill="#2f6b4f"/>
+  <path d="M136,300 L126,400 M264,300 L274,400" stroke="#24543d" stroke-width="2" stroke-dasharray="5 4"/>
+  <rect x="116" y="352" width="30" height="14" rx="3" fill="#c9ccd3"/>
+  <rect x="254" y="352" width="30" height="14" rx="3" fill="#c9ccd3"/>
+
+  <!-- Ears -->
+  <ellipse cx="128" cy="174" rx="13" ry="21" fill="#b37c50"/>
+  <ellipse cx="272" cy="174" rx="13" ry="21" fill="#b37c50"/>
+  <path d="M124,166 Q130,174 125,184 M276,166 Q270,174 275,184" stroke="#9c6842" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Face (rounder, beardless) -->
+  <ellipse cx="200" cy="166" rx="73" ry="82" fill="url(#skin)"/>
+
+  <!-- Hair -->
+  <path d="M127,158 C112,95 145,48 200,46 C258,46 290,92 274,158 C270,128 262,112 246,104 C222,92 178,92 156,102 C140,110 131,128 127,158 Z" fill="#17120f"/>
+  <circle cx="160" cy="66" r="18" fill="#17120f"/>
+  <circle cx="190" cy="54" r="20" fill="#17120f"/>
+  <circle cx="222" cy="56" r="19" fill="#17120f"/>
+  <circle cx="250" cy="70" r="17" fill="#17120f"/>
+  <circle cx="140" cy="88" r="15" fill="#17120f"/>
+  <circle cx="264" cy="94" r="14" fill="#17120f"/>
+  <path d="M175,70 q12,-8 22,2 M210,66 q12,-6 20,4" stroke="#3a2c24" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Cheeks -->
+  <ellipse cx="150" cy="200" rx="13" ry="8" fill="#e07a6a" opacity="0.35"/>
+  <ellipse cx="250" cy="200" rx="13" ry="8" fill="#e07a6a" opacity="0.35"/>
+
+  <!-- Smile -->
+  <path d="M176,214 Q200,240 224,214 Q200,226 176,214 Z" fill="#7a2f28"/>
+  <path d="M180,215 Q200,222 220,215 L218,219 Q200,226 182,219 Z" fill="#ffffff"/>
+  <path d="M190,236 Q200,240 210,236" stroke="#9c6842" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Eyebrows (thinner) -->
+  <path d="M146,140 Q166,131 188,138" stroke="#17120f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M212,138 Q234,131 254,140" stroke="#17120f" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+  <!-- Eyes (a little bigger) -->
+  <ellipse cx="167" cy="165" rx="11" ry="8" fill="#ffffff"/>
+  <ellipse cx="233" cy="165" rx="11" ry="8" fill="#ffffff"/>
+  <circle cx="167" cy="165" r="6" fill="#2a1a12"/>
+  <circle cx="233" cy="165" r="6" fill="#2a1a12"/>
+  <circle cx="169.5" cy="162.5" r="2" fill="#ffffff"/>
+  <circle cx="235.5" cy="162.5" r="2" fill="#ffffff"/>
+
+  <!-- Nose (smaller) -->
+  <path d="M200,172 Q198,184 193,190 Q200,196 207,190" stroke="#8a5a38" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- Glasses -->
+  <rect x="138" y="146" width="56" height="38" rx="7" fill="#ffffff" fill-opacity="0.12" stroke="#0c0c0c" stroke-width="5"/>
+  <rect x="206" y="146" width="56" height="38" rx="7" fill="#ffffff" fill-opacity="0.12" stroke="#0c0c0c" stroke-width="5"/>
+  <path d="M194,158 Q200,153 206,158" stroke="#0c0c0c" stroke-width="4" fill="none"/>
+  <path d="M138,156 L126,160 M262,156 L274,160" stroke="#0c0c0c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M146,152 L156,152 M214,152 L224,152" stroke="#ffffff" stroke-opacity="0.6" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
