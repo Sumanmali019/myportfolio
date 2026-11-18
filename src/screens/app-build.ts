@@ -1,5 +1,6 @@
 /**
- * Chapter 03 monitor (content: src/content/showcase.ts), driven by hold progress:
+ * Chapter 03 and 05 monitors (content: src/content/showcase.ts), driven by hold progress
+ * (chapter 05 has no lessons and starts after its CI/CD pipeline — see AppBuildOptions):
  *
  *   0 → LEARN_END   learning — a syllabus (Dart, Flutter, Testing, Firebase, React) ticks off
  *                   while a lesson panel shows each topic's code; we see Suman from behind.
@@ -9,6 +10,9 @@
  *                   release build. By now his hands are on the keyboard (scenes/03-cloudcraftz).
  *   BUILD_END → 1   released — each app's first production release, live on its Play Store
  *                   listing: title, publisher, downloads, logo, Install, screenshots, LIVE stamp.
+ *
+ * Web apps (a showcase entry with `site`, chapter 09b) swap the phones for a browser window
+ * whose pages slide past, and the Play Store listing for the deployed site in the browser.
  */
 import type { Lesson, Showcase } from '../content/showcase';
 import type { Screen } from '../engine/types';
@@ -32,9 +36,34 @@ interface Built {
   barW: number;
   status: SVGTextElement;
   app: Showcase;
+  /** Web app: the browser window's pages slide instead of the phone ring turning. */
+  web: boolean;
 }
 
-export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Lesson[]): Screen {
+export interface AppBuildOptions {
+  /** Hold progress before which the whole screen is hidden (another screen shows instead). */
+  start?: number;
+  /** Where learning ends and building starts (defaults to LEARN_END; no lessons: `start`). */
+  learnEnd?: number;
+  /** Where building ends and the store listings start. */
+  buildEnd?: number;
+  /** Where the store listings are all done (the last one then stays up). */
+  end?: number;
+  /** Hold progress from which the whole screen is hidden again (another screen follows). */
+  stop?: number;
+}
+
+export function appBuild(
+  rect: SVGGraphicsElement,
+  apps: Showcase[],
+  lessons: Lesson[],
+  opts: AppBuildOptions = {},
+): Screen {
+  const start = opts.start ?? 0;
+  const learnEnd = opts.learnEnd ?? (lessons.length ? LEARN_END : start);
+  const buildEnd = opts.buildEnd ?? BUILD_END;
+  const end = opts.end ?? 1;
+  const stop = opts.stop ?? Infinity;
   const { g, x, y, w, h, u } = screenFrame(rect);
   const fs = Math.min(u * 2.4, h / 22);
   const th = fs * 2.3; // title bar
@@ -64,6 +93,55 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
       'font-size': fs * 0.85,
       fill: UI.text,
     });
+  };
+
+  /** A light browser window at (bx, by), its page (a screenshot) clipped under the chrome. */
+  const browser = (
+    parent: Element,
+    bx: number,
+    by: number,
+    bw: number,
+    bh: number,
+    href: string,
+    url: string,
+  ) => {
+    const bar = Math.max(fs * 1.25, bh * 0.07);
+    svgEl('rect', { x: bx, y: by, width: bw, height: bh, rx: fs * 0.4, fill: '#ffffff' }, parent);
+    svgEl('rect', { x: bx, y: by, width: bw, height: bar, rx: fs * 0.4, fill: '#e3e6ec' }, parent);
+    ['#e0665a', '#e3b341', '#5bb974'].forEach((c, i) =>
+      svgEl(
+        'circle',
+        { cx: bx + bar * (0.5 + i * 0.42), cy: by + bar / 2, r: bar * 0.13, fill: c },
+        parent,
+      ),
+    );
+    const ax = bx + bar * 1.7;
+    svgEl(
+      'rect',
+      {
+        x: ax,
+        y: by + bar * 0.2,
+        width: Math.min(bw * 0.6, bw - bar * 2.2),
+        height: bar * 0.6,
+        rx: bar * 0.3,
+        fill: '#ffffff',
+      },
+      parent,
+    );
+    svgText(parent, ax + bar * 0.35, by + bar * 0.64, `🔒 ${url}`, {
+      'font-size': bar * 0.38,
+      fill: '#5f6368',
+    });
+    const page = svgEl(
+      'svg',
+      { x: bx, y: by + bar, width: bw, height: bh - bar, viewBox: `0 0 ${bw} ${bh - bar}` },
+      parent,
+    );
+    svgEl(
+      'image',
+      { href, x: 0, y: 0, width: bw, height: bh - bar, preserveAspectRatio: 'xMidYMin slice' },
+      page,
+    );
   };
 
   /* ---------- learning ---------- */
@@ -133,6 +211,11 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
   const cx = Math.max(x + codeW + pw * 1.05, x + w - pw * 0.95);
   const cy = bodyY + bodyH / 2;
   const pad = fs * 0.32;
+  // Web apps: a browser window in the same place, as big as fits.
+  const webX = x + codeW + fs * 0.8;
+  const webW = x + w - fs * 0.8 - webX;
+  const webH = Math.min(bodyH - fs * 1.2, webW * 0.62);
+  const webY = bodyY + (bodyH - webH) / 2;
 
   const built: Built[] = apps.map((app) => {
     const group = svgEl('g', { 'data-app': app.key }, g);
@@ -165,31 +248,53 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
     const ring = svgEl('g', {}, group);
     const iw = pw - pad * 2;
     const ih = ph - pad * 4;
-    const slides = app.shots.map((href) => {
-      const el = svgEl('g', {}, ring);
-      svgEl(
-        'rect',
-        { x: cx - pw / 2, y: cy - ph / 2, width: pw, height: ph, rx: fs * 0.9, fill: '#0b0d14' },
-        el,
-      );
-      const view = svgEl(
-        'svg',
-        {
-          x: cx - pw / 2 + pad,
-          y: cy - ph / 2 + pad * 2,
-          width: iw,
-          height: ih,
-          viewBox: `0 0 ${iw} ${ih}`,
-        },
-        el,
-      );
-      svgEl(
-        'image',
-        { href, x: 0, y: 0, width: iw, height: ih, preserveAspectRatio: 'xMidYMin slice' },
-        view,
-      );
-      return el;
-    });
+    const site = app.site;
+    // Web app: one browser window right of the code; its pages slide past inside it.
+    const area = site
+      ? svgEl(
+          'svg',
+          { x: webX, y: webY, width: webW, height: webH, viewBox: `0 0 ${webW} ${webH}` },
+          ring,
+        )
+      : null;
+    const slides = area
+      ? app.shots.map((href) => {
+          const el = svgEl('g', {}, area);
+          browser(el, 0, 0, webW, webH, href, site!.url);
+          return el;
+        })
+      : app.shots.map((href) => {
+          const el = svgEl('g', {}, ring);
+          svgEl(
+            'rect',
+            {
+              x: cx - pw / 2,
+              y: cy - ph / 2,
+              width: pw,
+              height: ph,
+              rx: fs * 0.9,
+              fill: '#0b0d14',
+            },
+            el,
+          );
+          const view = svgEl(
+            'svg',
+            {
+              x: cx - pw / 2 + pad,
+              y: cy - ph / 2 + pad * 2,
+              width: iw,
+              height: ih,
+              viewBox: `0 0 ${iw} ${ih}`,
+            },
+            el,
+          );
+          svgEl(
+            'image',
+            { href, x: 0, y: 0, width: iw, height: ih, preserveAspectRatio: 'xMidYMin slice' },
+            view,
+          );
+          return el;
+        });
     statusBar(group);
     const barW = w * 0.22;
     const barY = y + h - sb / 2 - fs * 0.25;
@@ -208,28 +313,89 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
       'font-size': fs * 0.85,
       fill: UI.text,
     });
-    return { group, lines, slides, ring, bar, barW, status, app };
+    return { group, lines, slides, ring, bar, barW, status, app, web: !!site };
   });
 
-  /* ---------- released: the Play Store listings ---------- */
+  /* ---------- released: the Play Store listings (web apps: the deployed site) ---------- */
   const STORE_GREEN = '#01875f';
+  /** A LIVE stamp, tilted, centred at (stx, sty). */
+  const liveStamp = (parent: Element, stx: number, sty: number, label: string, color: string) => {
+    const stamp = svgEl('g', { class: 'release-stamp' }, parent);
+    svgEl(
+      'rect',
+      {
+        x: stx - fs * 4.4,
+        y: sty - fs * 1.2,
+        width: fs * 8.8,
+        height: fs * 2.1,
+        rx: fs * 0.4,
+        fill: '#ffffff',
+        'fill-opacity': 0.9,
+        stroke: color,
+        'stroke-width': fs * 0.18,
+        transform: `rotate(-8 ${stx} ${sty})`,
+      },
+      stamp,
+    );
+    svgText(stamp, stx, sty + fs * 0.35, label, {
+      'font-size': fs * 0.95,
+      fill: color,
+      'text-anchor': 'middle',
+      transform: `rotate(-8 ${stx} ${sty})`,
+      class: 'title-text',
+    });
+    return stamp;
+  };
+  const siteRelease = (group: SVGGElement, app: Showcase, site: { url: string }) => {
+    svgEl('rect', { x, y: bodyY, width: w, height: bodyH, fill: '#ffffff' }, group);
+    tab(group, `${site.url} · production`, app.accent);
+    statusBar(group);
+    const steps: SVGElement[] = [];
+    // The live site fills the body, in the browser.
+    steps.push(svgEl('g', {}, group));
+    browser(
+      steps[0]!,
+      x + fs * 0.6,
+      bodyY + fs * 0.6,
+      w - fs * 1.2,
+      bodyH - fs * 1.2,
+      app.shots[0]!,
+      site.url,
+    );
+    const stamp = liveStamp(group, x + w - fs * 7, bodyY + fs * 5, 'LIVE · prod', STORE_GREEN);
+    const status = svgText(group, x + fs, y + h - sb / 2 + fs * 0.32, '', {
+      'font-size': fs * 0.85,
+      fill: UI.text,
+    });
+    return {
+      group,
+      steps,
+      stamp,
+      status,
+      app,
+      pending: `▶ Deploying ${app.name} to production…`,
+      live: `✓ ${app.name} is live · ${site.url}`,
+    };
+  };
   const released = apps.map((app) => {
     const group = svgEl('g', { 'data-release': app.key }, g);
+    if (app.site) return siteRelease(group, app, app.site);
+    const store = app.store ?? { title: app.name, publisher: '', downloads: '' };
     svgEl('rect', { x, y: bodyY, width: w, height: bodyH, fill: '#ffffff' }, group);
-    tab(group, `Play Store · ${app.store.title}`, STORE_GREEN);
+    tab(group, `Play Store · ${store.title}`, STORE_GREEN);
     statusBar(group);
     const left = x + fs * 2;
     const steps: SVGElement[] = [];
     const step = (el: SVGElement) => (steps.push(el), el);
     step(
-      svgText(group, left, bodyY + fs * 3.6, app.store.title, {
-        'font-size': Math.min(fs * 2.6, ((w * 0.55) / Math.max(6, app.store.title.length)) * 1.7),
+      svgText(group, left, bodyY + fs * 3.6, store.title, {
+        'font-size': Math.min(fs * 2.6, ((w * 0.55) / Math.max(6, store.title.length)) * 1.7),
         fill: '#202124',
         class: 'title-text',
       }),
     );
     step(
-      svgText(group, left, bodyY + fs * 5.3, app.store.publisher, {
+      svgText(group, left, bodyY + fs * 5.3, store.publisher, {
         'font-size': fs * 0.95,
         fill: STORE_GREEN,
       }),
@@ -248,8 +414,8 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
       });
     };
     let sx = left + fs * 2.4;
-    if (app.store.rating) {
-      stat(sx, app.store.rating, app.store.reviews ?? '');
+    if (store.rating) {
+      stat(sx, store.rating, store.reviews ?? '');
       svgEl(
         'rect',
         { x: sx + fs * 2.6, y: bodyY + fs * 6.6, width: 1, height: fs * 2.4, fill: '#dadce0' },
@@ -257,7 +423,7 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
       );
       sx += fs * 5.4;
     }
-    stat(sx, app.store.downloads, 'Downloads');
+    stat(sx, store.downloads, 'Downloads');
     const install = step(svgEl('g', {}, group));
     svgEl(
       'rect',
@@ -324,37 +490,38 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
         );
       });
     // "LIVE" stamp.
-    const stamp = svgEl('g', { class: 'release-stamp' }, group);
-    const stx = tx + tile / 2;
-    const sty = bodyY + fs * 1.4 + tile + fs * 2.6;
-    svgEl(
-      'rect',
-      {
-        x: stx - fs * 4.4,
-        y: sty - fs * 1.2,
-        width: fs * 8.8,
-        height: fs * 2.1,
-        rx: fs * 0.4,
-        fill: 'none',
-        stroke: STORE_GREEN,
-        'stroke-width': fs * 0.18,
-        transform: `rotate(-8 ${stx} ${sty})`,
-      },
-      stamp,
+    const stamp = liveStamp(
+      group,
+      tx + tile / 2,
+      bodyY + fs * 1.4 + tile + fs * 2.6,
+      'LIVE · v1.0',
+      STORE_GREEN,
     );
-    svgText(stamp, stx, sty + fs * 0.35, 'LIVE · v1.0', {
-      'font-size': fs * 0.95,
-      fill: STORE_GREEN,
-      'text-anchor': 'middle',
-      transform: `rotate(-8 ${stx} ${sty})`,
-      class: 'title-text',
-    });
     const status = svgText(group, x + fs, y + h - sb / 2 + fs * 0.32, '', {
       'font-size': fs * 0.85,
       fill: UI.text,
     });
-    return { group, steps, stamp, status, app };
+    return {
+      group,
+      steps,
+      stamp,
+      status,
+      app,
+      pending: `▶ Publishing ${app.name} to production…`,
+      live: `✓ ${app.name} v1.0 is live on the Play Store · ${store.downloads} downloads`,
+    };
   });
+
+  /** Web apps: the page at `pos` fills the browser; the next slides in from the right. */
+  const placePages = (b: Built, pos: number) => {
+    const k = b.slides.length;
+    b.slides.forEach((el, j) => {
+      const d = mod(j - pos + k / 2, k) - k / 2;
+      const visible = Math.abs(d) < 1;
+      el.style.display = visible ? '' : 'none';
+      if (visible) el.setAttribute('transform', `translate(${(d * (webW + fs)).toFixed(1)} 0)`);
+    });
+  };
 
   /** Place the phones: `pos` is front and centre; neighbours sit beside it, smaller and turned. */
   const placeRing = (b: Built, pos: number) => {
@@ -381,11 +548,12 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
 
   return {
     update({ idle, reduced, hold }) {
-      const learning = hold < LEARN_END;
+      g.style.display = hold < start || hold >= stop ? 'none' : '';
+      const learning = lessons.length > 0 && hold < learnEnd;
       learn.style.display = learning ? '' : 'none';
 
       if (learning) {
-        const p = progress(hold, 0, LEARN_END);
+        const p = progress(hold, start, learnEnd);
         const n = lessons.length;
         const cur = Math.min(n - 1, Math.floor(p * n));
         topics.forEach((t, i) => {
@@ -403,13 +571,13 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
       }
 
       const nApps = built.length;
-      const bp = progress(hold, LEARN_END, BUILD_END);
-      const building = !learning && hold < BUILD_END;
+      const bp = progress(hold, learnEnd, buildEnd);
+      const building = hold >= learnEnd && hold < buildEnd;
       const active = building ? Math.min(nApps - 1, Math.floor(bp * nApps)) : -1;
 
       // Released: each app's store listing builds in, then the LIVE stamp lands.
-      const rp = progress(hold, BUILD_END, 1);
-      const live = hold >= BUILD_END ? Math.min(nApps - 1, Math.floor(rp * nApps)) : -1;
+      const rp = progress(hold, buildEnd, end);
+      const live = hold >= buildEnd ? Math.min(nApps - 1, Math.floor(rp * nApps)) : -1;
       released.forEach((r, i) => {
         const on = i === live;
         r.group.style.display = on ? '' : 'none';
@@ -420,12 +588,7 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
         const st = progress(p, 0.55, 0.65);
         r.stamp.style.visibility = st > 0 ? '' : 'hidden';
         r.stamp.setAttribute('opacity', st.toFixed(2));
-        setText(
-          r.status,
-          st > 0
-            ? `✓ ${r.app.name} v1.0 is live on the Play Store · ${r.app.store.downloads} downloads`
-            : `▶ Publishing ${r.app.name} to production…`,
-        );
+        setText(r.status, st > 0 ? r.live : r.pending);
       });
       built.forEach((b, i) => {
         const on = i === active;
@@ -444,14 +607,15 @@ export function appBuild(rect: SVGGraphicsElement, apps: Showcase[], lessons: Le
           const frac = steps - Math.floor(steps);
           pos = Math.floor(steps) + easeInOut(progress(frac, 1 - TURN_SECONDS / STEP_SECONDS, 1));
         }
-        placeRing(b, pos);
+        if (b.web) placePages(b, pos);
+        else placeRing(b, pos);
 
         const build = progress(p, 0.6, 0.9);
         b.bar.setAttribute('width', (b.barW * build).toFixed(1));
         setText(
           b.status,
           p < 0.6
-            ? `● ${b.app.name} · flutter run`
+            ? `● ${b.app.name} · ${b.web ? 'npm run dev' : 'flutter run'}`
             : build < 1
               ? `▶ Building ${b.app.name} release… ${Math.round(build * 100)}%`
               : `✓ ${b.app.name} release build ready`,

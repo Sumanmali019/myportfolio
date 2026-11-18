@@ -29,7 +29,7 @@ test.describe('layouts', () => {
       lastYear = year;
     }
     await expect(page.locator('#hud-odometer')).toBeVisible();
-    await expect(page.locator('#hud-odo')).toHaveText('520,000');
+    await expect(page.locator('#hud-odo')).toHaveText('560,150');
     expect(errors).toEqual([]);
   });
 

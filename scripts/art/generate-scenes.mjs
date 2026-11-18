@@ -196,6 +196,191 @@ const TYPING = (() => {
 /** Where the typing hands sit: keyboard on the desk under the monitor, arms from the bottom. */
 const TYPING_AT = { d: { x: 590, y: 447, k: 1.1 }, m: { x: 55, y: 613, k: 0.7 } };
 
+/**
+ * Interview at BeWorld (`src/assets/lottie/interview-offer-mail.json`, 640×400): the video
+ * interview, then the offer mail and its PDF. Shown on the desk monitor in chapter 04.
+ */
+const INTERVIEW = JSON.parse(
+  readFileSync(
+    new URL('../../src/assets/lottie/interview-offer-mail.json', import.meta.url),
+    'utf8',
+  ),
+);
+// The offer letter PDF's company line is outlined glyphs reading "ACME TECH" (light, centred
+// under OFFER LETTER): swap them for live text naming BeWorld, in the same colour and size.
+(() => {
+  const pdf = INTERVIEW.layers.find((l) => l.nm === 'offer letter pdf');
+  const grp = pdf?.shapes[15];
+  if (!grp || grp.ty !== 'gr' || grp.it.filter((i) => i.ty === 'sh').length !== 9)
+    throw new Error('interview Lottie: offer letter company line not where expected');
+  grp.it = [
+    {
+      ty: 'raw',
+      svg: '<text x="0" y="-100" fill="#c9d4e3" font-family="Arial, Helvetica, sans-serif" font-size="8.4" font-weight="700" letter-spacing="0.8" text-anchor="middle">BEWORLD</text>',
+    },
+    ...grp.it.filter((i) => i.ty === 'tr'),
+  ];
+})();
+/**
+ * Interview at Neura Dynamics (`src/assets/lottie/interview-offer-mail-neura.json`, 640×400):
+ * the same video call → offer mail → PDF story, branded for Neura Dynamics. Chapter 08.
+ */
+const INTERVIEW_NEURA = JSON.parse(
+  readFileSync(
+    new URL('../../src/assets/lottie/interview-offer-mail-neura.json', import.meta.url),
+    'utf8',
+  ),
+);
+/**
+ * Kolkata → Hyderabad (`src/assets/lottie/india-flight-ccu-hyd.json`, 600×700): the map,
+ * route and plane, shown on the seat-back screen in the flight chapter.
+ */
+const FLIGHT_MAP = JSON.parse(
+  readFileSync(
+    new URL('../../src/assets/lottie/india-flight-ccu-hyd.json', import.meta.url),
+    'utf8',
+  ),
+);
+/** Hyderabad → Kolkata (`src/assets/lottie/india-flight-hyd-ccu.json`): the flight home. */
+const FLIGHT_HOME = JSON.parse(
+  readFileSync(
+    new URL('../../src/assets/lottie/india-flight-hyd-ccu.json', import.meta.url),
+    'utf8',
+  ),
+);
+
+/**
+ * Hyderabad, day to night (`src/assets/lottie/day-night-hyd.json`, 1440×900): the whole room —
+ * window, desk, monitor with the release pipeline, the BeWorld and Current Affairs phones, Suman
+ * from behind — working by day, then dusk, then studying by lamplight. Chapter 05.
+ */
+const DAY_NIGHT = (() => {
+  const anim = JSON.parse(
+    readFileSync(new URL('../../src/assets/lottie/day-night-hyd.json', import.meta.url), 'utf8'),
+  );
+  // Suman (the 'me head' / 'me body' layers) stands at x≈300 in the file: move him to the
+  // centre of the desk, in front of the monitor by day and the laptop by night.
+  const dx = 460;
+  for (const l of anim.layers) {
+    if (l.nm !== 'me head' && l.nm !== 'me body') continue;
+    // Position, not anchor: the head still nods about the base of its neck.
+    l.ks.p.k[0] += dx;
+  }
+  return anim;
+})();
+const isMe = (l) => l.nm === 'me head' || l.nm === 'me body';
+/** The room without Suman, and Suman on his own: drawn on top so he sits in front of the desk. */
+/** Bounds of every path vertex in a shape item (recursing into groups). */
+function shapeBounds(item, b = [Infinity, Infinity, -Infinity, -Infinity]) {
+  if (item.ty === 'gr') for (const it of item.it) shapeBounds(it, b);
+  if (item.ty === 'sh')
+    for (const [x, y] of item.ks.k.v) {
+      b[0] = Math.min(b[0], x);
+      b[1] = Math.min(b[1], y);
+      b[2] = Math.max(b[2], x);
+      b[3] = Math.max(b[3], y);
+    }
+  return b;
+}
+/** Is this group the Lottie's monitor (body, stand, screen and the pipeline on it)? */
+const onLottieMonitor = (item) => {
+  const [x0, y0, x1, y1] = shapeBounds(item);
+  return x0 >= 555 && x1 <= 1085 && y0 >= 245 && y1 <= 610;
+};
+/** The room without Suman and without the Lottie's monitor (the bigger one replaces it). */
+const DAY_NIGHT_ROOM = {
+  ...DAY_NIGHT,
+  layers: DAY_NIGHT.layers
+    .filter((l) => !isMe(l))
+    .map((l) =>
+      l.nm === 'day props' ? { ...l, shapes: l.shapes.filter((g) => !onLottieMonitor(g)) } : l,
+    ),
+};
+const DAY_NIGHT_ME = { ...DAY_NIGHT, layers: DAY_NIGHT.layers.filter(isMe) };
+/** Just the day things: their monitor screen (the pipeline) is shown on the bigger monitor. */
+const DAY_NIGHT_PIPE = {
+  ...DAY_NIGHT,
+  layers: DAY_NIGHT.layers.filter((l) => l.nm === 'day props'),
+};
+/** The Lottie's own monitor screen, in its coordinates. */
+const DAY_NIGHT_SCREEN = { x: 572, y: 262, w: 496, h: 276, fill: '#1d2133' };
+/** The bigger monitor, near chapter 03's size, clear of the phones (room coordinates). */
+const DAY_NIGHT_MONITOR = { x: 430, y: 96, w: 660, h: 450 };
+/** The typing hands: keyboard under the monitor (chapter 03's, shifted to this monitor's centre). */
+const DAY_NIGHT_TYPING_AT = { ...TYPING_AT.d, x: TYPING_AT.d.x - 50 };
+
+/**
+ * Flutter contributor (`src/assets/lottie/flutter-oss-contributor.json`, 1440×900): the whole
+ * room — the editor types the fix, the pull request is reviewed, checks pass and it merges,
+ * then the camera zooms into flutter/flutter's contributors with his photo, and the
+ * "Official Flutter Contributor" banner and confetti. Chapter 10.
+ * Patched in, inside its camera (so they zoom with the room): the live date calendar over
+ * its own, and Suman from behind in the middle of the desk, under the monitor, with the
+ * monitor's screen as the beat anchor and the PR link.
+ */
+/** Chapter 10's heading, over the room. */
+const ossLabel = (L) =>
+  part(
+    'label',
+    6,
+    text(L.W / 2, L.m ? 46 : 64, '★  HIGHLIGHT · OPEN SOURCE', L.m ? 13 : 20, C.mustard, {
+      'text-anchor': 'middle',
+      'letter-spacing': L.m ? 2 : 4,
+    }),
+  );
+const OSS = (() => {
+  const anim = JSON.parse(
+    readFileSync(
+      new URL('../../src/assets/lottie/flutter-oss-contributor.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const still = (shapes, nm) => ({
+    ddd: 0,
+    ind: 900 + anim.layers.length,
+    ty: 4,
+    nm,
+    sr: 1,
+    ao: 0,
+    ip: anim.ip,
+    op: anim.op,
+    st: 0,
+    bm: 0,
+    parent: 1,
+    ks: {
+      o: { a: 0, k: 100 },
+      r: { a: 0, k: 0 },
+      p: { a: 0, k: [0, 0, 0] },
+      a: { a: 0, k: [0, 0, 0] },
+      s: { a: 0, k: [100, 100, 100] },
+    },
+    shapes: [{ ty: 'gr', it: [{ ty: 'raw', svg: shapes }] }],
+  });
+  const cal = anim.layers.find((l) => l.nm === 'calendar');
+  const screen = anim.layers.findIndex((l) => l.nm.startsWith('screen:'));
+  if (!cal || screen < 0 || anim.layers[0].nm !== 'camera')
+    throw new Error('flutter Lottie: calendar / screens / camera not where expected');
+  // Same place and size as its own calendar (1240, 110, 120×150).
+  cal.shapes = [{ ty: 'gr', it: [{ ty: 'raw', svg: at(1240, 110, 1, K.calendar(120, 150)) }] }];
+  // Over the monitor and desk, under the screens' toast, banner and confetti (drawn later).
+  anim.layers.splice(
+    screen,
+    0,
+    still(
+      K.avatarBust('back', 820, 900, 0.9) +
+        rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor', 'data-link': 'flutter-pr' }),
+      'me',
+    ),
+  );
+  return anim;
+})();
+
+/** A Lottie's first frame in a nested <svg> filling (x, y, w, h); the scene animates it. */
+const lottieBox = (anim, id, pfx, x, y, w, h, fit = 'xMidYMid slice') =>
+  `<svg x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" viewBox="0 0 ${anim.w} ${anim.h}" preserveAspectRatio="${fit}" data-lottie="${id}">` +
+  renderLottie(anim, `${pfx}-${id}`, 0) +
+  `</svg>`;
+
 /** Only the motion (no shapes) goes to the browser: a few KB instead of ~60 KB each. */
 function writeMotion(anim, name) {
   const motion = {
@@ -548,207 +733,381 @@ const SCENES = {
     ];
   },
 
-  /* Transit — Kolkata → Hyderabad through the plane window. */
+  /* 04 — Kolkata, 2023: the BeWorld interview on a video call, then the offer mail and its
+     PDF, on the desk monitor (the interview Lottie; scenes/04-interview.ts plays it). */
+  '04-interview'(L, pfx) {
+    const m = L.m;
+    // Clear of the top badges, bottom on the desk; the screen keeps the Lottie's 16:10.
+    const [x, y, w, h] = m ? [10, 184, 370, 240] : [450, 100, 700, 446];
+    return [
+      ...deskRoom(L, pfx, { withMe: false }),
+      part(
+        'monitor',
+        4,
+        g(
+          at(
+            x,
+            y,
+            1,
+            K.monitor(w, h) + lottieBox(INTERVIEW, 'interview', pfx, 12, 12, w - 24, h - 24),
+          ),
+          { 'data-anchor': 'monitor' },
+        ),
+      ),
+      part('mug', 6, m ? at(330, 478, 0.6, K.mug()) : at(1240, 600, 1, K.mug())),
+    ];
+  },
+
+  /* Transit — Kolkata → Hyderabad: the in-flight map (the flight Lottie) on a seat-back
+     screen while a plane takes off outside. */
   '04-flight-hyd'(L, pfx) {
     return flight(L, pfx, {
       from: 'kolkata',
       to: 'hyderabad',
       board: ['DEPARTURES', 'CCU → HYD  ✈  2023', 'GATE 7 · BOARDING'],
       laptop: false,
+      lottie: FLIGHT_MAP,
     });
   },
 
   /* 05 — BeWorld, Hyderabad: pipeline, metrics, app cards, biryani, confetti. */
   '05-hyderabad'(L, pfx) {
     const m = L.m;
+    // The Lottie is the room. Desktop: 1:1. Mobile: its middle (x 200–1380) across the width,
+    // on wall and floor that continue its own.
+    const s = m ? L.W / 1180 : 1;
+    const [ox, oy] = m ? [-200 * s, 300] : [0, 0];
+    // Attributes go on a plain wrapper: anchors are transformed by CSS, so no transform attribute.
+    const inRoom = (inner, a) => (a ? g(at(ox, oy, s, inner), a) : at(ox, oy, s, inner));
     return [
-      ...deskRoom(L, pfx),
+      ...(m
+        ? [
+            part('wall', 0, rect(0, 0, L.W, L.H, '#eadfcd')),
+            part('floor', 0, rect(0, oy + 720 * s, L.W, L.H, '#b98f6a')),
+          ]
+        : []),
+      part(
+        'room',
+        1,
+        inRoom(lottieBox(DAY_NIGHT_ROOM, 'day-night', pfx, 0, 0, 1440, 900, 'xMidYMid meet')),
+      ),
+      // Over the Lottie's calendar (same place and size): the live date/city calendar, dimmed
+      // at night like the room under it (the dark veil follows the Lottie's darkness layer).
+      part(
+        'calendar',
+        2,
+        inRoom(
+          at(1240, 110, 1, K.calendar(120, 150)) +
+            rect(1240, 104, 120, 156, '#14163a', { opacity: 0, 'data-day': '4' }),
+        ),
+      ),
+      // A bigger monitor (as in chapter 03) over the Lottie's own: its screen shows the Lottie's
+      // pipeline, scaled up, then the app builds and store listings (scenes/05-beworld.ts).
+      // It fades with the Lottie's day layer.
       part(
         'monitor',
         4,
-        g(monitorAt(L, { 'data-screen': 'pipeline' }), { 'data-anchor': 'monitor' }),
+        inRoom(
+          (({ x, y, w, h }) => {
+            const S = DAY_NIGHT_SCREEN;
+            // Exactly the screen's aspect (centred), so nothing beyond the Lottie's screen shows.
+            const pw = w - 24;
+            const ph = Math.min(h - 24, (pw * S.h) / S.w);
+            const pipe =
+              `<svg x="12" y="${n(12 + (h - 24 - ph) / 2)}" width="${n(pw)}" height="${n(ph)}" viewBox="${S.x} ${S.y} ${S.w} ${S.h}" preserveAspectRatio="xMidYMid meet" data-lottie="day-night-pipe">` +
+              renderLottie(DAY_NIGHT_PIPE, `${pfx}-day-night-pipe`, 0) +
+              `</svg>`;
+            return at(
+              x,
+              y,
+              1,
+              rect(w / 2 - 14, h, 28, 46, C.dark) +
+                rect(w / 2 - 70, h + 42, 140, 12, C.dark, { rx: 6 }) +
+                rect(0, 0, w, h, C.ink, { rx: 12 }) +
+                rect(12, 12, w - 24, h - 24, S.fill, { rx: 4 }) +
+                pipe +
+                rect(12, 12, w - 24, h - 24, 'none', { rx: 4, 'data-screen': 'pipeline' }),
+            );
+          })(DAY_NIGHT_MONITOR),
+          { 'data-anchor': 'monitor', 'data-day': '7' },
+        ),
       ),
       part(
         'phone-beworld',
         5,
-        m
-          ? phoneAt(150, 515, 92, 165, { 'data-screen': 'app-beworld' })
-          : phoneAt(1110, 400, 110, 196, { 'data-screen': 'app-beworld' }),
+        inRoom(
+          rect(1117.7, 411.8, 94.6, 172.5, 'none', { rx: 6.6, 'data-screen': 'app-beworld' }),
+          {
+            'data-day': '6',
+          },
+        ),
       ),
       part(
         'phone-cadgk',
         5,
-        m
-          ? phoneAt(256, 530, 84, 150, { 'data-screen': 'app-cadgk' })
-          : phoneAt(1236, 414, 100, 182, { 'data-screen': 'app-cadgk' }),
-      ),
-      part(
-        'biryani',
-        6,
-        g(m ? at(335, 478, 0.55, K.biryani()) : at(470, 600, 1, K.biryani()), {
-          'data-anchor': 'biryani',
+        inRoom(rect(1243, 424.9, 86, 160.2, 'none', { rx: 6, 'data-screen': 'app-cadgk' }), {
+          'data-day': '5',
         }),
       ),
-      g('', { 'data-confetti': true, 'data-c': m ? '195 420' : '1220 380' }),
+      // Suman from behind, centred at the desk (the Lottie's own layers, drawn over the desk
+      // things); while the code types he hands over to his hands on the keyboard, as in 03.
+      part(
+        'me-desk',
+        6,
+        inRoom(lottieBox(DAY_NIGHT_ME, 'day-night-me', pfx, 0, 0, 1440, 900, 'xMidYMid meet')),
+      ),
+      part(
+        'typing',
+        7,
+        g(
+          inRoom(
+            at(
+              DAY_NIGHT_TYPING_AT.x,
+              DAY_NIGHT_TYPING_AT.y,
+              DAY_NIGHT_TYPING_AT.k,
+              renderLottie(TYPING, `${pfx}-type`, 0),
+            ),
+          ),
+          { 'data-typing': true, opacity: 0, transform: `translate(0 ${n(160 * s)})` },
+        ),
+      ),
+      // Night: Scaler on the laptop — its header bar gets the Scaler logo and the module being
+      // studied (scenes/05-beworld.ts); it fades in with the Lottie's night lamp & laptop layer.
+      part(
+        'laptop-scaler',
+        6,
+        inRoom(rect(630, 430, 270, 22, 'none', { 'data-screen': 'scaler' }), { 'data-day': '3' }),
+      ),
+      // The biryani pot on the desk (in the Lottie) — where its speech bubble points.
+      part('biryani', 6, inRoom(rect(420, 520, 100, 86, 'none', { 'data-anchor': 'biryani' }))),
+      g('', {
+        'data-confetti': true,
+        'data-c': m ? `${n(ox + 1220 * s)} ${n(oy + 380 * s)}` : '1220 380',
+      }),
     ];
   },
 
-  /* 06 — late nights with Scaler; skill badges stack on the shelf. */
-  '06-late-nights'(L, pfx) {
-    const m = L.m;
-    return [
-      ...deskRoom(L, pfx, { windowId: 'night-window', morph: null, view: 'night' }),
-      part(
-        'shelves',
-        3,
-        m
-          ? at(180, 210, 1, K.shelf(190)) +
-              rect(180, 140, 190, 66, 'none', { 'data-badges': true }) +
-              at(180, 330, 1, K.shelf(190)) +
-              K.books(190, 330, 9, 54, 9)
-          : at(880, 230, 1, K.shelf(320)) +
-              rect(880, 140, 320, 86, 'none', { 'data-badges': true }) +
-              at(880, 380, 1, K.shelf(320)) +
-              K.books(895, 380, 14, 80, 9),
-      ),
-      part('lamp', 5, m ? at(45, 478, 0.65, K.lamp()) : at(470, 600, 1.1, K.lamp())),
-      part(
-        'laptop',
-        5,
-        m
-          ? at(130, 368, 1, K.laptop(175, { 'data-screen': 'scaler' }))
-          : at(620, 420, 1, K.laptop(290, { 'data-screen': 'scaler' })),
-      ),
-      part('mug', 6, m ? at(340, 478, 0.6, K.mug(1, C.teal)) : at(1000, 600, 1, K.mug(1, C.teal))),
-    ];
-  },
-
-  /* Transit — Hyderabad → Kolkata; the laptop gets a REMOTE sticker. */
+  /* Transit — Hyderabad → Kolkata: the return in-flight map (its Lottie) on the seat-back
+     screen; the laptop on the tray gets a REMOTE sticker. */
   '07-flight-home'(L, pfx) {
     return flight(L, pfx, {
       from: 'hyderabad',
       to: 'kolkata',
       board: ['ARRIVALS', 'HYD → CCU  ✈  2024', 'BELT 3 · WELCOME HOME'],
       laptop: true,
+      lottie: FLIGHT_HOME,
     });
   },
 
-  /* 08 — remote from Kolkata, Neura Dynamics: three phones + streaming chat. */
-  '08-remote'(L, pfx) {
+  /* 08 — Kolkata, 2024: back home, the Neura Dynamics interview on a video call, then the
+     offer mail and its PDF, on the desk monitor (scenes/08-interview.ts plays it). */
+  '08-interview'(L, pfx) {
     const m = L.m;
-    const phones = m
-      ? [
-          [20, 515],
-          [149, 510],
-          [278, 515],
-        ].map(([x, y]) => [x, y, 92, 160])
-      : [
-          [1108, 410, 78, 150],
-          [1192, 396, 78, 150],
-          [1276, 410, 78, 150],
-        ];
-    const keys = ['docpharma', 'klass-online', 'ayantra'];
-    const out = [
-      ...deskRoom(L, pfx, { windowId: 'home-window', morph: 'window' }),
+    const [x, y, w, h] = m ? [10, 184, 370, 240] : [450, 100, 700, 446];
+    return [
+      ...deskRoom(L, pfx, { windowId: 'home-window', withMe: false }),
       part(
         'monitor',
         4,
-        g(monitorAt(L, { 'data-screen': 'sse-vs-ws', 'data-link': 'sse-repo' }), {
-          'data-anchor': 'monitor',
-        }),
+        g(
+          at(
+            x,
+            y,
+            1,
+            K.monitor(w, h) + lottieBox(INTERVIEW_NEURA, 'interview', pfx, 12, 12, w - 24, h - 24),
+          ),
+          { 'data-anchor': 'monitor' },
+        ),
       ),
-      ...keys.map((k, i) =>
-        part(`phone-${k}`, 5, phoneAt(...phones[i], { 'data-screen': `app-${k}` })),
-      ),
+      part('mug', 6, m ? at(330, 478, 0.6, K.mug()) : at(1240, 600, 1, K.mug())),
     ];
-    if (!m) out.push(part('laptop', 5, at(400, 470, 1, K.laptop(170)), { 'data-morph': 'laptop' }));
-    return out;
   },
 
-  /* 09 — leading the team: video-call grid, sprint board, PR reviews, 1:1. */
+  /* 09 — leading the team at Neura Dynamics: one whole working day on the big monitor.
+     Morning: the team sync (Suman on screen, laughing). Then his hands rise onto the keyboard
+     and the screen moves through the day, one app at a time, each with a status strip naming
+     the app and the time — late morning on the Jira board, the afternoon in Docker, the
+     evening writing the backend, the night reviewing and merging on GitHub. Outside, the
+     light goes afternoon gold, then dusk, then night, and the desk lamp comes on
+     (scenes/09-leading.ts drives all of it). */
   '09-leading'(L, pfx) {
     const m = L.m;
-    const cards = ['PR #482 · approved ✓', 'PR #490 · 2 comments', '1:1 · mentoring · 4 pm'];
-    // Desktop: the cards sit on a tablet standing on the desk (clear of the avatar's head).
-    const tablet = m ? '' : rect(1162, 470, 236, 130, C.ink, { rx: 12 });
-    const cardEls =
-      tablet +
-      cards
-        .map((c, i) => {
-          const [x, y, w, h, fs] = m
-            ? [180, 500 + i * 52, 196, 42, 11]
-            : [1172, 480 + i * 38, 216, 32, 12];
-          return (
-            rect(x, y, w, h, C.paper, { rx: 6 }) +
-            rect(x, y, 6, h, [C.teal, C.mustard, C.terra][i], { rx: 3 }) +
-            text(x + 14, y + h * 0.64, c, fs, C.ink)
-          );
-        })
-        .join('');
-    return [
-      ...deskRoom(L, pfx, { windowId: 'home-window', morph: null }),
+    const [mx, my, mw, mh] = m ? [10, 172, 370, 252] : [440, 96, 740, 450];
+    // The screen inside the monitor (K.monitor's bezel is 12 on every side).
+    const [sx, sy, sw, sh] = [mx + 12, my + 12, mw - 24, mh - 24];
+    // Each app fills the screen above a status strip: app name left, clock right.
+    const strip = m ? 16 : 26;
+    const fs = m ? 8 : 13;
+    const app = (key, name, time, dot) =>
+      g(
+        rect(sx, sy, sw, sh - strip, C.screen, { 'data-screen': key }) +
+          rect(sx, sy + sh - strip, sw, strip, '#0b0d16') +
+          circle(sx + fs, sy + sh - strip / 2, fs * 0.35, dot) +
+          text(sx + fs * 1.8, sy + sh - strip / 2 + fs * 0.36, name, fs, '#ece6d9') +
+          text(sx + sw - fs, sy + sh - strip / 2 + fs * 0.36, time, fs, '#ece6d9', {
+            'text-anchor': 'end',
+          }),
+        { 'data-pane': key, opacity: 0 },
+      );
+    // Later light: extra windows over the day one, each with its own fixed sky.
+    const [wx, wy, ww, wh] = m ? [20, 60, 150, 130] : [70, 110, 330, 300];
+    const sky = (id, stops) =>
+      `<defs><linearGradient id="${pfx}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
+      stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
+      '</linearGradient></defs>';
+    const laterWindow = (id, stops, opts) =>
       part(
-        'call',
+        `${id}-window`,
+        1,
+        g(sky(id, stops) + at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, opts)), {
+          [`data-${id}`]: true,
+          opacity: 0,
+        }),
+      );
+    return [
+      ...deskRoom(L, pfx, { windowId: 'home-window', morph: null, withMe: false }),
+      laterWindow(
+        'dusk',
+        [
+          [0, '#5b4a8a'],
+          [0.55, '#e2796a'],
+          [1, '#f6b56b'],
+        ],
+        { sun: 'sunset' },
+      ),
+      laterWindow(
+        'night',
+        [
+          [0, '#141432'],
+          [1, '#2a2756'],
+        ],
+        { view: 'night' },
+      ),
+      // The room's light through the day (under the glowing monitor): afternoon gold, then
+      // the evening and night veil.
+      part(
+        'afternoon-glow',
+        3,
+        rect(0, 0, L.W, L.H, '#f2a94a', { 'data-afternoon': true, opacity: 0 }),
+      ),
+      part('night-veil', 3, rect(0, 0, L.W, L.H, '#2a2048', { 'data-veil': true, opacity: 0 })),
+      part('lamp', 5, m ? '' : at(1260, 600, 1, K.lamp(1))),
+      part(
+        'monitor',
+        4,
+        g(
+          at(mx, my, 1, K.monitor(mw, mh)) +
+            g(rect(sx, sy, sw, sh, C.screen, { 'data-screen': 'call-grid' }), {
+              'data-phase': 'call',
+            }) +
+            g(
+              rect(sx, sy, sw, sh, '#0f1220') +
+                app('jira-board', 'Jira  ·  Sprint 24', '11:30 AM', '#2684ff') +
+                app('docker', 'Docker Desktop', '3:15 PM', '#1d8fe0') +
+                app('backend', 'VS Code  ·  neura-backend', '7:40 PM', '#3fa3e8') +
+                app('github', 'GitHub  ·  Pull requests', '10:20 PM', '#a68cf0'),
+              { 'data-phase': 'work', opacity: 0 },
+            ),
+          { 'data-anchor': 'laptop' },
+        ),
+      ),
+      // Clear of the screen, so its steam never drifts over it.
+      part('mug', 6, m ? '' : at(1320, 600, 1, K.mug())),
+      // Where the thought bubble points (no avatar here: he's on the call, then typing).
+      part(
+        'head-spot',
+        1,
+        rect(m ? 110 : 150, m ? 640 : 470, m ? 170 : 230, 6, 'none', { 'data-anchor': 'head' }),
+      ),
+      part(
+        'typing',
+        7,
+        g(
+          (({ x, y, k }) => at(x, y, k, renderLottie(TYPING, `${pfx}-type`, 0)))(
+            m ? TYPING_AT.m : TYPING_AT.d,
+          ),
+          { 'data-typing': true, opacity: 0, transform: 'translate(0 160)' },
+        ),
+      ),
+    ];
+  },
+
+  /* 09b — Neura Dynamics, the work: as in chapter 03, the big monitor builds what he ships as
+     Tech Lead (Klass Online, Ayantra, DocPharma, MeritHyre — content/showcase.ts) while his
+     hands type; the two Play Store apps land on the desk phones; then MeritHyre's Twilio
+     A2P 10DLC onboarding (scenes/09-neura-apps.ts drives it all). */
+  '09-neura-apps'(L, pfx) {
+    const m = L.m;
+    return [
+      ...deskRoom(L, pfx, { withMe: false }),
+      part(
+        'monitor',
         4,
         g(
           monitorAt(
             L,
-            { 'data-screen': 'call-grid' },
-            m ? [20, 210, 350, 210] : [500, 200, 640, 360],
+            { 'data-screen': 'app-build' },
+            m ? [10, 172, 370, 252] : [440, 96, 740, 450],
           ),
-          { 'data-anchor': 'laptop' },
+          { 'data-anchor': 'monitor' },
         ),
-        { 'data-morph': 'laptop' },
       ),
-      part('pr-cards', 5, cardEls),
-      ...(m
-        ? []
-        : [
-            part(
-              'sprint-board',
-              3,
-              at(
-                1180,
-                300,
-                1,
-                rect(-8, -8, 236, 176, C.dark, { rx: 8 }) +
-                  rect(0, 0, 220, 160, C.screen, { 'data-screen': 'standup-board' }),
-              ),
-            ),
-          ]),
+      part(
+        'phone-klass-online',
+        5,
+        m
+          ? phoneAt(16, 512, 84, 150, { 'data-screen': 'app-klass-online' })
+          : phoneAt(1196, 420, 96, 172, { 'data-screen': 'app-klass-online' }),
+      ),
+      part(
+        'phone-ayantra',
+        5,
+        m
+          ? phoneAt(292, 496, 76, 136, { 'data-screen': 'app-ayantra' })
+          : phoneAt(1300, 432, 88, 160, { 'data-screen': 'app-ayantra' }),
+      ),
+      part('mug', 6, m ? '' : at(500, 600, 1, K.mug())),
+      me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
+      part(
+        'role-spot',
+        1,
+        rect(m ? 110 : 150, m ? 640 : 470, m ? 170 : 230, 6, 'none', { 'data-anchor': 'role' }),
+      ),
+      part(
+        'typing',
+        7,
+        g(
+          (({ x, y, k }) => at(x, y, k, renderLottie(TYPING, `${pfx}-type`, 0)))(
+            m ? TYPING_AT.m : TYPING_AT.d,
+          ),
+          { 'data-typing': true, opacity: 0, transform: 'translate(0 160)' },
+        ),
+      ),
     ];
   },
 
-  /* 10 ★ — open source under a spotlight. */
+  /* 10 ★ — open source: the Flutter contributor Lottie is the room. */
   '10-open-source'(L, pfx) {
     const m = L.m;
-    const mon = m ? [15, 170, 360, 300] : [450, 150, 660, 400];
-    const c = [mon[0] + mon[2] / 2, mon[1] + mon[3] / 2];
+    // Desktop: 1:1. Mobile pans with the camera (data-pan, driven by the scene module): first
+    // the monitor (x 560–1080) across the width with Suman's bust on the frame's bottom edge,
+    // then, once zoomed, the whole contributors page and banner (x ≈ 75–1365, y ≈ 22–868) fit
+    // to the width in the middle of the frame, on wall that continues the room's.
+    const box = lottieBox(OSS, 'oss', pfx, 0, 0, 1440, 900, 'xMidYMid meet');
+    if (!m) return [part('room', 1, box), ossLabel(L)];
+    const r3 = (v) => Math.round(v * 1000) / 1000;
+    const s0 = L.W / 560;
+    const s1 = (L.W - 12) / 1290;
+    const from = [r3(L.W / 2 - 820 * s0), r3(L.H - 900 * s0), r3(s0)];
+    const to = [r3(L.W / 2 - 720 * s1), r3(L.H * 0.5 - 445 * s1), r3(s1)];
     return [
-      ...deskRoom(L, pfx, {
-        windowId: 'night-window',
-        morph: null,
-        view: 'night',
-        plant: false,
-        withMe: false,
-      }),
-      me(L, 'back', { d: 0.9, m: 0.48 }, { d: 300, m: 82 }),
+      part('wall', 0, rect(0, 0, L.W, L.H, '#eadfcd')),
       part(
-        'monitor',
-        4,
-        g(monitorAt(L, { 'data-screen': 'pr-merge', 'data-link': 'flutter-pr' }, mon), {
-          'data-anchor': 'monitor',
-        }),
+        'room',
+        1,
+        at(from[0], from[1], from[2], box, { 'data-pan': [...from, ...to].join(' ') }),
       ),
-      part('spotlight', 5, K.spotlightOverlay(L.W, L.H, c[0], c[1], mon[2] * 0.62, mon[3] * 0.7)),
-      part(
-        'label',
-        6,
-        text(L.W / 2, m ? 46 : 64, '★  HIGHLIGHT · OPEN SOURCE', m ? 13 : 20, C.mustard, {
-          'text-anchor': 'middle',
-          'letter-spacing': m ? 2 : 4,
-        }),
-      ),
+      ossLabel(L),
     ];
   },
 
@@ -849,144 +1208,6 @@ const SCENES = {
     ];
   },
 
-  /* 12 — the numbers: phones light up like a city at night; the odometer rolls. */
-  '12-numbers'(L) {
-    const m = L.m;
-    const clusters = m
-      ? [
-          [20, 250],
-          [205, 250],
-          [20, 360],
-          [205, 360],
-          [20, 470],
-          [205, 470],
-          [112, 580],
-        ].map(([x, y]) => [x, y, 165, 96])
-      : Array.from({ length: 7 }, (_, i) => [60 + i * 192, 430, 170, 190]);
-    const keys = ['qomix', 'ten90', 'beworld', 'cadgk', 'docpharma', 'klass-online', 'ayantra'];
-    return [
-      sky(L, stars(L, m ? 25 : 50, 5)),
-      part(
-        'skyline',
-        1,
-        m ? K.skyline(0, 690, 390, 154, '#24203f') : K.skyline(0, 640, 1440, 260, '#24203f'),
-      ),
-      part(
-        'clusters',
-        2,
-        clusters
-          .map(([x, y, w, h], i) => rect(x, y, w, h, 'none', { 'data-cluster': keys[i] }))
-          .join(''),
-      ),
-      part(
-        'odometer',
-        4,
-        (m
-          ? rect(25, 60, 340, 120, '#1b1e2e', { rx: 12 })
-          : rect(470, 60, 500, 160, '#1b1e2e', { rx: 14 })) +
-          text(L.W / 2, m ? 132 : 160, '0', m ? 46 : 72, C.mustard, {
-            'text-anchor': 'middle',
-            'data-odometer': true,
-            class: 'title-text',
-          }) +
-          text(L.W / 2, m ? 164 : 200, 'DOWNLOADS & COUNTING', m ? 11 : 15, '#c9cbe0', {
-            'text-anchor': 'middle',
-            'letter-spacing': 3,
-          }),
-      ),
-      part(
-        'callout',
-        5,
-        g(
-          m
-            ? rect(115, 196, 160, 34, C.terra, { rx: 17 }) +
-                text(195, 219, 'BeWorld 500K+', 14, C.paper, { 'text-anchor': 'middle' })
-            : rect(990, 100, 220, 46, C.terra, { rx: 23 }) +
-                text(1100, 130, 'BeWorld 500K+', 18, C.paper, { 'text-anchor': 'middle' }),
-          { 'data-callout': true },
-        ),
-      ),
-      part(
-        'cheer',
-        6,
-        (m ? [235, 270, 305, 340, 372] : [960, 1050, 1140, 1230, 1320])
-          .map((x, i) =>
-            g(
-              at(
-                x,
-                m ? 844 : 900,
-                m ? 0.26 : 0.5,
-                K.friend(1, ['teamA', 'teamB', 'teamC', 'teamD', 'teamE'][i], { armsUp: true }),
-              ),
-              { 'data-cheer': true },
-            ),
-          )
-          .join(''),
-      ),
-      me(L, 'back', { d: 0.9, m: 0.48 }, { d: 330, m: 90 }),
-    ];
-  },
-
-  /* 13 — dusk over the Kolkata skyline from a rooftop; thoughts drift up. */
-  '13-ideas'(L) {
-    const m = L.m;
-    return [
-      sky(
-        L,
-        g(circle(L.W * 0.62, m ? 330 : 360, m ? 46 : 80, '#ff9a4a'), { 'data-sunset': true }) +
-          K.cloud(L.W * 0.1, 80, m ? 0.8 : 1.4, 80) +
-          K.cloud(L.W * 0.6, 150, m ? 0.6 : 1.1, 60),
-      ),
-      part(
-        'skyline',
-        1,
-        m ? K.skyline(0, 440, 390, 250, '#5a4668') : K.skyline(0, 400, 1440, 330, '#5a4668'),
-      ),
-      part(
-        'roof',
-        2,
-        rect(0, m ? 690 : 720, L.W, L.H, '#c9a98a') +
-          rect(0, m ? 680 : 706, L.W, 16, '#b08f70') +
-          (m
-            ? rect(300, 620, 50, 60, '#3b3a4a') + K.ellipse(325, 620, 25, 7, '#55536a')
-            : rect(1180, 600, 90, 106, '#3b3a4a') + K.ellipse(1225, 600, 45, 12, '#55536a')) +
-          (m ? line(0, 600, 260, 620, '#5d566f', 2) : line(60, 560, 900, 600, '#5d566f', 2)) +
-          (m
-            ? [40, 110, 180]
-                .map((x, i) =>
-                  rect(x, 603 + i * 5, 34, 44, [C.terra, C.teal, C.mustard][i], { rx: 3 }),
-                )
-                .join('')
-            : [150, 330, 520, 700]
-                .map((x, i) =>
-                  rect(x, 566 + i * 9, 70, 90, [C.terra, C.teal, C.mustard, '#b5578a'][i], {
-                    rx: 4,
-                  }),
-                )
-                .join('')),
-      ),
-      me(L, 'back', { d: 0.9, m: 0.52 }, { d: 720, m: 195 }),
-    ];
-  },
-
-  /* 14 — today: a calm desk. */
-  '14-today'(L, pfx) {
-    const m = L.m;
-    return [
-      ...deskRoom(L, pfx, { windowId: 'today-window', morph: null }),
-      part(
-        'laptop',
-        4,
-        g(m ? at(95, 352, 1, K.laptop(200)) : at(610, 410, 1, K.laptop(290)), {
-          'data-anchor': 'laptop',
-        }),
-      ),
-      part('mug', 5, m ? at(330, 478, 0.6, K.mug()) : at(1000, 600, 1, K.mug())),
-      part('lamp', 5, m ? '' : at(1160, 600, 0.9, K.lamp(1, { light: false }))),
-      part('books', 5, m ? K.books(250, 478, 4, 50, 4) : K.books(420, 600, 6, 80, 4)),
-    ];
-  },
-
   /* 15 — departures board: NEXT DESTINATION → YOUR TEAM, with contact rows. */
   '15-departures'(L, pfx) {
     const m = L.m;
@@ -1037,8 +1258,37 @@ const SCENES = {
   },
 };
 
+/**
+ * The seat-back screen: a bezel around the in-flight map Lottie (`anim`), sized to its aspect.
+ * Takes the plane window's place (and its `window` morph) when a flight has a Lottie.
+ */
+function seatScreen(L, pfx, anim) {
+  const m = L.m;
+  const x = m ? 45 : 520;
+  const w = m ? 300 : 480;
+  const bezel = m ? 10 : 14;
+  const iw = w - bezel * 2;
+  const ih = (iw * anim.h) / anim.w;
+  const h = ih + bezel * 2;
+  const y = m ? 236 : 450 - h / 2;
+  return part(
+    'plane-window',
+    2,
+    at(
+      x,
+      y,
+      1,
+      rect(0, 0, w, h, C.ink, { rx: m ? 16 : 22 }) +
+        rect(bezel - 3, bezel - 3, iw + 6, ih + 6, C.dark, { rx: m ? 8 : 10 }) +
+        lottieBox(anim, 'flight-map', pfx, bezel, bezel, iw, ih, 'xMidYMid meet') +
+        circle(w / 2, h - bezel / 2, m ? 2 : 3, '#8d86a0'),
+    ),
+    { 'data-morph': 'window' },
+  );
+}
+
 /** Shared transit composition. */
-function flight(L, pfx, { from, to, board, laptop }) {
+function flight(L, pfx, { from, to, board, laptop, lottie = null }) {
   const m = L.m;
   const win = m ? { x: 45, y: 240, w: 300, h: 420 } : { x: 520, y: 70, w: 480, h: 640 };
   const map = m ? { x: 40, y: 70, w: 220, h: 280 } : { x: 70, y: 110, w: 340, h: 420 };
@@ -1097,9 +1347,16 @@ function flight(L, pfx, { from, to, board, laptop }) {
         ? at(20, 60, 1, K.infoBoard(230, 150, board))
         : at(70, 110, 1, K.infoBoard(330, 210, board)),
     ),
-    part('plane-window', 2, at(win.x, win.y, 1, K.planeWindow(`${pfx}-pw`, win.w, win.h, inner)), {
-      'data-morph': 'window',
-    }),
+    lottie
+      ? seatScreen(L, pfx, lottie)
+      : part(
+          'plane-window',
+          2,
+          at(win.x, win.y, 1, K.planeWindow(`${pfx}-pw`, win.w, win.h, inner)),
+          {
+            'data-morph': 'window',
+          },
+        ),
     part(
       'year',
       4,
@@ -1133,7 +1390,7 @@ function flight(L, pfx, { from, to, board, laptop }) {
         5,
         m
           ? rect(200, 712, 180, 12, '#8d86a0', { rx: 4 }) +
-              at(240, 640, 1, K.laptop(110, null, { sticker: true }))
+              at(240, 640, 0.5, K.laptop(220, null, { sticker: true }))
           : rect(1060, 700, 340, 18, '#8d86a0', { rx: 6 }) +
               at(1120, 560, 1, K.laptop(220, null, { sticker: true })),
       ),
@@ -1153,13 +1410,21 @@ const BOTTOM_ANCHORED = new Set(['01-jadavpur', '02-graduation', '15-departures'
 
 function render(id, layoutName) {
   const L = LAYOUTS[layoutName];
-  const pfx = `${id.slice(0, 2)}${L.key}`;
+  // Chapters 04 and 08 each share a number with an interview; those get their own prefix.
+  const PREFIX = { '04-interview': 'iv', '08-interview': 'in' };
+  const pfx = `${PREFIX[id] ?? id.slice(0, 2)}${L.key}`;
   const body = SCENES[id](L, pfx).join('').replaceAll('PFX', pfx);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.W} ${L.H}" preserveAspectRatio="${BOTTOM_ANCHORED.has(id) ? 'xMidYMax' : 'xMidYMid'} slice" data-scene="${id}"><defs>${K.skyGradient(`${pfx}-sky`)}</defs>${body}</svg>\n`;
 }
 
 writeMotion(TOSS, 'graduation-cap-toss');
 writeMotion(TYPING, 'typing-top-view');
+writeMotion(INTERVIEW, 'interview-offer-mail');
+writeMotion(INTERVIEW_NEURA, 'interview-offer-mail-neura');
+writeMotion(FLIGHT_MAP, 'india-flight-ccu-hyd');
+writeMotion(FLIGHT_HOME, 'india-flight-hyd-ccu');
+writeMotion(DAY_NIGHT, 'day-night-hyd');
+writeMotion(OSS, 'flutter-oss-contributor');
 const only = process.argv.slice(2);
 for (const id of Object.keys(SCENES)) {
   if (only.length && !only.some((p) => id.startsWith(p))) continue;

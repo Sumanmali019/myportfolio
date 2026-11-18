@@ -5,7 +5,7 @@
  * Used on the phones in chapters 03, 05, 08 and 12.
  */
 import type { App } from '../content/schema';
-import { showcase } from '../content/showcase';
+import { allShowcase } from '../content/showcase';
 import type { Screen } from '../engine/types';
 import { easeOut, progress } from '../lib/math';
 import { screenFrame, setTransform, svgEl, svgText, UI } from '../lib/svg';
@@ -14,11 +14,12 @@ import { wrap } from './sse-vs-ws';
 export const APP_COLORS: Record<string, string> = {
   qomix: '#3f8f8b',
   ten90: '#4f7cb8',
-  beworld: '#c8674a',
-  cadgk: '#c48b26',
+  beworld: '#6366f1',
+  cadgk: '#e07b26',
   docpharma: '#3f8f6a',
   'klass-online': '#5b5aa8',
-  ayantra: '#b5578a',
+  ayantra: '#a0663f',
+  merithyre: '#7c4dff',
 };
 
 export const initials = (name: string): string =>
@@ -72,7 +73,7 @@ export function appCard(rect: SVGGraphicsElement, app: App, opts: AppCardOptions
     },
     g,
   );
-  const logo = showcase.find((s) => s.key === app.key)?.logo;
+  const logo = allShowcase.find((s) => s.key === app.key)?.logo;
   if (logo)
     svgEl(
       'image',

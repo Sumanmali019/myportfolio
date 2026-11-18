@@ -11,3 +11,8 @@ tests/e2e/**/*-snapshots
 src/assets/lottie/graduation-cap-toss*.json
 scripts/art/assets
 src/assets/lottie/typing-top-view*.json
+src/assets/lottie/interview-offer-mail*.json
+src/assets/lottie/india-flight-ccu-hyd*.json
+src/assets/lottie/day-night-hyd*.json
+src/assets/lottie/india-flight-hyd-ccu*.json
+src/assets/lottie/flutter-oss-contributor*.json

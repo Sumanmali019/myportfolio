@@ -60,11 +60,12 @@ describe('content', () => {
     for (const l of Object.values(links)) expect(l.href).toMatch(/^(https:\/\/|mailto:|\/)/);
   });
 
-  it('adds up downloads (520K+ from the known figures)', () => {
+  it('adds up downloads (560K+ from the known figures)', () => {
     const c = loadContent();
-    expect(totalDownloads(c.profile.apps)).toBe(520_000);
-    expect(formatDownloads(totalDownloads(c.profile.apps))).toBe('520K+');
-    expect(downloadsByScene(c.profile.apps)['05-hyderabad']).toBe(510_000);
+    expect(totalDownloads(c.profile.apps)).toBe(560_150);
+    expect(formatDownloads(totalDownloads(c.profile.apps))).toBe('560K+');
+    expect(downloadsByScene(c.profile.apps)['05-hyderabad']).toBe(550_000);
+    expect(downloadsByScene(c.profile.apps)['09-neura-apps']).toBe(150);
   });
 
   it('resolves "now" to the build month', () => {

@@ -81,7 +81,7 @@ ${sideTile(164, '#d0632b', 'R', 'Rajat', 2)}
   <rect x="190" y="36" width="230" height="34" rx="17" fill="#e8eaed"/>
   <text x="305" y="58" text-anchor="middle" ${FONT} font-size="14" fill="#202124">You joined the meeting</text>
 </g>
-<text x="24" y="474" ${FONT} font-size="15" fill="#e8eaed">8:49 PM  |  Team sync</text>
+<text x="24" y="474" ${FONT} font-size="15" fill="#e8eaed">10:00 AM  |  Team sync</text>
 <circle cx="300" cy="468" r="22" fill="#3c4043"/><rect x="295" y="456" width="10" height="16" rx="5" fill="#fff"/>
 <path d="M290,467 Q300,482 310,467 M300,476 L300,481" stroke="#fff" stroke-width="2" fill="none"/>
 <circle cx="354" cy="468" r="22" fill="#3c4043"/><rect x="342" y="460" width="16" height="16" rx="3" fill="#fff"/>

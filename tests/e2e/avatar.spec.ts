@@ -8,17 +8,17 @@ const scaleOf = (tf: string): [number, number] => {
   return m ? [Number(m[1]), Number(m[2])] : [1, 1];
 };
 
-// Back (Today, at the desk) → front (Departures): the avatar turns round to face you.
-const turnInto = scenes.findIndex((s) => s.id === '15-departures');
+// Front (graduation) → back (Cloudcraftz desk): the avatar turns round.
+const turnInto = scenes.findIndex((s) => s.id === '03-kolkata');
 
 test.describe('avatar', () => {
-  test('turns round from back to front going into Departures', async ({ page }) => {
+  test('turns round from front to back going into Cloudcraftz', async ({ page }) => {
     await openJourney(page);
     const outgoing = page.locator(
-      '.scene[data-scene-id="14-today"] [data-id="me"][data-view="back"]',
+      '.scene[data-scene-id="02-graduation"] [data-id="me"][data-view="front"]',
     );
     const incoming = page.locator(
-      '.scene[data-scene-id="15-departures"] [data-id="me"][data-view="front"]',
+      '.scene[data-scene-id="03-kolkata"] [data-id="me"][data-view="back"]',
     );
 
     // First half: the back view narrows towards edge-on; the front view is not shown yet.

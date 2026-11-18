@@ -1,4 +1,4 @@
-/** Scene 03 monitor: the team's standup board. One card slides DOING → DONE on a loop. */
+/** The team's sprint board (chapter 09, on the side of the monitor). One card slides DOING → DONE on a loop. */
 import type { Screen } from '../engine/types';
 import { easeInOut, lerp, mod, progress } from '../lib/math';
 import { screenFrame, svgEl, svgText, UI } from '../lib/svg';
@@ -14,12 +14,12 @@ const CARDS = [
 const COLUMNS = ['TO DO', 'DOING', 'DONE'];
 const MOVER = 3; // "Release 2.4"
 
-export function standupBoard(rect: SVGGraphicsElement): Screen {
+export function standupBoard(rect: SVGGraphicsElement, title = 'STANDUP · THU'): Screen {
   const f = screenFrame(rect);
   const { g, x, y, w, h, u } = f;
   svgEl('rect', { x, y, width: w, height: h, fill: UI.bg }, g);
   svgEl('rect', { x, y, width: w, height: u * 9, fill: UI.panel }, g);
-  svgText(g, x + u * 3, y + u * 6, 'STANDUP · THU', { 'font-size': u * 3.6, fill: UI.text });
+  svgText(g, x + u * 3, y + u * 6, title, { 'font-size': u * 3.6, fill: UI.text });
   svgEl(
     'circle',
     { cx: x + w - u * 5, cy: y + u * 4.5, r: u * 1.6, fill: UI.green, class: 'idle-blink' },
@@ -60,7 +60,9 @@ export function standupBoard(rect: SVGGraphicsElement): Screen {
       cg,
     );
     svgEl('rect', { x: 0, y: 0, width: u * 1.2, height: cardH, rx: u * 0.6, fill: c.tag }, cg);
-    svgText(cg, u * 3, cardH * 0.45, c.title, { 'font-size': u * 2.9, fill: '#2a2438' });
+    // Long titles shrink to fit the card.
+    const size = Math.min(u * 2.9, (colW - u * 6) / (c.title.length * 0.62));
+    svgText(cg, u * 3, cardH * 0.45, c.title, { 'font-size': size, fill: '#2a2438' });
     svgEl('circle', { cx: colW - u * 7, cy: cardH * 0.72, r: u * 1.8, fill: c.tag }, cg);
     svgEl(
       'rect',

@@ -1,7 +1,9 @@
 /**
  * A tiny Lottie → SVG renderer for the subset our animations use (shape layers with groups,
- * paths, ellipses, rounded rects, fills, strokes, gradient fills, parenting, eased and hold
- * keyframes on layer opacity / rotation / scale / position, and animated group opacity). ~2 KB, versus ~40 KB gzipped
+ * paths, ellipses, rounded rects, fills, strokes (with dashes), gradient fills, trim paths,
+ * static additive masks, animated fill / stroke colours,
+ * image layers (embedded data URIs), parenting (null layers too), layer in/out points, eased and hold keyframes on layer opacity /
+ * rotation / scale / position, and animated group opacity and transforms). ~2 KB, versus ~40 KB gzipped
  * for a full player — so the intro stays inside the JS budget.
  *
  * - `renderLottie()` returns static SVG markup for a frame (used by the art generator so the
@@ -33,8 +35,16 @@ interface Layer {
   ind: number;
   ty: number;
   parent?: number;
+  /** Image layers (ty 2): the asset they show. */
+  refId?: string;
+  /** In / out frames: the layer only shows while ip <= frame < op. */
+  ip?: number;
+  op?: number;
   ks: { o?: Prop; r?: Prop; p?: Prop; a?: Prop; s?: Prop };
   shapes?: Item[];
+  /** Layer masks: static, additive ones (the common "show only inside this shape") are drawn. */
+  hasMask?: boolean;
+  masksProperties?: Array<{ mode?: string; inv?: boolean; pt: Prop }>;
 }
 export interface LottieAnimation {
   fr: number;
@@ -43,6 +53,8 @@ export interface LottieAnimation {
   w: number;
   h: number;
   layers: Layer[];
+  /** Embedded images (data URIs), for image layers. */
+  assets?: Array<{ id: string; w?: number; h?: number; p?: string; u?: string }>;
 }
 
 const num = (v: number) => Math.round(v * 100) / 100;
@@ -116,8 +128,11 @@ function pathData(k: { i: Vec[]; o: Vec[]; v: Vec[]; c: boolean }): string {
   const pt = (p: Vec) => `${num(p[0]!)} ${num(p[1]!)}`;
   const add = (a: Vec, b: Vec): Vec => [a[0]! + b[0]!, a[1]! + b[1]!];
   let d = `M${pt(v[0]!)}`;
+  const zero = (p: Vec | undefined) => !p || (!p[0] && !p[1]);
   const seg = (a: number, b: number) => {
-    d += ` C${pt(add(v[a]!, o[a]!))} ${pt(add(v[b]!, i[b]!))} ${pt(v[b]!)}`;
+    // Straight segments (no tangents) as lines: much smaller for text set as outlines.
+    if (zero(o[a]) && zero(i[b])) d += `L${pt(v[b]!)}`;
+    else d += `C${pt(add(v[a]!, o[a]!))} ${pt(add(v[b]!, i[b]!))} ${pt(v[b]!)}`;
   };
   for (let j = 1; j < v.length; j++) seg(j - 1, j);
   if (c) {
@@ -157,16 +172,22 @@ interface Ctx {
 
 function paint(item: Item, ctx: Ctx): string | null {
   const opacity = first(valueAt(item.o as Prop, 0, [100])) / 100;
+  // Animated colours (e.g. status lights): keyframes ride along on the element.
+  const cp = item.c as Prop | undefined;
+  const ck = cp && isKeyframes(cp.k) ? JSON.stringify(cp.k).replace(/"/g, '&quot;') : '';
   if (item.ty === 'fl') {
-    const c = valueAt(item.c as Prop, 0, [0, 0, 0, 1]);
-    return ` fill="${rgb(c)}"${opacity < 1 ? ` fill-opacity="${num(opacity)}"` : ''}`;
+    const c = valueAt(cp, ctx.frame, [0, 0, 0, 1]);
+    return ` fill="${rgb(c)}"${opacity < 1 ? ` fill-opacity="${num(opacity)}"` : ''}${ck ? ` data-lcf="${ck}"` : ''}`;
   }
   if (item.ty === 'st') {
-    const c = valueAt(item.c as Prop, 0, [0, 0, 0, 1]);
+    const c = valueAt(cp, ctx.frame, [0, 0, 0, 1]);
     const w = first(valueAt(item.w as Prop, 0, [1]));
     const cap = ['butt', 'butt', 'round', 'square'][Number(item.lc ?? 1)];
     const join = ['miter', 'miter', 'round', 'bevel'][Number(item.lj ?? 1)];
-    return ` fill="none" stroke="${rgb(c)}" stroke-width="${num(w)}" stroke-linecap="${cap}" stroke-linejoin="${join}"${opacity < 1 ? ` stroke-opacity="${num(opacity)}"` : ''}`;
+    const dashes = ((item.d as Array<{ n: string; v: Prop }> | undefined) ?? [])
+      .filter((d) => d.n !== 'o')
+      .map((d) => num(first(valueAt(d.v, 0, [0]))));
+    return ` fill="none" stroke="${rgb(c)}" stroke-width="${num(w)}" stroke-linecap="${cap}" stroke-linejoin="${join}"${opacity < 1 ? ` stroke-opacity="${num(opacity)}"` : ''}${dashes.length ? ` stroke-dasharray="${dashes.join(' ')}"` : ''}${ck ? ` data-lcs="${ck}"` : ''}`;
   }
   if (item.ty === 'gf') {
     const g = item.g as { p: number; k: Prop };
@@ -189,35 +210,87 @@ function paint(item: Item, ctx: Ctx): string | null {
   return null;
 }
 
+const attrJson = (v: unknown) => JSON.stringify(v).replace(/"/g, '&quot;');
+
+/** Trim (start, end in %) as dash attributes on a path with pathLength="100". */
+function trimDash(tm: Item, frame: number): { dash: string; offset: string; hidden: boolean } {
+  const s0 = first(valueAt(tm.s as Prop, frame, [0]));
+  const e0 = first(valueAt(tm.e as Prop, frame, [100]));
+  const o = first(valueAt(tm.o as Prop, frame, [0])) / 3.6;
+  const start = Math.min(s0, e0) + o;
+  const len = Math.abs(e0 - s0);
+  return { dash: `${num(len)} 200`, offset: `${num(-start)}`, hidden: len < 0.01 };
+}
+
+const isAnimated = (p: unknown): boolean => !!p && isKeyframes((p as Prop).k);
+
 /** A shape group: items earlier in the list are drawn on top, as in Lottie. */
 function group(items: Item[], ctx: Ctx): string {
-  const geoms: string[] = [];
-  const paints: string[] = [];
+  const geoms: Array<{ ty: string; svg: string }> = [];
+  const paints: Array<{ ty: string; attrs: string; item: Item }> = [];
   const children: string[] = [];
   let tr = '';
   let trOpacity = 1;
   let trOpacityKeys = '';
+  let trKeys = '';
+  const tm = items.find((it) => it.ty === 'tm');
   for (const it of items) {
     if (it.ty === 'gr') children.push(group(it.it as Item[], ctx));
+    // Not Lottie: build-time markup patched in by the art generator (e.g. replaced text).
+    else if (it.ty === 'raw') children.push(String(it.svg));
     else if (it.ty === 'tr') {
       tr = transformOf(it as never, ctx.frame);
       const o = it.o as Prop | undefined;
       trOpacity = first(valueAt(o, ctx.frame, [100])) / 100;
       // Animated group opacity (e.g. key flashes): the keyframes ride along on the element.
-      if (o && isKeyframes(o.k)) trOpacityKeys = JSON.stringify(o.k).replace(/"/g, '&quot;');
-    } else {
+      if (o && isKeyframes(o.k)) trOpacityKeys = attrJson(o.k);
+      // Animated group transform (e.g. confetti pieces): same idea.
+      if (['p', 'a', 's', 'r'].some((k) => isAnimated(it[k])))
+        trKeys = attrJson({ p: it.p, a: it.a, s: it.s, r: it.r });
+    } else if (it.ty !== 'tm') {
       const g = geometry(it);
-      if (g) geoms.push(g);
+      if (g) geoms.push({ ty: it.ty, svg: g });
       else {
         const p = paint(it, ctx);
-        if (p) paints.push(p);
+        if (p) paints.push({ ty: it.ty, attrs: p, item: it });
       }
     }
   }
   let body = children.reverse().join('');
   // Last paint is drawn first (bottom), so the first paint ends up on top.
-  for (const p of [...paints].reverse()) body += geoms.map((g) => `${g}${p}/>`).join('');
-  const attrs = `${tr ? ` transform="${tr}"` : ''}${trOpacity < 1 ? ` opacity="${num(trOpacity)}"` : ''}${trOpacityKeys ? ` data-lgo="${trOpacityKeys}"` : ''}`;
+  for (const p of [...paints].reverse()) {
+    const paths = geoms.filter((g) => g.ty === 'sh');
+    if (p.ty !== 'st' && paths.length > 1) {
+      // Fills treat all paths of a group as one compound shape (letter counters, rings…):
+      // drawn separately, the inner contours would be filled instead of cut out.
+      const d = paths.map((g) => /d="([^"]*)"/.exec(g.svg)?.[1] ?? '').join('');
+      const rule = Number(p.item.r) === 2 ? ' fill-rule="evenodd"' : '';
+      for (const g of geoms) if (g.ty !== 'sh') body += `${g.svg}${p.attrs}/>`;
+      body += `<path d="${d}"${p.attrs}${rule}/>`;
+      continue;
+    }
+    for (const g of geoms) {
+      if (!tm || p.ty !== 'st' || g.ty !== 'sh') {
+        body += `${g.svg}${p.attrs}/>`;
+        continue;
+      }
+      const t = trimDash(tm, ctx.frame);
+      const keys = attrJson({ s: tm.s, e: tm.e, o: tm.o });
+      const trim = ` pathLength="100" stroke-dasharray="${t.dash}" stroke-dashoffset="${t.offset}" data-ltm="${keys}"${t.hidden ? ' visibility="hidden"' : ''}`;
+      if (!p.item.d) {
+        body += `${g.svg}${p.attrs}${trim}/>`;
+        continue;
+      }
+      // Dashed and trimmed: dash the visible stroke, trim it with a mask of the same path.
+      const id = `${ctx.id}-m${++ctx.seq}`;
+      const w = first(valueAt(p.item.w as Prop, 0, [1]));
+      ctx.defs.push(
+        `<mask id="${id}" maskUnits="userSpaceOnUse" x="-5000" y="-5000" width="10000" height="10000">${g.svg} fill="none" stroke="#fff" stroke-width="${num(w + 4)}"${trim}/></mask>`,
+      );
+      body += `${g.svg}${p.attrs} mask="url(#${id})"/>`;
+    }
+  }
+  const attrs = `${tr ? ` transform="${tr}"` : ''}${trOpacity < 1 ? ` opacity="${num(trOpacity)}"` : ''}${trOpacityKeys ? ` data-lgo="${trOpacityKeys}"` : ''}${trKeys ? ` data-lgt="${trKeys}"` : ''}`;
   return attrs ? `<g${attrs}>${body}</g>` : body;
 }
 
@@ -250,16 +323,45 @@ export function renderLottie(
   };
   let body = '';
   for (const layer of [...anim.layers].reverse()) {
-    if (layer.ty !== 4) continue;
+    if (layer.ty !== 4 && layer.ty !== 2) continue;
     const o = first(valueAt(layer.ks.o, frame, [100])) / 100;
+    // In / out points narrower than the animation: shown only inside them.
+    const io =
+      layer.ip !== undefined &&
+      layer.op !== undefined &&
+      (layer.ip > anim.ip || layer.op < anim.op);
+    const shown = !io || (frame >= layer.ip! && frame < layer.op!);
+    let image = '';
+    if (layer.ty === 2) {
+      // Each image once in <defs>; layers showing it (the same photo twice) <use> it.
+      const asset = anim.assets?.find((a) => a.id === layer.refId);
+      if (!asset?.p) continue;
+      const id = `${ctx.id}-i-${asset.id}`;
+      if (!ctx.defs.some((d) => d.includes(`id="${id}"`)))
+        ctx.defs.push(
+          `<image id="${id}" width="${asset.w ?? 0}" height="${asset.h ?? 0}" href="${(asset.u ?? '') + asset.p}"/>`,
+        );
+      image = `<use href="#${id}"/>`;
+    }
     const shapes = (layer.shapes ?? [])
       .filter((s) => !(transparent && isBackground(s)))
       .reverse()
       .map((s) => group((s.it as Item[]) ?? [s], ctx))
       .join('');
+    // Masks live in layer space (inside the layer transform), as in lottie-web.
+    const masks = (layer.hasMask ? (layer.masksProperties ?? []) : []).filter(
+      (m) => (m.mode ?? 'a') === 'a' && !m.inv && !isKeyframes(m.pt.k),
+    );
+    let clip = '';
+    if (masks.length) {
+      const id = `${ctx.id}-k${++ctx.seq}`;
+      const d = masks.map((m) => pathData(m.pt.k as never)).join('');
+      ctx.defs.push(`<clipPath id="${id}"><path d="${d}"/></clipPath>`);
+      clip = ` clip-path="url(#${id})"`;
+    }
     body += wrap(
       layer,
-      `<g data-lop="${layer.ind}"${o < 1 ? ` opacity="${num(o)}"` : ''}>${shapes}</g>`,
+      `<g data-lop="${layer.ind}"${clip}${o < 1 ? ` opacity="${num(o)}"` : ''}${io ? ` data-lio="${layer.ip} ${layer.op}"` : ''}${shown ? '' : ' display="none"'}>${image}${shapes}</g>`,
     );
   }
   return `${ctx.defs.length ? `<defs>${ctx.defs.join('')}</defs>` : ''}${body}`;
@@ -267,36 +369,70 @@ export function renderLottie(
 
 /** Animate markup produced by renderLottie. Returns a function taking a frame number. */
 export function bindLottie(root: ParentNode, anim: LottieAnimation): (frame: number) => void {
-  const layers = anim.layers.filter((l) => l.ty === 4);
+  // Null layers (ty 3) only move their children; shape (4) and image (2) layers also fade.
+  const layers = anim.layers.filter((l) => l.ty === 4 || l.ty === 3 || l.ty === 2);
   const animated = (p?: Prop) => !!p && isKeyframes(p.k);
   const moving = layers.filter(
     (l) => animated(l.ks.p) || animated(l.ks.r) || animated(l.ks.s) || animated(l.ks.a),
   );
-  const fading = layers.filter((l) => animated(l.ks.o));
+  const fading = layers.filter((l) => (l.ty === 4 || l.ty === 2) && animated(l.ks.o));
   const tfEls = new Map(
     moving.map((l) => [l, Array.from(root.querySelectorAll(`[data-ltr="${l.ind}"]`))]),
   );
   const opEls = new Map(
     fading.map((l) => [l, Array.from(root.querySelectorAll(`[data-lop="${l.ind}"]`))]),
   );
-  const groupFades = Array.from(root.querySelectorAll<SVGElement>('[data-lgo]')).map((el) => ({
+  function all<T>(attr: string): Array<{ el: SVGElement; v: T }> {
+    return Array.from(root.querySelectorAll<SVGElement>(`[${attr}]`)).map((el) => ({
+      el,
+      v: JSON.parse(el.getAttribute(attr) ?? 'null') as T,
+    }));
+  }
+  const groupFades = all<Keyframe[]>('data-lgo').map(({ el, v }) => ({
     el,
-    prop: { a: 1, k: JSON.parse(el.getAttribute('data-lgo') ?? '[]') as Keyframe[] },
+    prop: { a: 1, k: v } as Prop,
   }));
+  const groupMoves = all<{ p?: Prop; a?: Prop; s?: Prop; r?: Prop }>('data-lgt');
+  const trims = all<Item>('data-ltm');
+  const colours = [
+    ...all<Keyframe[]>('data-lcf').map(({ el, v }) => ({
+      el,
+      attr: 'fill',
+      prop: { a: 1, k: v } as Prop,
+    })),
+    ...all<Keyframe[]>('data-lcs').map(({ el, v }) => ({
+      el,
+      attr: 'stroke',
+      prop: { a: 1, k: v } as Prop,
+    })),
+  ];
+  const inOut = Array.from(root.querySelectorAll<SVGElement>('[data-lio]')).map((el) => {
+    const [a = 0, b = 0] = (el.getAttribute('data-lio') ?? '').split(' ').map(Number);
+    return { el, a, b };
+  });
+  const set = (el: Element, name: string, v: string) => {
+    if (el.getAttribute(name) !== v) el.setAttribute(name, v);
+  };
   return (frame: number) => {
     const f = Math.max(anim.ip, Math.min(anim.op - 1, frame));
-    for (const { el, prop } of groupFades) {
-      const o = String(num(first(valueAt(prop, f, [100])) / 100));
-      if (el.getAttribute('opacity') !== o) el.setAttribute('opacity', o);
+    for (const { el, a, b } of inOut) set(el, 'display', f >= a && f < b ? 'inline' : 'none');
+    for (const { el, prop } of groupFades)
+      set(el, 'opacity', String(num(first(valueAt(prop, f, [100])) / 100)));
+    for (const { el, v } of groupMoves) set(el, 'transform', transformOf(v, f));
+    for (const { el, attr, prop } of colours) set(el, attr, rgb(valueAt(prop, f, [0, 0, 0])));
+    for (const { el, v } of trims) {
+      const t = trimDash(v, f);
+      set(el, 'stroke-dasharray', t.dash);
+      set(el, 'stroke-dashoffset', t.offset);
+      set(el, 'visibility', t.hidden ? 'hidden' : 'visible');
     }
     for (const [layer, els] of tfEls) {
       const tf = transformOf(layer.ks, f);
-      for (const el of els)
-        if (el.getAttribute('transform') !== tf) el.setAttribute('transform', tf);
+      for (const el of els) set(el, 'transform', tf);
     }
     for (const [layer, els] of opEls) {
       const o = String(num(first(valueAt(layer.ks.o, f, [100])) / 100));
-      for (const el of els) if (el.getAttribute('opacity') !== o) el.setAttribute('opacity', o);
+      for (const el of els) set(el, 'opacity', o);
     }
   };
 }

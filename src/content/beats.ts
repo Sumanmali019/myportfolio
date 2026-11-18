@@ -46,7 +46,6 @@ export const beats: Record<string, Beat[]> = {
       text: 'Hyderabadi biryani > deadlines.',
     },
   ],
-  '06-late-nights': [{ kind: 'thought', anchor: 'head', text: 'Learn at night, ship in the day.' }],
   '07-flight-home': [
     {
       kind: 'screen',
@@ -54,15 +53,6 @@ export const beats: Record<string, Beat[]> = {
       anchor: 'board',
       trigger: 'rings',
       text: 'Welcome home to Kolkata · working remote from here.',
-    },
-  ],
-  '08-remote': [
-    {
-      kind: 'screen',
-      who: 'Streaming chat',
-      anchor: 'monitor',
-      trigger: 'burst',
-      text: 'SSE for one-way tokens. WebSockets when both sides talk.',
     },
   ],
   '09-leading': [
@@ -75,6 +65,7 @@ export const beats: Record<string, Beat[]> = {
     },
     { kind: 'thought', anchor: 'head', text: 'Mentor first, merge second.' },
   ],
+  '09-neura-apps': [{ kind: 'thought', anchor: 'role', text: 'Four products. One team.' }],
   '10-open-source': [
     {
       kind: 'screen',
@@ -93,12 +84,5 @@ export const beats: Record<string, Beat[]> = {
       trigger: 'buzz',
       text: 'Someone finished the book you recommended.',
     },
-  ],
-  '12-numbers': [
-    { kind: 'thought', anchor: 'head', text: 'From one test suite in Kolkata to this.' },
-  ],
-  '13-ideas': profile.writing.map((text) => ({ kind: 'thought' as const, anchor: 'head', text })),
-  '14-today': [
-    { kind: 'screen', who: 'Status', anchor: 'laptop', trigger: 'ci', text: profile.now },
   ],
 };

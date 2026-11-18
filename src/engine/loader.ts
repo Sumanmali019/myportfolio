@@ -139,6 +139,9 @@ export class SceneLoader {
         if (!url) throw new Error(`No ${layout} SVG for scene ${scene.id} (${scene.svg})`);
         const text = await this.fetchText(url);
         if (gen !== this.generation) return;
+        // Scrolled on while it downloaded: no longer in the window, so don't mount it (it would
+        // never be evicted). It mounts again from the text cache if we come back.
+        if (!windowAround(this.center, this.opts.scenes.length).includes(index)) return;
         host = document.createElement('div');
         host.className = 'scene';
         host.innerHTML = text;
