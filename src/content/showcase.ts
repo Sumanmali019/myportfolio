@@ -72,6 +72,12 @@ export interface Showcase {
    * phones) and, once deployed, the live site at `url` replaces the Play Store listing.
    */
   site?: { url: string; title: string };
+  /**
+   * More files typed after `file` / `code`, each in its own editor tab (e.g. the Python
+   * backend and the Docker setup behind a Flutter or React front end). `run` is the command in
+   * the status bar while it types.
+   */
+  files?: Array<{ file: string; run: string; code: string[] }>;
 }
 
 /** What Suman learns first, on the same monitor, while we still see him from behind. */
@@ -240,8 +246,9 @@ export const beworldShowcase: Showcase[] = [
 
 /**
  * Chapter 09b: what Suman ships at Neura Dynamics as Tech Lead — two Flutter apps on the Play
- * Store, then two web platforms. (MeritHyre's Twilio A2P 10DLC onboarding follows on the same
- * monitor: screens/twilio-10dlc.ts.)
+ * Store, then two web platforms, each with its whole stack typed out file by file (front end,
+ * Python backend, Docker). (MeritHyre's Twilio A2P 10DLC onboarding follows on the same
+ * monitor: screens/twilio-10dlc.ts; its refund is chapter 09c, scenes/09-twilio-refund.ts.)
  */
 export const neuraShowcase: Showcase[] = [
   {
@@ -265,6 +272,35 @@ export const neuraShowcase: Showcase[] = [
       '  }',
       '}',
     ],
+    files: [
+      {
+        file: 'backend/app/routers/sessions.py',
+        run: 'uvicorn app.main:app --reload',
+        code: [
+          '@router.post("/sessions/{sid}/book")',
+          'async def book(sid: int, user=Depends(me)):',
+          '    slot = await Session.get_or_404(sid)',
+          '    if slot.is_full:',
+          '        raise HTTPException(409, "Full")',
+          '    booking = await slot.reserve(user)',
+          '    await notify.teacher(booking)',
+          '    return BookingOut.of(booking)',
+        ],
+      },
+      {
+        file: 'Dockerfile',
+        run: 'docker build -t klass-api .',
+        code: [
+          'FROM python:3.12-slim',
+          'WORKDIR /app',
+          'COPY requirements.txt .',
+          'RUN pip install -r requirements.txt',
+          'COPY app ./app',
+          'EXPOSE 8000',
+          'CMD ["uvicorn", "app.main:app"]',
+        ],
+      },
+    ],
   },
   {
     key: 'ayantra',
@@ -287,6 +323,35 @@ export const neuraShowcase: Showcase[] = [
       '  }',
       '}',
     ],
+    files: [
+      {
+        file: 'backend/app/phases.py',
+        run: 'uvicorn app.main:app --reload',
+        code: [
+          '@router.get("/phases/current")',
+          'async def current(user=Depends(me)):',
+          '    phase = await Phase.today(user)',
+          '    people = await phase.people(limit=12)',
+          '    # reflections stay end-to-end encrypted',
+          '    return PhaseOut(phase, people)',
+        ],
+      },
+      {
+        file: 'docker-compose.yml',
+        run: 'docker compose up -d',
+        code: [
+          'services:',
+          '  api:',
+          '    build: ./backend',
+          '    env_file: .env',
+          '    ports: ["8000:8000"]',
+          '    depends_on: [db]',
+          '  db:',
+          '    image: postgres:16',
+          '    volumes: [pgdata:/var/lib/pg]',
+        ],
+      },
+    ],
   },
   {
     key: 'docpharma',
@@ -308,6 +373,34 @@ export const neuraShowcase: Showcase[] = [
       '  );',
       '}',
     ],
+    files: [
+      {
+        file: 'services/orders/dispatch.py',
+        run: 'uvicorn orders.main:app --reload',
+        code: [
+          'async def dispatch(order: Order):',
+          '    store = await nearest(order.pincode)',
+          '    if order.needs_prescription:',
+          '        await verify_rx(order)',
+          '    rider = await riders.assign(store)',
+          '    return await deliver(order, rider)',
+        ],
+      },
+      {
+        file: 'Dockerfile',
+        run: 'docker build -t docpharma-web .',
+        code: [
+          'FROM node:20-alpine AS build',
+          'WORKDIR /app',
+          'COPY . .',
+          'RUN npm ci && npm run build',
+          '',
+          'FROM node:20-alpine',
+          'COPY --from=build /app/.next ./.next',
+          'CMD ["npm", "start"]',
+        ],
+      },
+    ],
   },
   {
     key: 'merithyre',
@@ -326,6 +419,38 @@ export const neuraShowcase: Showcase[] = [
       '  ]);',
       '  return <Metrics {...stats} campaigns={campaigns} />;',
       '}',
+    ],
+    files: [
+      {
+        file: 'ai/interview_agent.py',
+        run: 'python -m ai.worker',
+        code: [
+          'class InterviewAgent:',
+          '    async def ask(self, ctx) -> str:',
+          '        past = await ctx.transcript(6)',
+          '        reply = await llm.chat(',
+          '            system=prompts.of(ctx.role),',
+          '            messages=past,',
+          '        )',
+          '        await ctx.score(reply.rubric)',
+          '        return reply.question',
+        ],
+      },
+      {
+        file: 'docker-compose.yml',
+        run: 'docker compose up -d',
+        code: [
+          'services:',
+          '  web:',
+          '    build: ./web',
+          '    ports: ["3000:3000"]',
+          '  agent:',
+          '    build: ./ai',
+          '    env_file: .env  # Twilio, LLM keys',
+          '  redis:',
+          '    image: redis:7-alpine',
+        ],
+      },
     ],
   },
 ];

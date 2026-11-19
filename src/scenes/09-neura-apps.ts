@@ -2,13 +2,15 @@
  * 09b · Neura Dynamics, the work — in the same format as chapters 03 and 05. Suman's back view
  * hands over to his hands on the keyboard (the typing Lottie), and on the big monitor he builds
  * what he shipped as Tech Lead (content/showcase.ts → `neuraShowcase`, screens/app-build.ts):
- *   0 → 0.48      Klass Online and Ayantra (Flutter: code, their real screens on the phone
- *                 carousel, release build), then DocPharma and MeritHyre (Next.js: code, their
- *                 pages sliding through a browser window, production build);
+ *   0 → 0.48      Klass Online and Ayantra (Flutter, then their Python backend and Docker
+ *                 files, their real screens on the phone carousel, release build), then
+ *                 DocPharma and MeritHyre (React / Next.js, Python, Docker; their pages sliding
+ *                 through a browser window, production build);
  *   0.48 → 0.74   each goes live — the two apps on their Play Store listings (their desk
  *                 phones stamp the downloads badge), the two sites deployed;
  *   0.76 → 1      MeritHyre's Twilio SMS integration: the A2P 10DLC onboarding ticks off step by
- *                 step, the connection tests OK and saves (screens/twilio-10dlc.ts).
+ *                 step, the connection tests OK and saves (screens/twilio-10dlc.ts). The
+ *                 refund that followed is the next chapter (09-twilio-refund).
  * Scroll-driven, so it all reverses.
  */
 import type { Screen, SceneModule } from '../engine/types';

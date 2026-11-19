@@ -27,9 +27,17 @@ export const BUILD_END = 0.7;
 const STEP_SECONDS = 2.4;
 const TURN_SECONDS = 0.7;
 
+/** One file in the editor: its tab and code lines, and the command in the status bar. */
+interface Pane {
+  g: SVGGElement;
+  lines: SVGTextElement[];
+  run: string;
+}
+
 interface Built {
   group: SVGGElement;
-  lines: SVGTextElement[];
+  /** The app's files, typed one after another (main file first). */
+  panes: Pane[];
   slides: SVGGElement[];
   ring: SVGGElement;
   bar: SVGRectElement;
@@ -219,36 +227,46 @@ export function appBuild(
 
   const built: Built[] = apps.map((app) => {
     const group = svgEl('g', { 'data-app': app.key }, g);
-    tab(group, `${app.name.toLowerCase()}/${app.file}`, app.accent);
-    svgEl(
-      'image',
-      {
-        href: app.logo,
-        x: x + fs * 4.9,
-        y: y + th / 2 - fs * 0.55,
-        width: fs * 1.3,
-        height: fs * 1.3,
-      },
-      group,
-    );
-    const lines = app.code.map((line, i) => {
-      const ly = bodyY + fs * (1.7 + i * 1.32);
-      svgText(group, x + fs * 1.7, ly, String(i + 1), {
-        'font-size': fs * 0.7,
-        fill: UI.muted,
-        'text-anchor': 'end',
+    const site = app.site;
+    const files = [
+      { file: app.file, code: app.code, run: site ? 'npm run dev' : 'flutter run' },
+      ...(app.files ?? []),
+    ];
+    const panes: Pane[] = files.map((f) => {
+      const pg = svgEl('g', { 'data-file': f.file }, group);
+      tab(pg, `${app.name.toLowerCase()}/${f.file}`, app.accent);
+      svgEl(
+        'image',
+        {
+          href: app.logo,
+          x: x + fs * 4.9,
+          y: y + th / 2 - fs * 0.55,
+          width: fs * 1.3,
+          height: fs * 1.3,
+        },
+        pg,
+      );
+      const lines = f.code.map((line, i) => {
+        const ly = bodyY + fs * (1.7 + i * 1.32);
+        svgText(pg, x + fs * 1.7, ly, String(i + 1), {
+          'font-size': fs * 0.7,
+          fill: UI.muted,
+          'text-anchor': 'end',
+        });
+        // Comments muted, the first code line in the app's accent.
+        const comment = /^\s*(#|\/\/)/.test(line);
+        return svgText(pg, x + fs * 2.4, ly, line, {
+          'font-size': fs * 0.74,
+          fill: comment ? UI.muted : i === 0 ? app.accent : UI.text,
+          style: 'white-space: pre',
+        });
       });
-      return svgText(group, x + fs * 2.4, ly, line, {
-        'font-size': fs * 0.74,
-        fill: i === 0 ? app.accent : UI.text,
-        style: 'white-space: pre',
-      });
+      return { g: pg, lines, run: f.run };
     });
     // Phones on a ring; each a bezel with the screenshot clipped inside a nested <svg>.
     const ring = svgEl('g', {}, group);
     const iw = pw - pad * 2;
     const ih = ph - pad * 4;
-    const site = app.site;
     // Web app: one browser window right of the code; its pages slide past inside it.
     const area = site
       ? svgEl(
@@ -313,7 +331,7 @@ export function appBuild(
       'font-size': fs * 0.85,
       fill: UI.text,
     });
-    return { group, lines, slides, ring, bar, barW, status, app, web: !!site };
+    return { group, panes, slides, ring, bar, barW, status, app, web: !!site };
   });
 
   /* ---------- released: the Play Store listings (web apps: the deployed site) ---------- */
@@ -595,8 +613,16 @@ export function appBuild(
         b.group.style.display = on ? '' : 'none';
         if (!on) return;
         const p = progress(bp, i / nApps, (i + 1) / nApps);
-        const typed = Math.ceil(progress(p, 0, 0.6) * b.lines.length);
-        b.lines.forEach((l, j) => (l.style.visibility = j < typed ? '' : 'hidden'));
+        // Its files type out one after another, each in its own tab.
+        const n = b.panes.length;
+        const tp = progress(p, 0, 0.6) * n;
+        const cur = Math.min(n - 1, Math.floor(tp));
+        b.panes.forEach((pane, j) => {
+          pane.g.style.display = j === cur ? '' : 'none';
+          if (j !== cur) return;
+          const typed = Math.ceil(clamp(tp - j, 0, 1) * pane.lines.length);
+          pane.lines.forEach((l, q) => (l.style.visibility = q < typed ? '' : 'hidden'));
+        });
 
         // Carousel: one step every STEP_SECONDS, each turn taking TURN_SECONDS.
         const k = b.slides.length;
@@ -615,7 +641,7 @@ export function appBuild(
         setText(
           b.status,
           p < 0.6
-            ? `● ${b.app.name} · ${b.web ? 'npm run dev' : 'flutter run'}`
+            ? `● ${b.app.name} · ${b.panes[cur]!.run}`
             : build < 1
               ? `▶ Building ${b.app.name} release… ${Math.round(build * 100)}%`
               : `✓ ${b.app.name} release build ready`,

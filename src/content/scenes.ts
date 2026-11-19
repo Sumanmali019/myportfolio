@@ -173,9 +173,24 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'stop',
     palette: 'day',
-    weight: 4,
+    weight: 5,
     description:
-      'Back at the desk, his hands on the keyboard, the big monitor shows what Suman shipped at Neura Dynamics as Tech Lead. Klass Online, an app to learn or teach any skill live, and Ayantra, a calm reflection app: their Flutter code types out beside a carousel of their real screens, each release builds and goes live on its Play Store listing, and its desk phone stamps the downloads badge. Then two web platforms: DocPharma, a healthcare quick-commerce supply chain, and MeritHyre, AI-led interviews with a recruiting assistant — their Next.js code types out while their pages slide through a browser, and each deploys to production. Last, MeritHyre’s Twilio SMS integration: the A2P 10DLC onboarding ticks off step by step — subaccount, phone number, Trust Hub profiles, brand, campaign — the connection tests OK and it saves.',
+      'Back at the desk, his hands on the keyboard, the big monitor shows what Suman shipped at Neura Dynamics as Tech Lead. For each product the editor types out its whole stack, file by file — the Flutter or React front end, the Python (FastAPI) backend and its Docker setup. Klass Online, an app to learn or teach any skill live, and Ayantra, a calm reflection app: their code types out beside a carousel of their real screens, each release builds and goes live on its Play Store listing, and its desk phone stamps the downloads badge. Then two web platforms: DocPharma, a healthcare quick-commerce supply chain, and MeritHyre, AI-led interviews with a recruiting assistant — their code types out while their pages slide through a browser, and each deploys to production. Last, MeritHyre’s Twilio SMS integration: the A2P 10DLC onboarding ticks off step by step — subaccount, phone number, Trust Hub profiles, brand, campaign — the connection tests OK and it saves. (The refund that followed is the next chapter.)',
+    links: [],
+  },
+  {
+    id: '09-twilio-refund',
+    module: '09-twilio-refund',
+    svg: '09-twilio-refund.svg',
+    title: 'MeritHyre — the Twilio refund',
+    section: 'Twilio refund',
+    date: '2025-02',
+    city: 'Kolkata · Remote',
+    station: 'stop',
+    palette: 'day',
+    weight: 2.4,
+    description:
+      'Right after the Twilio onboarding, Suman at his desk, in the middle under the monitor. Twilio billing shows an unexpected $300 A2P 10DLC charge, and a toast flags it. He files a support ticket; Twilio Support replies and approves the refund. The view zooms into the billing: a +$300.00 credit, and a banner rises with confetti.',
     links: [],
   },
   {

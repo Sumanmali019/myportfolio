@@ -375,6 +375,46 @@ const OSS = (() => {
   return anim;
 })();
 
+/**
+ * MeritHyre's Twilio refund (`src/assets/lottie/twilio-a2p-refund.json`, 1440×900, same room
+ * as the Flutter one): Twilio billing shows an unexpected −$300 A2P 10DLC charge, a support
+ * ticket is filed, Twilio replies and approves, the camera zooms into the +$300.00 credit, then
+ * a banner and confetti. Chapter 09c. Patched in as in chapter 10: the live calendar over its
+ * own, and Suman from behind under the monitor (its screen is the beat anchor).
+ */
+const REFUND = (() => {
+  const anim = JSON.parse(
+    readFileSync(
+      new URL('../../src/assets/lottie/twilio-a2p-refund.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const cal = anim.layers.find((l) => l.nm === 'calendar');
+  const screen = anim.layers.findIndex((l) => l.nm.startsWith('screen:'));
+  if (!cal || screen < 0 || anim.layers[0].nm !== 'camera')
+    throw new Error('refund Lottie: calendar / screens / camera not where expected');
+  cal.shapes = [{ ty: 'gr', it: [{ ty: 'raw', svg: at(1240, 110, 1, K.calendar(120, 150)) }] }];
+  const me = structuredClone(OSS.layers.find((l) => l.nm === 'me'));
+  me.ind = 900 + anim.layers.length;
+  me.ip = anim.ip;
+  me.op = anim.op;
+  me.shapes = [
+    {
+      ty: 'gr',
+      it: [
+        {
+          ty: 'raw',
+          svg:
+            K.avatarBust('back', 820, 900, 0.9) +
+            rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor' }),
+        },
+      ],
+    },
+  ];
+  anim.layers.splice(screen, 0, me);
+  return anim;
+})();
+
 /** A Lottie's first frame in a nested <svg> filling (x, y, w, h); the scene animates it. */
 const lottieBox = (anim, id, pfx, x, y, w, h, fit = 'xMidYMid slice') =>
   `<svg x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" viewBox="0 0 ${anim.w} ${anim.h}" preserveAspectRatio="${fit}" data-lottie="${id}">` +
@@ -1086,6 +1126,28 @@ const SCENES = {
     ];
   },
 
+  /* 09c — the Twilio A2P 10DLC refund: the refund Lottie is the room (as chapter 10). */
+  '09-twilio-refund'(L, pfx) {
+    const m = L.m;
+    const box = lottieBox(REFUND, 'refund', pfx, 0, 0, 1440, 900, 'xMidYMid meet');
+    if (!m) return [part('room', 1, box)];
+    // Mobile pans with the camera, as chapter 10: the monitor across the width first, then the
+    // zoomed credit (x ≈ 112–1328, y ≈ 50–868 with the banner) fit to the width.
+    const r3 = (v) => Math.round(v * 1000) / 1000;
+    const s0 = L.W / 560;
+    const s1 = (L.W - 12) / 1230;
+    const from = [r3(L.W / 2 - 820 * s0), r3(L.H - 900 * s0), r3(s0)];
+    const to = [r3(L.W / 2 - 720 * s1), r3(L.H * 0.5 - 460 * s1), r3(s1)];
+    return [
+      part('wall', 0, rect(0, 0, L.W, L.H, '#eadfcd')),
+      part(
+        'room',
+        1,
+        at(from[0], from[1], from[2], box, { 'data-pan': [...from, ...to].join(' ') }),
+      ),
+    ];
+  },
+
   /* 10 ★ — open source: the Flutter contributor Lottie is the room. */
   '10-open-source'(L, pfx) {
     const m = L.m;
@@ -1425,6 +1487,7 @@ writeMotion(FLIGHT_MAP, 'india-flight-ccu-hyd');
 writeMotion(FLIGHT_HOME, 'india-flight-hyd-ccu');
 writeMotion(DAY_NIGHT, 'day-night-hyd');
 writeMotion(OSS, 'flutter-oss-contributor');
+writeMotion(REFUND, 'twilio-a2p-refund');
 const only = process.argv.slice(2);
 for (const id of Object.keys(SCENES)) {
   if (only.length && !only.some((p) => id.startsWith(p))) continue;
