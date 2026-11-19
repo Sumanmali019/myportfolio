@@ -2,18 +2,21 @@
 /**
  * The fixed, decorative stage (aria-hidden): both intro SVGs inline (CSS shows the one that
  * matches the layout, so first paint needs no JS), mount point for lazy scenes, the HUD
- * counters, the bubble layer and the scroll track.
+ * calendar (top right, on every screen: its month and year roll as you scroll), the bubble layer
+ * and the scroll track.
  */
 import introDesktop from '../assets/scenes/desktop/00-intro.svg?raw';
 import introMobile from '../assets/scenes/mobile/00-intro.svg?raw';
+import mouseCard from '../assets/lottie/mouse-top-view.svg?raw';
 
 interface Props {
   screens: number;
+  /** "JAN 2017": the calendar's first page. */
   firstDate: string;
-  firstCity: string;
 }
 
-const { screens, firstDate, firstCity } = Astro.props;
+const { screens, firstDate } = Astro.props;
+const [firstMonth, firstYear] = firstDate.split(' ');
 ---
 
 <div class="stage" id="stage" aria-hidden="true">
@@ -22,17 +25,18 @@ const { screens, firstDate, firstCity } = Astro.props;
 </div>
 
 <div class="hud" aria-hidden="true">
-  <span class="hud__pill"
-    ><span class="hud__date" id="hud-date">{firstDate}</span><span class="hud__city" id="hud-city"
-      >{firstCity}</span
-    ></span
-  >
-  <span class="hud__pill" id="hud-odometer" hidden>
-    <span aria-hidden="true">⤓</span><span class="hud__odo-num" id="hud-odo">0</span><span
-      >downloads</span
-    >
-  </span>
+  <div class="hud-cal" id="hud-cal">
+    <span class="hud-cal__pad"></span>
+    <span class="hud-cal__page">
+      <span class="hud-cal__month" id="hud-month" data-cal-month>{firstMonth}</span>
+      <span class="hud-cal__year" id="hud-year" data-cal-year>{firstYear}</span>
+    </span>
+    <span class="hud-cal__binding"><i></i><i></i></span>
+  </div>
 </div>
+
+<!-- Suman's hand on the mouse, shown as each on-screen click happens (engine/mouse.ts). -->
+<div class="click-card" id="click-card" aria-hidden="true" set:html={mouseCard} />
 
 <div class="bubble-layer" id="bubbles" aria-hidden="true">
   <svg class="fx" id="fx" focusable="false"></svg>

@@ -47,7 +47,23 @@ const me = (L, view, k, { d, m, ...opts }) =>
 
 /* ------------------------------------------------------------------ shared rooms */
 
-/** Wall, floor, window, calendar, desk, me and a plant — the desk-scene backbone. */
+/** The desk rooms' window (x, y, w, h): big, on the left wall. */
+const windowBox = (L) => (L.m ? [18, 34, 196, 132] : [44, 100, 390, 330]);
+
+/**
+ * Around the window, Kolkata touches (K.windowNook): curtains, a marigold garland over the
+ * top, a tulsi pot and a chai cup with books on the sill. A part of its own, so it glides
+ * from room to room with the window.
+ */
+const windowNook = (L) => {
+  const [wx, wy, ww, wh] = windowBox(L);
+  return part('window-nook', 2, at(wx, wy, 1, K.windowNook(ww, wh, { k: L.m ? 0.5 : 1 })));
+};
+
+/**
+ * Wall, floor, window, desk, me and a plant — the desk-scene backbone. (No wall calendar: the
+ * journey's calendar is the page's own, fixed top right on every screen — components/Stage.astro.)
+ */
 function deskRoom(
   L,
   pfx,
@@ -59,28 +75,38 @@ function deskRoom(
     withMe = true,
     /** Where the back-view bust stands (centre x per layout). */
     meAt = { d: 300, m: 82 },
+    /** Curtains, garland and sill things round the window (off when windows go on top). */
+    nook = true,
+    /** A wall bookshelf (off where the room has its own). */
+    shelf = true,
   } = {},
 ) {
   const parts = [];
   const floorY = L.m ? 700 : 720;
   parts.push(part('wall', 0, K.wall(L.W, L.H, floorY)));
   parts.push(part('floor', 0, K.floor(L.W, L.H, floorY)));
-  const [wx, wy, ww, wh] = L.m ? [20, 60, 150, 130] : [70, 110, 330, 300];
+  const [wx, wy, ww, wh] = windowBox(L);
   parts.push(
     part(
       windowId,
       1,
-      at(wx, wy, 1, K.windowObj(`${pfx}-${windowId}`, ww, wh, { view })),
+      at(wx, wy, 1, K.windowObj(`${pfx}-${windowId}`, ww, wh, { view, city: 'kolkata' })),
       morph ? { 'data-morph': morph } : {},
     ),
   );
-  const [cx, cy, cw, ch] = L.m ? [282, 60, 88, 104] : [1240, 110, 120, 150];
-  parts.push(part('calendar', 1, at(cx, cy, 1, K.calendar(cw, ch))));
+  if (nook) parts.push(windowNook(L));
   parts.push(part('desk', 2, L.m ? at(-10, 478, 1, K.desk(410)) : at(360, 600, 1, K.desk(1040))));
   if (plant)
     parts.push(
       part('plant', 3, L.m ? at(352, 700, 0.55, K.plant()) : at(130, 720, 1.1, K.plant())),
     );
+  // Things that follow the journey: a desk clock whose hands turn as it plays or scrolls, a
+  // succulent that sways, and a wall bookshelf that drifts (engine/loop.ts applyScrolled).
+  parts.push(
+    part('desk-clock', 3, L.m ? at(44, 478, 0.55, K.deskClock()) : at(410, 600, 1, K.deskClock())),
+  );
+  if (!L.m) parts.push(part('desk-succulent', 3, at(1060, 600, 1, K.deskSucculent())));
+  if (shelf && !L.m) parts.push(part('wall-books', 1, at(1150, 196, 1, K.wallBookshelf(230))));
   if (withMe) parts.push(me(L, 'back', { d: 0.9, m: 0.48 }, meAt));
   return parts;
 }
@@ -266,6 +292,30 @@ const DAY_NIGHT = (() => {
     // Position, not anchor: the head still nods about the base of its neck.
     l.ks.p.k[0] += dx;
   }
+  // Hyderabad through the window: Charminar in front of the skyline (the window glass is
+  // 82–388 × 122–398 in the file); the room's night darkness dims it with everything else.
+  const skyline = anim.layers.findIndex((l) => l.nm === 'buildings night');
+  if (skyline < 0) throw new Error('day-night Lottie: no buildings layer');
+  anim.layers.splice(skyline, 0, {
+    ddd: 0,
+    ind: 900,
+    ty: 4,
+    nm: 'charminar',
+    sr: 1,
+    ao: 0,
+    ip: anim.ip,
+    op: anim.op,
+    st: 0,
+    bm: 0,
+    ks: {
+      o: { a: 0, k: 100 },
+      r: { a: 0, k: 0 },
+      p: { a: 0, k: [0, 0, 0] },
+      a: { a: 0, k: [0, 0, 0] },
+      s: { a: 0, k: [100, 100, 100] },
+    },
+    shapes: [{ ty: 'gr', it: [{ ty: 'raw', svg: at(196, 398, 0.92, K.charminar()) }] }],
+  });
   return anim;
 })();
 const isMe = (l) => l.nm === 'me head' || l.nm === 'me body';
@@ -291,7 +341,8 @@ const onLottieMonitor = (item) => {
 const DAY_NIGHT_ROOM = {
   ...DAY_NIGHT,
   layers: DAY_NIGHT.layers
-    .filter((l) => !isMe(l))
+    // No wall calendar: the page's fixed one (top right) is the journey's calendar.
+    .filter((l) => !isMe(l) && l.nm !== 'calendar')
     .map((l) =>
       l.nm === 'day props' ? { ...l, shapes: l.shapes.filter((g) => !onLottieMonitor(g)) } : l,
     ),
@@ -314,8 +365,7 @@ const DAY_NIGHT_TYPING_AT = { ...TYPING_AT.d, x: TYPING_AT.d.x - 50 };
  * room — the editor types the fix, the pull request is reviewed, checks pass and it merges,
  * then the camera zooms into flutter/flutter's contributors with his photo, and the
  * "Official Flutter Contributor" banner and confetti. Chapter 10.
- * Patched in, inside its camera (so they zoom with the room): the live date calendar over
- * its own, and Suman from behind in the middle of the desk, under the monitor, with the
+ * Patched in, inside its camera (so it zooms with the room): Suman from behind in the middle of the desk, under the monitor, with the
  * monitor's screen as the beat anchor and the PR link.
  */
 /** Chapter 10's heading, over the room. */
@@ -360,14 +410,31 @@ const OSS = (() => {
   const screen = anim.layers.findIndex((l) => l.nm.startsWith('screen:'));
   if (!cal || screen < 0 || anim.layers[0].nm !== 'camera')
     throw new Error('flutter Lottie: calendar / screens / camera not where expected');
-  // Same place and size as its own calendar (1240, 110, 120×150).
-  cal.shapes = [{ ty: 'gr', it: [{ ty: 'raw', svg: at(1240, 110, 1, K.calendar(120, 150)) }] }];
+  // Its wall calendar goes: the page's fixed calendar (top right) is the only one.
+  cal.shapes = [];
+  // The google-cla bot's comment on the PR: Google's logo as its avatar, over the CLA badge.
+  const pr = anim.layers.find((l) => l.nm === 'screen: pull request');
+  if (!pr) throw new Error('flutter Lottie: no pull request screen');
+  pr.shapes.unshift({ ty: 'gr', it: [{ ty: 'raw', svg: K.googleAvatar(601, 398, 12.5) }] });
+  // The contributions graph: the commit bar and its label at the merge date, May 28, 2024
+  // (gridlines every 50 units a year, 2024 at x = 868, so x ≈ 888.5; drawn at 876).
+  const graph = anim.layers.find((l) => l.nm === 'screen: contributors');
+  const [label, bar] = graph?.shapes ?? [];
+  const barTr = bar?.it?.find((i) => i.ty === 'tr');
+  const labelTr = label?.it?.find((i) => i.ty === 'tr');
+  if (!barTr || !labelTr || barTr.p.k[0] !== 876)
+    throw new Error('flutter Lottie: contributions bar not where expected');
+  const shift = 12.5;
+  barTr.p.k[0] += shift;
+  labelTr.p.k[0] += shift;
   // Over the monitor and desk, under the screens' toast, banner and confetti (drawn later).
   anim.layers.splice(
     screen,
     0,
     still(
-      K.avatarBust('back', 820, 900, 0.9) +
+      // Suman from behind (scenes/10-open-source.ts swaps him for his typing hands while the
+      // code is written).
+      g(K.avatarBust('back', 820, 900, 0.9), { 'data-oss-me': true }) +
         rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor', 'data-link': 'flutter-pr' }),
       'me',
     ),
@@ -379,8 +446,8 @@ const OSS = (() => {
  * MeritHyre's Twilio refund (`src/assets/lottie/twilio-a2p-refund.json`, 1440×900, same room
  * as the Flutter one): Twilio billing shows an unexpected −$300 A2P 10DLC charge, a support
  * ticket is filed, Twilio replies and approves, the camera zooms into the +$300.00 credit, then
- * a banner and confetti. Chapter 09c. Patched in as in chapter 10: the live calendar over its
- * own, and Suman from behind under the monitor (its screen is the beat anchor).
+ * a banner and confetti. Chapter 09c. As in chapter 10: its calendar goes, and Suman from
+ * behind is patched in under the monitor (its screen is the beat anchor).
  */
 const REFUND = (() => {
   const anim = JSON.parse(
@@ -393,7 +460,7 @@ const REFUND = (() => {
   const screen = anim.layers.findIndex((l) => l.nm.startsWith('screen:'));
   if (!cal || screen < 0 || anim.layers[0].nm !== 'camera')
     throw new Error('refund Lottie: calendar / screens / camera not where expected');
-  cal.shapes = [{ ty: 'gr', it: [{ ty: 'raw', svg: at(1240, 110, 1, K.calendar(120, 150)) }] }];
+  cal.shapes = [];
   const me = structuredClone(OSS.layers.find((l) => l.nm === 'me'));
   me.ind = 900 + anim.layers.length;
   me.ip = anim.ip;
@@ -412,6 +479,47 @@ const REFUND = (() => {
     },
   ];
   anim.layers.splice(screen, 0, me);
+  // Twilio's own mark (ring and four dots) for the red dots: the console header on every
+  // screen, and Twilio Support's avatar on its reply.
+  const isRed = (it) => {
+    const c = it.find((x) => x.ty === 'fl')?.c?.k;
+    return Array.isArray(c) && typeof c[0] === 'number' && c[0] > 0.85 && c[1] < 0.35;
+  };
+  const bounds = (it) => {
+    const xs = [];
+    const ys = [];
+    JSON.stringify(it, (k, v) => {
+      if (k === 'v' && Array.isArray(v))
+        for (const p of v) {
+          if (!Array.isArray(p)) continue;
+          xs.push(p[0]);
+          ys.push(p[1]);
+        }
+      return v;
+    });
+    return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  };
+  let marks = 0;
+  const swap = (items) => {
+    for (const x of items) {
+      if (x.ty !== 'gr') continue;
+      if (isRed(x.it)) {
+        const [x0, x1, y0, y1] = bounds(x.it);
+        if (x1 - x0 < 20 && y1 - y0 < 20) {
+          const r = Math.max(x1 - x0, y1 - y0) / 2 + 0.5;
+          x.it = [
+            { ty: 'raw', svg: K.twilioMark((x0 + x1) / 2, (y0 + y1) / 2, r) },
+            ...x.it.filter((i) => i.ty === 'tr'),
+          ];
+          marks++;
+          continue;
+        }
+      }
+      swap(x.it);
+    }
+  };
+  for (const l of anim.layers) if (l.nm.startsWith('screen:')) swap(l.shapes);
+  if (marks !== 5) throw new Error(`refund Lottie: expected 5 Twilio dots, found ${marks}`);
   return anim;
 })();
 
@@ -451,6 +559,37 @@ const GREETING = [
   'I lead teams that ship apps across',
   'cloud, AI & mobile. Scroll to begin ↓',
 ];
+
+/**
+ * A desk where one product is built on the big monitor (chapters 11a, 11b; as 09b): the room,
+ * the monitor (`app-build` screen, the beat anchor, and a link to the live site), a mug, Suman
+ * from behind and his typing hands (shown by the scene module).
+ */
+function buildDesk(L, pfx, link, room = {}) {
+  const m = L.m;
+  const mon = m ? [10, 172, 370, 252] : [440, 96, 740, 450];
+  return [
+    ...deskRoom(L, pfx, { withMe: false, ...room }),
+    part(
+      'monitor',
+      4,
+      g(monitorAt(L, { 'data-screen': 'app-build' }, mon), { 'data-anchor': 'monitor' }) +
+        rect(mon[0], mon[1], mon[2], mon[3], 'none', { 'data-link': link }),
+    ),
+    part('mug', 6, m ? '' : at(500, 600, 1, K.mug())),
+    me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
+    part(
+      'typing',
+      7,
+      g(
+        (({ x, y, k }) => at(x, y, k, renderLottie(TYPING, `${pfx}-type`, 0)))(
+          m ? TYPING_AT.m : TYPING_AT.d,
+        ),
+        { 'data-typing': true, opacity: 0, transform: 'translate(0 160)' },
+      ),
+    ),
+  ];
+}
 
 const SCENES = {
   /* 00 — Hello: Suman's waving avatar (his Lottie) on the night sky, with a greeting bubble.
@@ -641,12 +780,6 @@ const SCENES = {
       ),
       part('leaves', 2, leaves),
       part('gate', 3, m ? at(13, 432, 0.48, K.juGate()) : at(302, 209, 1.1, K.juGate())),
-      part(
-        'stall',
-        4,
-        m ? at(8, 660, 0.62, K.chaiStall(170, 180)) : at(90, 680, 1, K.chaiStall(220, 210)),
-      ),
-      part('cycle', 5, m ? at(330, 700, 0.55, K.cycle()) : at(1200, 700, 1, K.cycle())),
       // Only Suman at the gate.
       me(L, 'front', { d: 0.8, m: 0.5 }, { d: 680, m: 190, young: true }),
     ];
@@ -831,16 +964,6 @@ const SCENES = {
         1,
         inRoom(lottieBox(DAY_NIGHT_ROOM, 'day-night', pfx, 0, 0, 1440, 900, 'xMidYMid meet')),
       ),
-      // Over the Lottie's calendar (same place and size): the live date/city calendar, dimmed
-      // at night like the room under it (the dark veil follows the Lottie's darkness layer).
-      part(
-        'calendar',
-        2,
-        inRoom(
-          at(1240, 110, 1, K.calendar(120, 150)) +
-            rect(1240, 104, 120, 156, '#14163a', { opacity: 0, 'data-day': '4' }),
-        ),
-      ),
       // A bigger monitor (as in chapter 03) over the Lottie's own: its screen shows the Lottie's
       // pipeline, scaled up, then the app builds and store listings (scenes/05-beworld.ts).
       // It fades with the Lottie's day layer.
@@ -990,7 +1113,7 @@ const SCENES = {
         { 'data-pane': key, opacity: 0 },
       );
     // Later light: extra windows over the day one, each with its own fixed sky.
-    const [wx, wy, ww, wh] = m ? [20, 60, 150, 130] : [70, 110, 330, 300];
+    const [wx, wy, ww, wh] = windowBox(L);
     const sky = (id, stops) =>
       `<defs><linearGradient id="${pfx}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
       stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
@@ -999,13 +1122,17 @@ const SCENES = {
       part(
         `${id}-window`,
         1,
-        g(sky(id, stops) + at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, opts)), {
-          [`data-${id}`]: true,
-          opacity: 0,
-        }),
+        g(
+          sky(id, stops) +
+            at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, { ...opts, city: 'kolkata' })),
+          {
+            [`data-${id}`]: true,
+            opacity: 0,
+          },
+        ),
       );
     return [
-      ...deskRoom(L, pfx, { windowId: 'home-window', morph: null, withMe: false }),
+      ...deskRoom(L, pfx, { windowId: 'home-window', morph: null, withMe: false, nook: false }),
       laterWindow(
         'dusk',
         [
@@ -1023,6 +1150,8 @@ const SCENES = {
         ],
         { view: 'night' },
       ),
+      // Over the later windows, so the sill things stay in front of every sky.
+      windowNook(L),
       // The room's light through the day (under the glowing monitor): afternoon gold, then
       // the evening and night veil.
       part(
@@ -1156,7 +1285,18 @@ const SCENES = {
     // then, once zoomed, the whole contributors page and banner (x ≈ 75–1365, y ≈ 22–868) fit
     // to the width in the middle of the frame, on wall that continues the room's.
     const box = lottieBox(OSS, 'oss', pfx, 0, 0, 1440, 900, 'xMidYMid meet');
-    if (!m) return [part('room', 1, box), ossLabel(L)];
+    // His hands on the keyboard, from above (as at the other desks), while the fix is typed.
+    const typing = part(
+      'typing',
+      7,
+      g(
+        (({ x, y, k }) => at(x, y, k, renderLottie(TYPING, `${pfx}-type`, 0)))(
+          m ? TYPING_AT.m : TYPING_AT.d,
+        ),
+        { 'data-typing': true, opacity: 0, transform: 'translate(0 160)' },
+      ),
+    );
+    if (!m) return [part('room', 1, box), typing, ossLabel(L)];
     const r3 = (v) => Math.round(v * 1000) / 1000;
     const s0 = L.W / 560;
     const s1 = (L.W - 12) / 1290;
@@ -1169,103 +1309,51 @@ const SCENES = {
         1,
         at(from[0], from[1], from[2], box, { 'data-pan': [...from, ...to].join(' ') }),
       ),
+      typing,
       ossLabel(L),
     ];
   },
 
-  /* 11 — side builds: bookshelf → The Quiet Shelf; printing press → Khyaati Prakashan. */
-  '11-side-builds'(L) {
-    const m = L.m;
-    const floorY = m ? 740 : 720;
-    const bookshelf = (x, y, w, h) =>
-      rect(x, y, w, h, C.wood, { rx: 6 }) +
-      rect(x + 10, y + 10, w - 20, h - 20, C.woodD) +
-      [0, 1, 2, 3]
-        .map(
-          (i) =>
-            K.books(
-              x + 16,
-              y + 10 + ((h - 20) / 4) * (i + 1) - 4,
-              Math.floor((w - 30) / 21),
-              (h - 20) / 4 - 14,
-              i + 2,
-            ) + rect(x + 10, y + 10 + ((h - 20) / 4) * (i + 1) - 4, w - 20, 8, C.wood),
-        )
-        .join('');
-    const qs = m
-      ? { shelf: [110, 60, 170, 320], phone: [110, 50, 170, 340] }
-      : { shelf: [150, 160, 300, 460], phone: [190, 150, 230, 440] };
-    const kp = m
-      ? { press: [65, 470, 260, 190], mon: [20, 420, 350, 230] }
-      : { press: [800, 300, 460, 330], mon: [730, 180, 600, 360] };
+  /* 11a — The Quiet Shelf, a side build: as chapter 09b, the big monitor builds it while his
+     hands type (scenes/11-quiet-shelf.ts); a wall shelf of books; its live site linked. */
+  '11-quiet-shelf'(L, pfx) {
     return [
-      part('wall', 0, K.wall(L.W, L.H, floorY)),
-      part('floor', 0, K.floor(L.W, L.H, floorY)),
+      ...buildDesk(L, pfx, 'quiet-shelf', { shelf: false }),
       part(
-        'qs',
-        3,
-        g(bookshelf(...qs.shelf), { 'data-bookshelf': true }) +
-          g(
-            at(
-              qs.phone[0],
-              qs.phone[1],
-              1,
-              K.phone(qs.phone[2], qs.phone[3], {
-                'data-screen': 'quiet-shelf',
-                'data-link': 'quiet-shelf',
-              }),
-            ),
-            { 'data-qs-phone': true, 'data-anchor': 'phone', class: 'pre-hidden' },
-          ),
-      ),
-      part(
-        'table',
+        'wall-shelf',
         2,
-        m
+        L.m
           ? ''
-          : rect(700, 598, 660, 20, C.wood, { rx: 4 }) +
-              rect(730, 618, 18, 102, C.woodD) +
-              rect(1310, 618, 18, 102, C.woodD),
+          : at(1180, 300, 1, K.shelf(200)) +
+              K.books(1192, 300, 8, 64, 9) +
+              at(1180, 410, 1, K.shelf(200)) +
+              K.books(1196, 410, 7, 58, 4),
       ),
+    ];
+  },
+
+  /* 11b — Khyaati Prakashan, a side build: the monitor builds the marketplace, then a reader pays
+     with Razorpay (scenes/11-khyaati.ts); books and a parcel ready to ship on the desk. */
+  '11-khyaati'(L, pfx) {
+    const m = L.m;
+    const parcel = (x, y, s) =>
+      at(
+        x,
+        y,
+        s,
+        rect(0, -70, 110, 70, '#c49a6c', { rx: 4 }) +
+          rect(0, -70, 110, 12, '#b0855a') +
+          rect(48, -70, 14, 70, '#e8d6b5') +
+          text(55, -24, 'KHYAATI', 11, '#6b4a2b', { 'text-anchor': 'middle' }),
+      );
+    return [
+      ...buildDesk(L, pfx, 'khyaati'),
       part(
-        'kp',
-        3,
-        g(at(kp.press[0], kp.press[1], 1, K.printingPress(kp.press[2], kp.press[3])), {
-          'data-press': true,
-        }) +
-          g(
-            at(
-              kp.mon[0],
-              kp.mon[1],
-              1,
-              K.monitor(kp.mon[2], kp.mon[3], {
-                'data-screen': 'khyaati-portals',
-                'data-link': 'khyaati',
-              }),
-            ),
-            { 'data-kp-monitor': true, class: 'pre-hidden' },
-          ),
-      ),
-      part(
-        'labels',
-        5,
+        'parcel',
+        6,
         m
-          ? text(195, 402, 'THE QUIET SHELF', 12, C.ink, {
-              'text-anchor': 'middle',
-              'letter-spacing': 2,
-            }) +
-              text(195, 790, 'KHYAATI PRAKASHAN', 12, C.ink, {
-                'text-anchor': 'middle',
-                'letter-spacing': 2,
-              })
-          : text(305, 660, 'THE QUIET SHELF', 18, C.ink, {
-              'text-anchor': 'middle',
-              'letter-spacing': 3,
-            }) +
-              text(1030, 680, 'KHYAATI PRAKASHAN', 18, C.ink, {
-                'text-anchor': 'middle',
-                'letter-spacing': 3,
-              }),
+          ? parcel(300, 478, 0.5)
+          : parcel(1220, 600, 1) + at(1350, 600, 1, K.books(0, 0, 3, 46, 12)),
       ),
     ];
   },
@@ -1392,17 +1480,6 @@ function flight(L, pfx, { from, to, board, laptop, lottie = null }) {
         K.cloud(L.W * 0.78, L.H * 0.7, m ? 0.7 : 1.4, 70),
     ),
     part(
-      'runway',
-      1,
-      rect(0, m ? 800 : 830, L.W, 80, '#6f6886') +
-        Array.from({ length: m ? 4 : 10 }, (_, i) =>
-          rect(30 + i * (m ? 100 : 150), m ? 818 : 860, m ? 50 : 80, 6, '#e9e4da'),
-        ).join('') +
-        g(at(m ? 40 : 140, m ? 796 : 826, m ? 1.4 : 2.6, K.planeIcon(1, '#ece6d9')), {
-          'data-takeoff': true,
-        }),
-    ),
-    part(
       'board',
       3,
       m
@@ -1472,13 +1549,36 @@ const BOTTOM_ANCHORED = new Set(['01-jadavpur', '02-graduation', '15-departures'
 
 function render(id, layoutName) {
   const L = LAYOUTS[layoutName];
-  // Chapters 04 and 08 each share a number with an interview; those get their own prefix.
-  const PREFIX = { '04-interview': 'iv', '08-interview': 'in' };
+  // Chapters that share a number (04, 08, 09, 11) get their own id prefix: ids must be unique
+  // across every scene on the page (several are mounted at once).
+  const PREFIX = {
+    '04-interview': 'iv',
+    '08-interview': 'in',
+    '09-leading': 'ld',
+    '09-neura-apps': 'na',
+    '09-twilio-refund': 'tr',
+    '11-quiet-shelf': 'qs',
+    '11-khyaati': 'kp',
+  };
   const pfx = `${PREFIX[id] ?? id.slice(0, 2)}${L.key}`;
   const body = SCENES[id](L, pfx).join('').replaceAll('PFX', pfx);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L.W} ${L.H}" preserveAspectRatio="${BOTTOM_ANCHORED.has(id) ? 'xMidYMax' : 'xMidYMid'} slice" data-scene="${id}"><defs>${K.skyGradient(`${pfx}-sky`)}</defs>${body}</svg>\n`;
 }
 
+/**
+ * Suman's mouse close-up (`src/assets/lottie/mouse-top-view.json`): his hand on the mouse, from
+ * above, clicking. Not part of a scene: the stage's click card (components/Stage.astro) shows it
+ * as each on-screen click plays (engine/mouse.ts).
+ */
+const MOUSE = JSON.parse(
+  readFileSync(new URL('../../src/assets/lottie/mouse-top-view.json', import.meta.url), 'utf8'),
+);
+writeFileSync(
+  resolve(root, 'src/assets/lottie/mouse-top-view.svg'),
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="110 60 230 230" focusable="false">${renderLottie(MOUSE, 'ms', 0)}</svg>
+`,
+);
+writeMotion(MOUSE, 'mouse-top-view');
 writeMotion(TOSS, 'graduation-cap-toss');
 writeMotion(TYPING, 'typing-top-view');
 writeMotion(INTERVIEW, 'interview-offer-mail');

@@ -39,7 +39,7 @@ describe('timeline', () => {
       enter: 1,
       hold: 0,
     });
-    const mid = resolve(tl, (tl.segments[1]!.enterStart + 0.5) / tl.total);
+    const mid = resolve(tl, (tl.segments[1]!.enterStart + TRANSITION / 2) / tl.total);
     expect(mid).toMatchObject({ index: 1, prev: 0, transitioning: true, beat: -1 });
     expect(mid.enter).toBeCloseTo(0.5);
     expect(resolve(tl, 1)).toMatchObject({ index: 2, hold: 1 });

@@ -12,7 +12,9 @@
  * The Lottie's camera layer is applied here to the hall and the graduate together (the
  * `[data-cam]` groups), so the whole scene moves as one shot. Only the motion keyframes ship
  * to the browser (`graduation-cap-toss.motion.json`, written by `pnpm art`).
- * The hall is drawn softly blurred so Suman stays in focus.
+ * The hall is drawn softly blurred so Suman stays in focus. A live blur under a moving, zooming
+ * camera is redrawn every frame (the toss stuttered), so once the scene is on the page the
+ * blurred hall is baked into one picture (bakeHall) and the camera only moves that picture.
  */
 import type { SceneModule } from '../engine/types';
 import { clamp, easeOut, lerp, progress } from '../lib/math';
@@ -61,6 +63,54 @@ function cameraTransform(frame: number): { tf: string; zoom: number } {
   };
 }
 
+/**
+ * Replace the live-blurred hall (`g[filter]` inside the hall part) with a picture of it, blurred
+ * once on a canvas. Falls back to the live blur where canvas filters are unavailable.
+ */
+function bakeHall(svg: SVGSVGElement): void {
+  const live = qs(svg, '[data-id="hall"] g[filter]');
+  const blur = live?.previousElementSibling?.querySelector('feGaussianBlur');
+  const region = live?.previousElementSibling?.querySelector('filter');
+  if (!live || !blur || !region) return;
+  const w = Number(region.getAttribute('width'));
+  const h = Number(region.getAttribute('height'));
+  const sd = Number(blur.getAttribute('stdDeviation')) || 2;
+  if (!w || !h) return;
+  // Sharp enough for the camera's 2.15x zoom: the picture is blurred anyway.
+  const k = Math.min(2, 4096 / w);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w * k);
+  canvas.height = Math.round(h * k);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.filter = 'blur(2px)';
+  if (ctx.filter !== 'blur(2px)') return;
+  const inner = live.cloneNode(true) as Element;
+  inner.removeAttribute('filter');
+  const src =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${canvas.width}" height="${canvas.height}">` +
+    new XMLSerializer().serializeToString(inner) +
+    '</svg>';
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(img.src);
+    // Drawn a little oversize so the blur doesn't fade the edges (like edgeMode="duplicate").
+    const pad = sd * k * 3;
+    ctx.filter = `blur(${(sd * k).toFixed(2)}px)`;
+    ctx.drawImage(img, -pad, -pad, canvas.width + 2 * pad, canvas.height + 2 * pad);
+    canvas.toBlob((blob) => {
+      if (!blob || !live.isConnected) return;
+      const pic = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+      pic.setAttribute('href', URL.createObjectURL(blob));
+      pic.setAttribute('width', String(w));
+      pic.setAttribute('height', String(h));
+      pic.setAttribute('preserveAspectRatio', 'none');
+      live.replaceWith(pic);
+    });
+  };
+  img.src = URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' }));
+}
+
 const scene: SceneModule = {
   id: '02-graduation',
   prepare(svg, { data }) {
@@ -78,6 +128,7 @@ const scene: SceneModule = {
     letter = qs(svg, '[data-letter]');
     sign = qs<SVGPathElement>(svg, '[data-sign]');
     stamp = qs(svg, '[data-stamp]');
+    bakeHall(svg);
 
     // The letter's words come from the first job in profile.ts (Cloudcraftz).
     const body = qs(svg, '[data-letter-body]');

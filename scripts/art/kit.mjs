@@ -6,6 +6,9 @@
 
 import { readFileSync } from 'node:fs';
 
+/** Jadavpur University's seal, embedded (128 px WebP). */
+const JU_LOGO = `data:image/webp;base64,${readFileSync(new URL('./assets/ju-logo.webp', import.meta.url)).toString('base64')}`;
+
 export const n = (v) => Math.round(v * 10) / 10;
 
 export const C = {
@@ -160,12 +163,15 @@ export function skyline(x, y, w, h, color = '#4a3f5c') {
 
 /* ------------------------------------------------------------------ furniture & objects */
 
-/** Window with a view. `view`: rooftops | night | campus | city. */
+/**
+ * Window with a view. `view`: rooftops | night | campus | city. `city`: kolkata adds Howrah
+ * Bridge behind the rooftops (lit at night) and, by day, kites over them.
+ */
 export function windowObj(
   pfx,
   w,
   h,
-  { view = 'rooftops', sun = null, grill = true, arch = false } = {},
+  { view = 'rooftops', sun = null, grill = true, arch = false, city = null } = {},
 ) {
   const clip = `${pfx}-wclip`;
   const inset = 12;
@@ -192,6 +198,17 @@ export function windowObj(
   } else if (view === 'city') {
     inner += skyline(0, h * 0.45, w, h * 0.55, '#6b5a78');
   } else {
+    if (city === 'kolkata')
+      inner += howrahBridge(
+        w * 0.08,
+        h * 0.3,
+        w * 0.84,
+        h * 0.36,
+        view === 'night' ? '#4d4870' : '#9a8aa0',
+        {
+          lights: view === 'night',
+        },
+      );
     inner += rooftops(
       0,
       h * 0.5,
@@ -201,6 +218,8 @@ export function windowObj(
       view === 'night' ? ['#3d3a5c', '#35324f', '#433f63'] : undefined,
     );
   }
+  if (city === 'kolkata' && view !== 'night')
+    inner += kite(w * 0.22, h * 0.2, 0.9, C.terra) + kite(w * 0.7, h * 0.12, 0.7, C.teal, C.terra);
   let out = `<defs><clipPath id="${clip}">${shape ? path(shape, '#000') : rect(inset, inset, w - inset * 2, h - inset * 2, '#000')}</clipPath></defs>`;
   out += shape
     ? path(`M0 ${h} V${w / 2} A${w / 2} ${w / 2} 0 0 1 ${w} ${w / 2} V${h} Z`, '#f4ead8')
@@ -248,15 +267,18 @@ export function calendar(w, h) {
   );
 }
 
+/** A desk in the room's colours (palette `--desk` / `--desk-d`). */
 export function desk(w, top = 22) {
+  const d = { class: 'p-desk' };
+  const dd = { class: 'p-desk-d' };
   return (
-    rect(0, 0, w, top, C.wood, { rx: 4 }) +
-    rect(0, top - 6, w, 6, C.woodD) +
-    rect(24, top, 18, 150, C.woodD) +
-    rect(w - 42, top, 18, 150, C.woodD) +
-    rect(w * 0.6, top, w * 0.3, 90, C.wood) +
-    rect(w * 0.6, top + 40, w * 0.3, 4, C.woodD) +
-    circle(w * 0.75, top + 22, 4, C.woodD)
+    rect(0, 0, w, top, null, { ...d, rx: 4 }) +
+    rect(0, top - 6, w, 6, null, dd) +
+    rect(24, top, 18, 150, null, dd) +
+    rect(w - 42, top, 18, 150, null, dd) +
+    rect(w * 0.6, top, w * 0.3, 90, null, d) +
+    rect(w * 0.6, top + 40, w * 0.3, 4, null, dd) +
+    circle(w * 0.75, top + 22, 4, null, dd)
   );
 }
 
@@ -321,18 +343,23 @@ export function plant(s = 1) {
     ellipse(-22, -70, 16, 42, C.leaf, { transform: 'rotate(-25 -22 -70)' }) +
       ellipse(22, -74, 15, 44, C.leafD, { transform: 'rotate(22 22 -74)' }) +
       ellipse(0, -92, 14, 50, C.leaf) +
-      path('M-34 -40 L34 -40 L26 0 L-26 0 Z', C.terra) +
-      rect(-36, -46, 72, 10, C.terraD, { rx: 3 }),
+      path('M-34 -40 L34 -40 L26 0 L-26 0 Z', null, { class: 'p-pot' }) +
+      rect(-36, -46, 72, 10, 'rgba(0,0,0,.18)', { rx: 3 }),
   );
 }
 
-export function mug(s = 1, color = C.terra) {
+/** A mug; without `color` it takes the room's (palette `--mug`). */
+export function mug(s = 1, color = null) {
   return at(
     0,
     0,
     s,
-    rect(-18, -40, 36, 40, color, { rx: 5 }) +
-      path('M18 -32 q16 0 16 12 q0 12 -16 12', 'none', { stroke: color, 'stroke-width': 6 }) +
+    rect(-18, -40, 36, 40, color, { rx: 5, class: color ? undefined : 'p-mug' }) +
+      path('M18 -32 q16 0 16 12 q0 12 -16 12', 'none', {
+        stroke: color ?? undefined,
+        class: color ? undefined : 'p-mug-s',
+        'stroke-width': 6,
+      }) +
       rect(-18, -40, 36, 6, 'rgba(0,0,0,.12)') +
       g(
         path('M-6 -48 q-6 -10 0 -20 q6 -10 0 -20', 'none', {
@@ -1106,13 +1133,11 @@ export function juGate() {
       'stroke-width': 2,
       opacity: 0.6,
     }) +
-    // Left gate with medallion.
+    // Left gate with the university's seal (scripts/art/assets/ju-logo.webp) as its medallion.
     rect(125, 226, 164, 160, '#2a2a2a') +
     bars(140, 278, 13.8, 234, 378, 5) +
-    circle(205, 306, 31, '#d99a5e', { stroke: '#8a4a22', 'stroke-width': 3 }) +
-    circle(205, 306, 22, 'none', { stroke: '#8a4a22', 'stroke-width': 2 }) +
-    path('M193 312 L205 296 L217 312 Z', '#8a4a22') +
-    rect(196, 312, 18, 4, '#8a4a22') +
+    circle(205, 306, 33, '#ffffff', { stroke: '#8a1010', 'stroke-width': 2 }) +
+    `<image href="${JU_LOGO}" x="175" y="276" width="60" height="60"/>` +
     // Folded middle gate.
     rect(400, 230, 44, 152, '#f1ede6', { stroke: '#3a3a3a', 'stroke-width': 3 }) +
     path('M408 234 L408 378 M416 234 L416 378 M424 234 L424 378 M432 234 L432 378', 'none', {
@@ -1361,5 +1386,259 @@ export function printingPress(w, h) {
       .map((i) => rect(w * 0.16, h * (0.1 + i * 0.045), w * 0.6 - i * 20, 5, '#c9b99d'))
       .join('') +
     rect(w * 0.05, h * 0.92, w * 0.9, 10, C.metalD)
+  );
+}
+
+/* ------------------------------------------------------------------ logos */
+
+/** Google's "G" in a white disc, an avatar of radius r centred at (cx, cy) (the google-cla bot). */
+export function googleAvatar(cx, cy, r = 12) {
+  const s = (r * 1.4) / 48;
+  return (
+    circle(cx, cy, r, '#ffffff', { stroke: '#dadce0', 'stroke-width': 0.8 }) +
+    at(
+      cx - 24 * s,
+      cy - 24 * s,
+      s,
+      path(
+        'M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z',
+        '#EA4335',
+      ) +
+        path(
+          'M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z',
+          '#4285F4',
+        ) +
+        path(
+          'M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z',
+          '#FBBC05',
+        ) +
+        path(
+          'M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z',
+          '#34A853',
+        ),
+    )
+  );
+}
+
+/** Twilio's mark (a ring with four dots), outer radius r, centred at (cx, cy). */
+export function twilioMark(cx, cy, r, color = '#f22f46') {
+  return (
+    circle(cx, cy, r * 0.867, 'none', { stroke: color, 'stroke-width': n(r * 0.265) }) +
+    [
+      [-1, -1],
+      [1, -1],
+      [-1, 1],
+      [1, 1],
+    ]
+      .map(([dx, dy]) => circle(cx + dx * r * 0.25, cy + dy * r * 0.25, r * 0.208, color))
+      .join('')
+  );
+}
+
+/* ------------------------------------------------------------------ city views & window nook */
+
+/** Howrah Bridge, a silhouette across (x, y, w, h): cantilever towers, truss, deck. */
+export function howrahBridge(x, y, w, h, color = '#8b7a8e', { lights = false } = {}) {
+  const deck = y + h * 0.82;
+  const t1 = x + w * 0.24;
+  const t2 = x + w * 0.76;
+  const top = y + h * 0.04;
+  const mid = y + h * 0.4;
+  const end = y + h * 0.62;
+  // Top chord: end → tower → dip in the suspended span → tower → end.
+  const chord = `M${n(x)} ${n(end)} L${n(t1)} ${n(top)} Q${n(x + w * 0.5)} ${n(mid + h * 0.08)} ${n(t2)} ${n(top)} L${n(x + w)} ${n(end)}`;
+  let out = path(chord, 'none', { stroke: color, 'stroke-width': 3.2, 'stroke-linejoin': 'round' });
+  out += rect(x, deck, w, 4, color);
+  // Towers.
+  for (const tx of [t1, t2]) out += rect(tx - 3, top, 6, deck - top + 4, color);
+  // Truss: verticals and diagonals between deck and chord.
+  const chordY = (px) => {
+    if (px <= t1) return end + ((top - end) * (px - x)) / (t1 - x || 1);
+    if (px >= t2) return top + ((end - top) * (px - t2)) / (x + w - t2 || 1);
+    const u = (px - t1) / (t2 - t1);
+    // Quadratic from tower top to tower top through the control point.
+    const cy = mid + h * 0.08;
+    return (1 - u) * (1 - u) * top + 2 * (1 - u) * u * cy + u * u * top;
+  };
+  const steps = 16;
+  let prev = null;
+  for (let i = 0; i <= steps; i++) {
+    const px = x + (w * i) / steps;
+    const py = chordY(px);
+    out += line(px, py, px, deck, color, 1.4);
+    if (prev) out += line(prev[0], prev[1], px, deck, color, 1.2);
+    prev = [px, py];
+  }
+  if (lights)
+    for (let i = 0; i <= steps; i += 2)
+      out += circle(x + (w * i) / steps, deck - 2, 1.6, '#ffd27a');
+  return g(out, { class: 'howrah' });
+}
+
+/** A paper kite with its tail and string (Kolkata rooftops), at (x, y). */
+export function kite(x, y, s = 1, color = C.terra, tail = C.mustard) {
+  return g(
+    at(
+      x,
+      y,
+      s,
+      path('M0 -14 L11 0 L0 18 L-11 0 Z', color) +
+        line(0, -14, 0, 18, 'rgba(0,0,0,.18)', 1) +
+        line(-11, 0, 11, 0, 'rgba(0,0,0,.18)', 1) +
+        path('M0 18 Q-6 26 2 32 Q8 38 0 46', 'none', { stroke: tail, 'stroke-width': 2 }) +
+        path('M0 18 Q40 70 120 120', 'none', {
+          stroke: 'rgba(60,50,70,.35)',
+          'stroke-width': 0.8,
+        }),
+    ),
+    { class: 'idle-kite' },
+  );
+}
+
+/** Charminar, Hyderabad: four minarets with balconies and domes, the arched gate, (0, 0) = base centre. */
+export function charminar(s = 1, color = '#c9a48a', shade = '#b38d73') {
+  const minaret = (mx) =>
+    rect(mx - 6, -150, 12, 150, color) +
+    [-118, -86, -56].map((by) => rect(mx - 9, by, 18, 5, shade)).join('') +
+    path(`M${mx - 7} -150 Q${mx} -172 ${mx + 7} -150 Z`, shade) +
+    rect(mx - 1, -180, 2, 10, shade);
+  return at(
+    0,
+    0,
+    s,
+    rect(-52, -70, 104, 70, color) +
+      // Gallery and screen on top of the gate.
+      rect(-50, -84, 100, 14, shade) +
+      [...Array(9)].map((_, i) => rect(-44 + i * 11, -82, 5, 10, color)).join('') +
+      // The great arch.
+      path('M-24 0 V-34 Q-24 -60 0 -62 Q24 -60 24 -34 V0 Z', shade) +
+      path('M-17 0 V-32 Q-17 -50 0 -52 Q17 -50 17 -32 V0 Z', 'rgba(40,30,50,.35)') +
+      minaret(-50) +
+      minaret(50),
+  );
+}
+
+/** A marigold garland (genda phool) hanging in a swag across `w`, with strands at the ends. */
+export function marigoldGarland(w, sag = 26, seed = 21) {
+  const r = rng(seed);
+  const colors = ['#f2a20c', '#e8780c', '#f6c419'];
+  let out = '';
+  const count = Math.max(10, Math.round(w / 12));
+  for (let i = 0; i <= count; i++) {
+    const u = i / count;
+    const x = u * w;
+    const y = 4 * sag * u * (1 - u);
+    out += circle(x, y, 5.2 + r() * 1.2, colors[i % 3]);
+  }
+  for (const sx of [0, w]) {
+    for (let j = 1; j <= 5; j++) out += circle(sx, j * 10, 5, colors[(j + (sx ? 1 : 0)) % 3]);
+    out += path(`M${sx - 4} 58 L${sx} 66 L${sx + 4} 58 Z`, C.leafD);
+  }
+  return g(out, { class: 'garland' });
+}
+
+/** A terracotta pot with a little tulsi plant, base centre at (0, 0). */
+export function tulsiPot(s = 1) {
+  return at(
+    0,
+    0,
+    s,
+    ellipse(-8, -34, 6, 12, C.leaf, { transform: 'rotate(-28 -8 -34)' }) +
+      ellipse(8, -36, 6, 13, C.leafD, { transform: 'rotate(24 8 -36)' }) +
+      ellipse(0, -44, 5, 13, C.leaf) +
+      path('M-16 -22 L16 -22 L12 0 L-12 0 Z', C.terra) +
+      rect(-18, -26, 36, 6, C.terraD, { rx: 2 }),
+  );
+}
+
+/** A clay chai cup (bhar) and two books, base at (0, 0). */
+export function sillStill(s = 1) {
+  return at(
+    0,
+    0,
+    s,
+    rect(-30, -10, 40, 10, C.teal, { rx: 2 }) +
+      rect(-26, -18, 34, 8, C.mustard, { rx: 2 }) +
+      path('M18 -16 L34 -16 L31 0 L21 0 Z', '#b0603f') +
+      ellipse(26, -16, 8, 2.5, '#7a3e28'),
+  );
+}
+
+/**
+ * Around a window of (w × h) at its own origin: curtains at both sides, a marigold garland
+ * over the top, and on the sill a tulsi pot and a chai cup with books. `k` scales the trims.
+ */
+export function windowNook(w, h, { k = 1, curtainColor = C.terra } = {}) {
+  const cw = 46 * k;
+  return (
+    at(-cw * 0.7, -10 * k, k, curtain(h / k + 26, curtainColor)) +
+    at(w - cw * 0.3, -10 * k, k, curtain(h / k + 26, curtainColor)) +
+    rect(-cw, -16 * k, w + cw * 2, 8 * k, C.woodD, { rx: 3 }) +
+    at(0, -6 * k, k, marigoldGarland(w / k, 26)) +
+    at(w * 0.16, h - 4, k, tulsiPot()) +
+    at(w * 0.8, h - 4, k, sillStill())
+  );
+}
+
+/* ------------------------------------------------------------------ desk things that follow the scroll */
+
+/**
+ * A small digital desk clock, base centre at (0, 0). Its time (`data-clock="d"`, HH:MM) is set by
+ * the engine as the journey plays or scrolls (engine/loop.ts).
+ */
+export function deskClock(s = 1) {
+  const mono = { 'font-family': 'ui-monospace, Consolas, Menlo, monospace', 'font-weight': 700 };
+  return at(
+    0,
+    0,
+    s,
+    rect(-42, -4, 10, 4, '#2a2438', { rx: 2 }) +
+      rect(32, -4, 10, 4, '#2a2438', { rx: 2 }) +
+      rect(-52, -48, 104, 45, '#3b3550', { rx: 9 }) +
+      rect(-46, -42, 92, 33, '#141019', { rx: 5 }) +
+      text(-7, -18, '88:88', 22, '#3a1d1d', { ...mono, 'text-anchor': 'middle' }) +
+      text(-7, -18, '08:00', 22, '#ff6f4f', {
+        ...mono,
+        'text-anchor': 'middle',
+        'data-clock': 'd',
+      }) +
+      text(42, -15, 'AM', 8, '#ff6f4f', { ...mono, 'text-anchor': 'end', 'data-clock': 'ap' }) +
+      circle(44, -44, 1.6, '#7be0a0'),
+  );
+}
+
+/** A little succulent in a pot, base centre at (0, 0); its leaves (`data-sway`) sway with the scroll. */
+export function deskSucculent(s = 1) {
+  return at(
+    0,
+    0,
+    s,
+    g(
+      ellipse(-9, -30, 6, 14, C.leaf, { transform: 'rotate(-30 -9 -30)' }) +
+        ellipse(9, -30, 6, 14, C.leafD, { transform: 'rotate(30 9 -30)' }) +
+        ellipse(0, -36, 6, 16, C.leaf) +
+        ellipse(-4, -24, 5, 9, C.leafD, { transform: 'rotate(-60 -4 -24)' }) +
+        ellipse(4, -24, 5, 9, C.leaf, { transform: 'rotate(60 4 -24)' }),
+      { 'data-sway': true },
+    ) +
+      path('M-16 -20 L16 -20 L12 0 L-12 0 Z', null, { class: 'p-pot' }) +
+      rect(-17, -23, 34, 5, 'rgba(0,0,0,.18)', { rx: 2 }),
+  );
+}
+
+/** A wall bookshelf of two shelves, top-left at (0, 0), `w` wide; it drifts with the scroll. */
+export function wallBookshelf(w = 220, seed = 3) {
+  return g(
+    rect(0, 70, w, 12, C.wood, { rx: 3 }) +
+      rect(0, 79, w, 3, C.woodD) +
+      rect(0, 168, w, 12, C.wood, { rx: 3 }) +
+      rect(0, 177, w, 3, C.woodD) +
+      rect(18, 82, 8, 22, C.woodD) +
+      rect(w - 26, 82, 8, 22, C.woodD) +
+      rect(18, 180, 8, 22, C.woodD) +
+      rect(w - 26, 180, 8, 22, C.woodD) +
+      books(12, 70, Math.floor(w / 24), 62, seed) +
+      books(16, 168, Math.floor(w / 26), 58, seed + 5),
+    { 'data-parallax': 26 },
   );
 }

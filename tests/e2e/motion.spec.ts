@@ -7,10 +7,9 @@ test.describe('reduced motion', () => {
   test('uses native scroll, freezes idle loops and shows bubbles fully typed', async ({ page }) => {
     await openJourney(page);
     await expect(page.locator('html')).toHaveClass(/reduced-motion/);
-    await expect(page.locator('html')).not.toHaveClass(/\blenis\b/);
 
-    // Scene 03 has a speech bubble in its first beat.
-    await gotoScene(page, 3, 0.3);
+    // Jadavpur (scene 1) has the journey's one bubble after the intro.
+    await gotoScene(page, 1, 0.5);
     const bubble = page.locator('.bubble');
     await expect(bubble).toBeVisible();
     const words = bubble.locator('.tw-word');
@@ -26,36 +25,21 @@ test.describe('reduced motion', () => {
       expect(await steam.evaluate((el) => (el as SVGElement).style.transform)).toBe('');
   });
 
-  test('scenes crossfade instead of building part by part', async ({ page }) => {
+  test('scenes crossfade at the midpoint instead of building part by part', async ({ page }) => {
     await openJourney(page);
-    await gotoScene(page, 2, 0.5);
-    // Halfway through scene 3's enter transition: half a screen before its hold starts.
-    await page.evaluate(() => {
-      window.dayEngine.goto(3, 0);
-      scrollTo(0, Math.max(0, scrollY - innerHeight * 0.5));
-    });
+    const host = page.locator('.scene[data-scene-id="03-kolkata"]');
+    const opacity = () => host.evaluate((el) => Number(getComputedStyle(el).opacity));
+    await page.evaluate(() => window.dayEngine.transition(3, 0.3));
     await page.waitForFunction(() => window.dayEngine.frame()?.transitioning === true);
-    const opacity = await page
-      .locator('.scene[data-scene-id="03-kolkata"]')
-      .evaluate((el) => Number(getComputedStyle(el).opacity));
-    expect(opacity).toBeGreaterThan(0);
-    expect(opacity).toBeLessThan(1);
-    // Parts are not scaled during the crossfade.
+    await page.waitForTimeout(500);
+    expect(await opacity()).toBe(0);
+    await page.evaluate(() => window.dayEngine.transition(3, 0.7));
+    await page.waitForTimeout(500);
+    expect(await opacity()).toBe(1);
+    // Nothing is taken apart or built.
     const scaled = await page
-      .locator('.scene[data-scene-id="03-kolkata"] [data-id]')
-      .evaluateAll(
-        (els) => els.filter((e) => (e as SVGElement).style.transform.includes('scale')).length,
-      );
+      .locator('.scene.is-on .pt[transform], .scene.is-on .pt[style*="none"]')
+      .count();
     expect(scaled).toBe(0);
-  });
-});
-
-test.describe('full motion', () => {
-  test('bubbles type word by word', async ({ page }) => {
-    await openJourney(page);
-    await gotoScene(page, 3, 0.2);
-    const bubble = page.locator('.bubble');
-    await expect(bubble).toBeVisible();
-    await expect(page.locator('html')).toHaveClass(/\blenis\b/);
   });
 });

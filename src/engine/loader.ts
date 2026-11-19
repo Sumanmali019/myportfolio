@@ -6,7 +6,7 @@
  */
 import type { Scene } from '../content/schema';
 import type { Layout } from './layout';
-import { collectParts, hideParts, type Part } from './morph';
+import { collectObjects, hideObject, type Obj } from '../transitions';
 
 const urls: Record<Layout, Record<string, string>> = {
   desktop: import.meta.glob('../assets/scenes/desktop/*.svg', {
@@ -29,7 +29,8 @@ export interface Mounted {
   scene: Scene;
   host: HTMLElement;
   svg: SVGSVGElement;
-  parts: Part[];
+  /** Its objects, with their parts wrapped and measured (transitions/parts.ts). */
+  parts: Obj[];
   inline: boolean;
 }
 
@@ -155,8 +156,8 @@ export class SceneLoader {
       svg.setAttribute('aria-hidden', 'true');
       svg.setAttribute('focusable', 'false');
       this.opts.prepare(svg, index);
-      const parts = collectParts(svg);
-      if (!inline) hideParts(parts);
+      const parts = collectObjects(svg);
+      if (!inline) parts.forEach(hideObject);
       this.mounted.set(index, { index, scene, host, svg, parts, inline });
       this.opts.onMount?.(index);
     } catch (err) {

@@ -369,17 +369,13 @@ export function appBuild(
     tab(group, `${site.url} · production`, app.accent);
     statusBar(group);
     const steps: SVGElement[] = [];
-    // The live site fills the body, in the browser.
+    // The live site fills the body, in the browser — a tour of its pages, one after another.
     steps.push(svgEl('g', {}, group));
-    browser(
-      steps[0]!,
-      x + fs * 0.6,
-      bodyY + fs * 0.6,
-      w - fs * 1.2,
-      bodyH - fs * 1.2,
-      app.shots[0]!,
-      site.url,
-    );
+    const pages = app.shots.map((href) => {
+      const page = svgEl('g', {}, steps[0]!);
+      browser(page, x + fs * 0.6, bodyY + fs * 0.6, w - fs * 1.2, bodyH - fs * 1.2, href, site.url);
+      return page;
+    });
     const stamp = liveStamp(group, x + w - fs * 7, bodyY + fs * 5, 'LIVE · prod', STORE_GREEN);
     const status = svgText(group, x + fs, y + h - sb / 2 + fs * 0.32, '', {
       'font-size': fs * 0.85,
@@ -393,6 +389,7 @@ export function appBuild(
       app,
       pending: `▶ Deploying ${app.name} to production…`,
       live: `✓ ${app.name} is live · ${site.url}`,
+      pages,
     };
   };
   const released = apps.map((app) => {
@@ -603,6 +600,12 @@ export function appBuild(
         const p = progress(rp, i / nApps, (i + 1) / nApps);
         const shown = Math.ceil(progress(p, 0, 0.5) * r.steps.length);
         r.steps.forEach((el, j) => (el.style.visibility = j < shown ? '' : 'hidden'));
+        // A live site: its pages, one after another.
+        if ('pages' in r && r.pages.length) {
+          const n = r.pages.length;
+          const k = Math.min(n - 1, Math.floor(progress(p, 0.08, 0.98) * n));
+          r.pages.forEach((pg, j) => (pg.style.display = j === k ? '' : 'none'));
+        }
         const st = progress(p, 0.55, 0.65);
         r.stamp.style.visibility = st > 0 ? '' : 'hidden';
         r.stamp.setAttribute('opacity', st.toFixed(2));

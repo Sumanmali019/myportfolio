@@ -53,6 +53,8 @@ export const AppSchema = z.object({
   badge: z.string().optional(),
   summary: nonEmpty,
   role: z.string().optional(),
+  /** Where it is live: its site or exact store listing (else a Google Play search is used). */
+  url: url.optional(),
 });
 
 export const ProfileSchema = z.object({
@@ -123,6 +125,13 @@ export const SceneSchema = z.object({
     'evening',
     'late',
     'spot',
+    // Desk rooms with their own colours.
+    'mint',
+    'peach',
+    'lilac',
+    'sky',
+    'cocoa',
+    'navy',
   ]),
   /** Length of the scene's hold, in screen-heights of scroll. */
   weight: z.number().min(0.6).max(8),

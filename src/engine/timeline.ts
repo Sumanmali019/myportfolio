@@ -10,7 +10,11 @@
  */
 import { clamp } from '../lib/math';
 
-export const TRANSITION = 1;
+/**
+ * Screens of scroll per transition: most of the scroll goes to the build (transitions/), so it
+ * reads piece by piece. (The reference site uses ≈ 6.6; this keeps the video near its length.)
+ */
+export const TRANSITION = 2;
 export const BEAT = 0.6;
 export const LEAD = 0.25;
 

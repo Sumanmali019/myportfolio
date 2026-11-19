@@ -33,7 +33,8 @@ const scene: SceneModule = {
     panTo = v.slice(3, 6);
   },
   update({ hold }) {
-    const frame = progress(hold, 0.04, 0.94) * (REFUND.op - 1);
+    // Done by 0.78: the credit and banner then stay, before the Neura live shelf comes up.
+    const frame = progress(hold, 0.04, 0.78) * (REFUND.op - 1);
     play?.(frame);
     if (pan && panTo.length === 3) {
       const z = easeInOut(progress(frame, ...ZOOM));
