@@ -679,15 +679,60 @@ const lottieBox = (anim, id, pfx, x, y, w, h, fit = 'xMidYMid slice') =>
   renderLottie(anim, `${pfx}-${id}`, 0) +
   `</svg>`;
 
-/** Only the motion (no shapes) goes to the browser: a few KB instead of ~60 KB each. */
+const head = (v) => (Array.isArray(v) ? v[0] : v);
+
+/** Drop a trailing 0 on position / scale triples; x and y are all the player reads. */
+const trimVec = (v) => (Array.isArray(v) && v.length === 3 && v[2] === 0 ? v.slice(0, 2) : v);
+
+function slimKeyframe(kf) {
+  const out = { t: kf.t, s: trimVec(kf.s) };
+  if (kf.h === 1) {
+    out.h = 1;
+    return out;
+  }
+  if (kf.e !== undefined) {
+    out.e = kf.e;
+    return out;
+  }
+  if (!kf.o || !kf.i) return out;
+  const ox = head(kf.o.x);
+  const oy = head(kf.o.y);
+  const ix = head(kf.i.x);
+  const iy = head(kf.i.y);
+  const linear = ox === 0 && oy === 0 && ix === 1 && iy === 1;
+  const standard = ox === 0.45 && oy === 0 && ix === 0.55 && iy === 1;
+  if (linear) return out;
+  out.e = standard ? 1 : [ox, oy, ix, iy];
+  return out;
+}
+
+function slimLayer({ ind, ty, ks = {} }) {
+  const next = {};
+  for (const [key, prop] of Object.entries(ks)) {
+    if (!prop || prop.a !== 1) {
+      const k = prop?.k;
+      if (key === 'o' && k === 100) continue;
+      if (key === 'r' && k === 0) continue;
+      if (key === 's' && Array.isArray(k) && k[0] === 100 && k[1] === 100) continue;
+      if ((key === 'p' || key === 'a') && Array.isArray(k) && k[0] === 0 && k[1] === 0) continue;
+      if (k === undefined) continue;
+      next[key] = { k: trimVec(k) };
+    } else next[key] = { a: 1, k: prop.k.map(slimKeyframe) };
+  }
+  return { ind, ty, ks: next };
+}
+
+/**
+ * Only the motion (no shapes, no layer names) goes to the browser.
+ * Static identity transforms are dropped, and the usual ease is `e: 1`
+ * instead of a full in/out bezier (see `valueAt` in src/lib/lottie.ts).
+ */
 function writeMotion(anim, name) {
   const motion = {
     fr: anim.fr,
     ip: anim.ip,
     op: anim.op,
-    w: anim.w,
-    h: anim.h,
-    layers: anim.layers.map(({ ind, ty, nm, ks }) => ({ ind, ty, nm, ks })),
+    layers: anim.layers.map(slimLayer),
   };
   writeFileSync(
     resolve(root, `src/assets/lottie/${name}.motion.json`),
