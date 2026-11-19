@@ -10,7 +10,7 @@
 import type { SceneModule } from '../engine/types';
 import { easeInOut, lerp, progress } from '../lib/math';
 import { bindLottie, type LottieAnimation } from '../lib/lottie';
-import { qs, setAttr } from '../lib/svg';
+import { qs, qsa, setAttr } from '../lib/svg';
 import motionJson from '../assets/lottie/twilio-a2p-refund.motion.json';
 
 const REFUND = motionJson as unknown as LottieAnimation;
@@ -21,6 +21,8 @@ let play: ((frame: number) => void) | null = null;
 let pan: SVGGraphicsElement | null = null;
 let panFrom: number[] = [];
 let panTo: number[] = [];
+let panHide: SVGGraphicsElement[] = [];
+let zoomFade: SVGGraphicsElement | null = null;
 
 const scene: SceneModule = {
   id: '09-twilio-refund',
@@ -31,14 +33,22 @@ const scene: SceneModule = {
     const v = (pan?.getAttribute('data-pan') ?? '').split(' ').map(Number);
     panFrom = v.slice(0, 3);
     panTo = v.slice(3, 6);
+    panHide = qsa(svg, '[data-pan-hide]');
+    zoomFade = qs(svg, '[data-zoom-fade]');
   },
   update({ hold }) {
     // Done by 0.78: the credit and banner then stay, before the Neura live shelf comes up.
     const frame = progress(hold, 0.04, 0.78) * (REFUND.op - 1);
     play?.(frame);
+    // The desk clock and Suman fade as the camera zooms into the credit (on a phone they'd
+    // otherwise peek in at the edges).
+    if (zoomFade)
+      setAttr(zoomFade, 'opacity', (1 - progress(frame, ZOOM[0], ZOOM[0] + 14)).toFixed(3));
     if (pan && panTo.length === 3) {
       const z = easeInOut(progress(frame, ...ZOOM));
       const [x, y, s] = panFrom.map((a, i) => lerp(a, panTo[i]!, z));
+      // The phone layout's window goes as the camera zooms into the credit.
+      for (const el of panHide) setAttr(el, 'opacity', (1 - z).toFixed(3));
       setAttr(
         pan,
         'transform',

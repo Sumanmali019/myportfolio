@@ -21,9 +21,10 @@ export {
   planBetween,
   planTransition,
   restObjects,
+  sendAllHome,
   type Transition,
 } from './transition';
 export { paletteAt } from './palette';
 
-/** The swap point for things that show one scene or the other (calendar page, chapter). */
+/** The swap point for things that show one scene or the other (counters, chapter). */
 export const HANDOVER = 0.5;

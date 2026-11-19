@@ -50,10 +50,11 @@ describe('palette', () => {
 /** A stand-in object: boxes in a 1×1 frame (no SVG: boxes map 1:1 between scenes). */
 const obj = (id: string, x: number, y = 0.5, w = 0.1, view: string | null = null): Obj =>
   ({
-    el: { ownerSVGElement: null } as unknown as SVGGraphicsElement,
+    el: { ownerSVGElement: null, parentElement: null } as unknown as SVGGraphicsElement,
     id,
     key: id,
     view,
+    avatar: !!view,
     box: { x: x - w / 2, y: y - w / 2, w, h: w },
     parts: [],
     apart: [],

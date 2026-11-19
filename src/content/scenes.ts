@@ -24,7 +24,7 @@ export const scenes = [
     palette: 'night',
     weight: 1.2,
     description:
-      'Suman’s avatar waves hello on a night sky and says: Hi! Welcome to my portfolio. I’m Suman, a Tech Lead from Kolkata; I lead teams that ship apps across cloud, AI and mobile. Scroll to begin.',
+      'Suman’s avatar waves hello on a night sky and says: Hi! Welcome to my portfolio. I’m Suman, a Tech Lead / SDE II: I turn ideas into products across mobile, web and backend, and lead teams from idea to launch. Always curious, always learning. Scroll to begin.',
     links: [],
   },
   {
@@ -54,7 +54,7 @@ export const scenes = [
     palette: 'morning',
     weight: 1.8,
     description:
-      'Graduation, 2021, in the convocation hall among rows of graduates in orange. Suman, his cap on his head, swings his arm and tosses it; the view zooms in and follows the spinning cap up past the roof into a sky of clouds and confetti, then back down as it lands on his head again. He then holds up his offer letter: Associate Software Engineer at Cloudcraftz, Kolkata, signed and stamped ACCEPTED.',
+      'Graduation, 2021, in the convocation hall among rows of graduates in orange. Suman, his cap on his head, swings his arm and tosses it; the view zooms in and follows the spinning cap up past the roof into a sky of clouds and confetti, then back down as it lands on his head again. He then holds up his offer letter: Associate Software Engineer at Cloudcraftz, Kolkata, signed.',
     links: [],
   },
   {
@@ -112,7 +112,8 @@ export const scenes = [
     city: 'Hyderabad',
     station: 'stop',
     palette: 'day',
-    weight: 3.2,
+    // The animation, then a rest for the live shelf (scenes/05-beworld.ts ANIM_END).
+    weight: 3.8,
     description:
       'The BeWorld office in Hyderabad, from day to night. By day, the release pipeline on the monitor lights up stage by stage; then Suman builds the apps on it — BeWorld, the Bengali social hub, then Current Affairs Daily GK — their Flutter code typing out beside a carousel of their real screens, and each goes live on its Play Store listing. The desk phones show their logos; BeWorld stamps 500K+ downloads and Current Affairs 50K+, and the odometer races up. Then dusk falls: the monitor fades, the lamp comes on, and by night he studies with Scaler at a laptop — the Scaler logo on screen, modules from DSA to the capstone — as a skill graph lights up.',
 
@@ -159,7 +160,8 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'star',
     palette: 'day',
-    weight: 3.6,
+    // Browsing the issues first, then the fix (scenes/10-open-source.ts).
+    weight: 4.6,
     description:
       'Suman at his desk, in the middle under the monitor. In the editor he types the fix; then the pull request plays: review requested, comments, checks passing one by one, approved, and a Merged toast — merged into the official Flutter repository. The view zooms into flutter/flutter’s contributors, his photo among them, and a banner rises with confetti: Official Flutter Contributor.',
     links: ['flutter-pr'],
@@ -174,9 +176,10 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'stop',
     palette: 'afternoon',
-    weight: 1.8,
+    // A whole day: the stand-up, then Jira and Docker at a readable pace.
+    weight: 8,
     description:
-      'One whole working day at Neura Dynamics, on the big monitor. 10 AM: the team sync, Suman on screen as Tech Lead, laughing. Then his hands come onto the keyboard and the screen moves through the day, each app with its clock: 11:30 AM, the Jira sprint board; 3:15 PM, Docker Desktop bringing the backend stack up container by container; 7:40 PM, VS Code, the SSE chat endpoint typed out, reloaded and tested; 10:20 PM, GitHub, a teammate’s pull request reviewed, checks passing, approved and merged. Outside, the light follows the clock from afternoon gold to dusk to night, and the desk lamp comes on. Role updated: Technical Lead.',
+      'One whole working day at Neura Dynamics, on the big monitor. 10 AM: the team sync, Suman on screen as Tech Lead asking what everyone is working on today, and the team answering one by one. Then his hands come onto the keyboard and the screen moves through the day, each app with its clock: 11:30 AM, the Jira sprint board; 3:15 PM, Docker Desktop bringing the backend stack up container by container; 7:40 PM, VS Code, the SSE chat endpoint typed out, reloaded and tested; 10:20 PM, GitHub, a teammate’s pull request reviewed, checks passing, approved and merged. Outside, the light follows the desk clock from afternoon gold to a sunset to night, and the desk lamp comes on. Role updated: Technical Lead.',
     links: [],
   },
   {
@@ -252,7 +255,7 @@ export const scenes = [
     palette: 'evening',
     weight: 1.8,
     description:
-      'An airport departures board flips letter by letter: next destination — your team. Its rows are the contact links: Email, LinkedIn, GitHub and Résumé.',
-    links: ['email', 'linkedin', 'github', 'resume', 'cta-mail', 'restart'],
+      'An airport departures board flips letter by letter: next destination — let’s connect. Its rows are the contact links: his email address (with a Copy button), LinkedIn, GitHub and Résumé; below, See my CV and Replay the journey.',
+    links: ['email', 'linkedin', 'github', 'resume', 'cta-cv', 'restart'],
   },
 ] satisfies SceneInput[];

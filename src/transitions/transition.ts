@@ -21,6 +21,12 @@
  * Backdrops (an object over 40% of the frame: a room, a hall, a sky) when both scenes have
  * one: B's builds early (d = .25, len = .3) over A's, and A's comes apart only after that
  * (d = .55, len = .2) beneath it — so the frame is never empty in the middle.
+ *
+ * Suman stays whole and in front through every transition. Moving, A's copy is carried in
+ * B's layer just beneath its twin for its half of the trip (so B's room building up can never
+ * cover him), then returned home — also on any frame the transition is skipped. Kept in
+ * place, B's copy shows throughout. With no twin he slides down out of the frame (A, before
+ * B's room builds) or up into it (B, once it has), always in one piece.
  */
 import { mapBox, setTransform, setVisible, type Box } from '../lib/svg';
 import { ease, easeIn, easeOut, map } from './easing';
@@ -30,6 +36,8 @@ import { planFor, type TransitionPlanSpec } from './plan';
 interface Task {
   o: Obj;
   building: boolean;
+  /** The avatar: slides this far (down, out of the frame) instead of coming apart. */
+  slide?: number;
   d: number;
   len: number;
   /** The object's own progress runs over [a, b] of the task's. */
@@ -50,6 +58,8 @@ interface Move {
   arcB: number;
   /** Seen from the other side (front ↔ back): turns round on the way. */
   turn: boolean;
+  /** CSS matrix from A's copy's user space to B's, to carry it inside B's layer. */
+  adopt: string;
 }
 
 export interface Transition {
@@ -180,8 +190,23 @@ export function planTransition(
       arcA: Math.min(0.06 * fa.h, 0.3 * dist(a.box, aTo)),
       arcB: Math.min(0.06 * fb.h, 0.3 * dist(bFrom, b.box)),
       turn: !!a.view && !!b.view && a.view !== b.view,
+      adopt: matrixBetween(a.el.parentElement, b.el.parentElement),
     });
   });
+
+  // Suman with no twin: out (down) before B's room builds, in (up) once it has.
+  for (const a of A)
+    if (!usedA.has(a) && a.avatar) {
+      usedA.add(a);
+      const slide = fa.y + fa.h - a.box.y;
+      t.tasks.push({ o: a, building: false, d: 0, len: 0.25, a: 0, b: 1, slide });
+    }
+  for (const b of B)
+    if (!usedB.has(b) && b.avatar) {
+      usedB.add(b);
+      const slide = fb.y + fb.h - b.box.y;
+      t.tasks.push({ o: b, building: true, d: 0.55, len: 0.3, a: 0, b: 1, slide });
+    }
 
   // Backdrops: B's over A's, so there is always a room on screen.
   const backdrop = (o: Obj, f: typeof fa) => o.box.w * o.box.h > 0.4 * f.w * f.h;
@@ -224,6 +249,41 @@ export function planTransition(
 export const planBetween = (A: Obj[], B: Obj[], index: number, from: string, to: string) =>
   planTransition(A, B, index, planFor(from, to));
 
+/** CSS matrix taking user units of `from` to those of `to` (both on screen). */
+function matrixBetween(from: Element | null, to: Element | null): string {
+  const a = (from as SVGGraphicsElement | null)?.getScreenCTM?.();
+  const b = (to as SVGGraphicsElement | null)?.getScreenCTM?.();
+  if (!a || !b) return '';
+  const m = b.inverse().multiply(a);
+  const r = (v: number) => Math.round(v * 10000) / 10000;
+  return `matrix(${r(m.a)}, ${r(m.b)}, ${r(m.c)}, ${r(m.d)}, ${r(m.e)}, ${r(m.f)})`;
+}
+
+/** Elements carried into the other scene's layer, each with a marker where it lives. */
+const homes = new Map<Element, Comment>();
+
+function adopt(el: Element, twin: Element): void {
+  if (el.nextSibling === twin) return;
+  if (!homes.has(el)) {
+    const mark = document.createComment('home');
+    el.before(mark);
+    homes.set(el, mark);
+  }
+  twin.before(el);
+}
+
+function sendHome(el: Element): void {
+  const mark = homes.get(el);
+  if (!mark) return;
+  homes.delete(el);
+  if (mark.parentNode) mark.replaceWith(el);
+}
+
+/** Return everything carried into another scene's layer (when no transition is running). */
+export function sendAllHome(): void {
+  for (const el of [...homes.keys()]) sendHome(el);
+}
+
 /** Move an object (CSS, in its scene's root user units). '' puts it back. */
 function setGlide(el: SVGGraphicsElement, tf: string): void {
   if (tf) {
@@ -260,9 +320,12 @@ function rest(o: Obj, shown = true, tf = ''): void {
 const taskProgress = (m: number, d: number, len: number) => map(m, d, Math.min(1, d + len));
 
 export function applyTransition(t: Transition, m: number): void {
+  const carried = new Set<Element>();
   for (const [a, b] of t.keeps) {
-    rest(a, m < 0.5);
-    rest(b, m >= 0.5);
+    // Suman: B's copy throughout, in front of everything building up.
+    const showA = a.avatar ? false : m < 0.5;
+    rest(a, showA);
+    rest(b, !showA);
   }
   for (const mv of t.moves) {
     const u = taskProgress(m, mv.d, mv.len);
@@ -277,7 +340,13 @@ export function applyTransition(t: Transition, m: number): void {
       const f = mv.turn ? Math.cos((Math.PI / 2) * easeIn(map(e, 0, 0.5))) : 1;
       const box = lerpBox(mv.a.box, mv.aTo, e);
       box.y -= lift * mv.arcA;
-      rest(mv.a, true, fitTransform(mv.a.box, box, f));
+      const tf = fitTransform(mv.a.box, box, f);
+      if (mv.adopt) {
+        // Carried in B's layer, just beneath its (hidden) twin.
+        adopt(mv.a.el, mv.b.el);
+        carried.add(mv.a.el);
+        rest(mv.a, true, `${mv.adopt} ${tf}`);
+      } else rest(mv.a, true, tf);
       rest(mv.b, false);
     } else {
       const f = mv.turn ? Math.sin((Math.PI / 2) * easeOut(map(e, 0.5, 1))) : 1;
@@ -288,10 +357,17 @@ export function applyTransition(t: Transition, m: number): void {
     }
   }
   for (const k of t.tasks) {
-    setGlide(k.o.el, '');
+    const v = map(taskProgress(m, k.d, k.len), k.a, k.b);
     setVisible(k.o.el, true);
-    applyObject(k.o, map(taskProgress(m, k.d, k.len), k.a, k.b), k.building);
+    if (k.slide) {
+      const off = (k.building ? 1 - ease(v) : ease(v)) * k.slide;
+      setGlide(k.o.el, off > 0.05 ? `translate(0px, ${Math.round(off * 10) / 10}px)` : '');
+      continue;
+    }
+    setGlide(k.o.el, '');
+    applyObject(k.o, v, k.building);
   }
+  for (const el of [...homes.keys()]) if (!carried.has(el)) sendHome(el);
 }
 
 /** A scene at rest: every object in place and whole. */

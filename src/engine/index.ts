@@ -1,7 +1,7 @@
 /**
  * Boot. Reads the serialised content, picks a layout, mounts scenes and runs one rAF loop:
  *
- *   scroll → P → timeline frame → { transitions, palette, calendar, scene modules,
+ *   scroll → P → timeline frame → { transitions, palette, scene modules,
  *                                   idle loops, bubbles, links }
  *
  * If anything fails (bad data, a scene SVG 404s) the Skip-the-day content (the static page,
@@ -10,25 +10,26 @@
 import { BubbleLayer } from '../bubbles/bubble';
 import { clamp } from '../lib/math';
 import { setOpacity } from '../lib/svg';
-import { calendar } from './calendar';
 import { pace } from './pace';
 import { player } from './player';
 import { shelves, SPAN as SHELF_SPAN } from './shelf';
 import { CUES, sound } from './sound';
 import { clickCard } from './mouse';
+import { journeyClock } from './daylight';
 
 /** How long a shelf waits for an answer before the journey carries on by itself. */
 const ASK_SECONDS = 15;
-import { applyCounters, downloadsAt, monthIndex } from './clock';
+import { applyCounters, downloadsAt, monthIndex, yearOf } from './clock';
 import { currentLayout, watchLayout, type Layout } from './layout';
 import { SceneLoader, type Mounted } from './loader';
-import { applyIdle, applyScrolled, startLoop, type Loop } from './loop';
+import { applyIdle, applyScrolled, applyYear, startLoop, type Loop } from './loop';
 import {
   applyTransition,
   HANDOVER,
   paletteAt,
   planBetween,
   restObjects,
+  sendAllHome,
   type Transition,
 } from '../transitions';
 import { onMotionChange, prefersReducedMotion } from './motion';
@@ -139,7 +140,6 @@ function boot(): void {
   const palette = new PaletteBlender(scenes.map((s) => s.palette));
   scroller = new Scroller();
   const bubbles = new BubbleLayer(bubbleRoot, fx);
-  const cal = calendar($<HTMLElement>('#hud-cal'));
   const clicks = clickCard($<HTMLElement>('#click-card'));
 
   const loader = new SceneLoader({
@@ -211,6 +211,21 @@ function boot(): void {
   };
 
   for (const a of linkEls) {
+    // Departures' email row: copy the address (and say so on its button for a moment).
+    const copy = a.dataset.copy;
+    if (copy) {
+      const label = a.querySelector<HTMLElement>('[data-copy-label]');
+      a.addEventListener('click', () => {
+        void navigator.clipboard?.writeText(copy).then(
+          () => {
+            if (!label) return;
+            label.textContent = 'Copied ✓';
+            setTimeout(() => (label.textContent = 'Copy'), 1600);
+          },
+          () => (window.location.href = `mailto:${copy}`),
+        );
+      });
+    }
     if (a.dataset.action === 'restart') {
       a.addEventListener('click', (e) => {
         e.preventDefault();
@@ -262,6 +277,29 @@ function boot(): void {
     }
   };
 
+  /**
+   * His hands on the keyboard: from the first frame any of them shows (rising onto the keys, or
+   * being built in a transition) the typing sound runs, while the journey moves.
+   */
+  const handsShowing = (keys: Element | null | undefined): boolean => {
+    if (!keys || Number(keys.getAttribute('opacity') ?? 0) <= 0.02) return false;
+    const pt = keys.closest<SVGElement>('.pt') ?? keys.querySelector<SVGElement>('.pt');
+    return !pt || pt.style.display !== 'none';
+  };
+  const keysAndMouse = (frame: Frame, now: number) => {
+    const keys = loader.get(frame.index)?.svg.querySelector('[data-typing]');
+    const typing = handsShowing(keys);
+    sfx.loop('typing', typing && now - movedAt < 300);
+    // The mouse close-up as those clicks happen (not while his hands are on the keyboard: the
+    // clicks still sound, the typing hands are already on screen).
+    const seg = tl.segments[frame.index]!;
+    clicks.update(
+      frame.transitioning || typing ? null : frame.id,
+      frame.hold,
+      seg.holdEnd - seg.holdStart,
+    );
+  };
+
   /* ---------- per-frame render ---------- */
 
   // Plans hold measured boxes, so they are rebuilt after a resize.
@@ -270,7 +308,13 @@ function boot(): void {
   let lastFrame: Frame | null = null;
   let resizeGen = 0;
 
+  /** The desk clock's time in scene `i`: its own day, else the journey's. */
+  const clockOf = (i: number, hold: number, p: number) =>
+    modules[i]?.clock?.(hold) ?? journeyClock(p);
+
   const render = (frame: Frame, idle: number) => {
+    // Nothing stays carried into another scene's layer outside its transition.
+    if (!frame.transitioning) sendAllHome();
     loader.ensure(frame.index);
     const cur = loader.get(frame.index);
     const prev = frame.prev >= 0 ? loader.get(frame.prev) : undefined;
@@ -329,20 +373,20 @@ function boot(): void {
       palette.apply(scenes[frame.prev]!.palette, curPal, paletteAt(frame.enter));
     else palette.apply(curPal);
 
-    // The calendar (top right) shows the date of the screen on stage: its page turns only when
-    // the screen changes (at the handover, mid-transition), not while scrolling inside one.
+    // The month of the screen on stage (for the scenes' own counters): it moves on when the
+    // screen changes (at the handover, mid-transition), not while scrolling inside one.
     const showing =
       frame.transitioning && frame.enter < HANDOVER && frame.prev >= 0 ? frame.prev : frame.index;
     const month = months[showing] ?? months[0]!;
     const city = scenes[frame.index]!.city;
     const downloads = downloadsAt(added, frame);
-    cal.set(month, reduced);
 
     const base = { idle, month, downloads, reduced, layout: loader.layout, data };
     if (prev) {
       applyCounters(prev.svg, month, scenes[prev.index]!.city, downloads);
       applyIdle(prev.svg, idle, reduced);
-      applyScrolled(prev.svg, frame.u, 1, frame.p);
+      applyScrolled(prev.svg, frame.u, 1, clockOf(prev.index, 1, frame.p));
+      applyYear(prev.svg, yearOf(month));
       const st: SceneState = {
         ...base,
         svg: prev.svg,
@@ -358,7 +402,10 @@ function boot(): void {
     if (cur) {
       applyCounters(cur.svg, month, city, downloads);
       applyIdle(cur.svg, idle, reduced);
-      applyScrolled(cur.svg, frame.u, frame.hold, frame.p);
+      applyScrolled(cur.svg, frame.u, frame.hold, clockOf(cur.index, frame.hold, frame.p));
+      // The year of the screen on stage: in a transition both calendars change together at the
+      // handover, as the incoming one takes over (so it flips as it appears, either way).
+      applyYear(cur.svg, yearOf(month));
       const st: SceneState = {
         ...base,
         svg: cur.svg,
@@ -403,6 +450,8 @@ function boot(): void {
   /* ---------- sound ---------- */
 
   const sfx = sound();
+  // Ready ahead of time: the typing starts on the very frame his hands start onto the keys.
+  sfx.preload(['typing', 'click']);
   let cueScene = -1;
   let cueHold = 0;
   let lastView = 0;
@@ -419,6 +468,12 @@ function boot(): void {
     sfx.setMuted(!sfx.muted());
     showMute();
   });
+  // The "see it live" shelves: up it comes, then each project takes off and lands with a pop.
+  shelf.onEvent = (event, item) => {
+    if (event === 'lift') sfx.play('swoosh');
+    else if (event === 'fly') sfx.play('fly');
+    else sfx.land(item);
+  };
   // A click for every button or link you press.
   document.addEventListener(
     'click',
@@ -513,23 +568,15 @@ function boot(): void {
         if (cueHold < at && frame.hold >= at) sfx.play(name);
     cueScene = frame.transitioning ? -1 : frame.index;
     cueHold = frame.hold;
+    // The scene's ambience bed.
+    sfx.ambience(frame.id, frame.hold);
     if (Math.abs(viewU - lastView) > 1e-4) movedAt = now;
     lastView = viewU;
-    const keys = frame.transitioning
-      ? null
-      : loader.get(frame.index)?.svg.querySelector('[data-typing]');
-    const handsOnKeys = !!keys && Number(keys.getAttribute('opacity') ?? 0) > 0.5;
-    sfx.loop('typing', handsOnKeys && now - movedAt < 300);
-    // The mouse close-up as those clicks happen (not while his hands are on the keyboard: the
-    // clicks still sound, the typing hands are already on screen).
-    const seg = tl.segments[frame.index]!;
-    clicks.update(
-      frame.transitioning || handsOnKeys ? null : frame.id,
-      frame.hold,
-      seg.holdEnd - seg.holdStart,
-    );
     // With reduced motion nothing moves on its own: skip frames where scroll didn't change.
-    if (frame.u === lastU && (reduced ? true : idle === lastIdle) && lastFrame) return;
+    if (frame.u === lastU && (reduced ? true : idle === lastIdle) && lastFrame) {
+      keysAndMouse(frame, now);
+      return;
+    }
     lastU = frame.u;
     lastIdle = idle;
     try {
@@ -537,6 +584,8 @@ function boot(): void {
     } catch (err) {
       fail(err);
     }
+    // After the render, so the typing starts on the same frame his hands start to show.
+    keysAndMouse(frame, now);
   });
   loop.setIdle(!reduced);
 
@@ -547,6 +596,7 @@ function boot(): void {
       loader.setLayout(next);
     }
     bubbles.relayout();
+    sendAllHome();
     plans = new WeakMap();
     lastU = -1;
   });
@@ -570,6 +620,9 @@ function boot(): void {
     scenes: scenes.map((s) => s.id),
     frame: () => lastFrame,
   };
+  // "Scroll or press play to begin" (first screen): shown for 3 seconds, then it goes.
+  const hint = $<HTMLElement>('#begin-hint');
+  if (hint) setTimeout(() => hint.classList.add('is-gone'), 3000);
   root.dataset.engine = 'ready';
 }
 

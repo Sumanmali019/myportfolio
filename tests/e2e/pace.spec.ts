@@ -83,8 +83,17 @@ test.describe('pace', () => {
     await page.waitForTimeout(800);
     expect(await page.evaluate(() => window.dayEngine.frame()?.index)).toBe(index);
     await expect(shelf.getByRole('link', { name: /QOMIX/ })).toBeVisible();
-    // "No thanks": now it moves on to the next chapter.
+    // While it asks, the icons are bigger and the picture has a light blue tint…
+    const tile = shelf.locator('.shelf__tile').first();
+    const scale = () => tile.evaluate((el) => getComputedStyle(el).scale);
+    const tint = () => shelf.evaluate((el) => Number(getComputedStyle(el, '::after').opacity));
+    expect(await scale()).toBe('1.2');
+    expect(await tint()).toBe(1);
+    // "No thanks": both go back to normal, and it moves on to the next chapter.
     await shelf.getByRole('button', { name: /No thanks, continue/ }).click();
+    await page.waitForTimeout(700);
+    expect(await scale()).not.toBe('1.2');
+    expect(await tint()).toBe(0);
     await page.mouse.wheel(0, 3000);
     await page.waitForFunction((i) => (window.dayEngine.frame()?.index ?? 0) > i, index, {
       timeout: 10_000,

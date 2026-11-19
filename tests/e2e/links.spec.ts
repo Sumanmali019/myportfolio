@@ -62,17 +62,29 @@ test.describe('links', () => {
     await expect(link).toHaveAttribute('href', links['flutter-pr']!.href);
   });
 
-  test('departures board rows and buttons are real links', async ({ page }) => {
+  test('departures board: real links, the email copies, See my CV opens the CV', async ({
+    page,
+  }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await openJourney(page);
     const index = scenes.findIndex((s) => s.id === '15-departures');
     await gotoScene(page, index, 0.95);
-    for (const key of ['email', 'linkedin', 'github', 'resume', 'cta-mail', 'restart']) {
+    for (const key of ['email', 'linkedin', 'github', 'resume', 'cta-cv', 'restart']) {
       await expect(
         page.locator(`.link-layer [data-scene-index="${index}"][data-link="${key}"]`),
         key,
       ).not.toHaveClass(/is-parked/);
     }
-    await expect(page.getByRole('link', { name: 'Book the next flight' })).toBeVisible();
+    // The email row copies the address.
+    const copy = page.getByRole('button', { name: /Copy email address/ });
+    await copy.click();
+    await expect(copy).toContainText('Copied');
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(profile.contact.email);
+    // See my CV opens the CV.
+    await page.locator(`.link-layer [data-link="cta-cv"]`).click();
+    await expect(page.locator('#skip')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#skip')).toBeHidden();
     await page.getByRole('link', { name: 'Replay the journey' }).click();
     await page.waitForFunction(() => window.dayEngine.frame()?.index === 0);
   });

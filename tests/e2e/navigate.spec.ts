@@ -3,7 +3,7 @@ import { profile } from '../../src/content/profile';
 import { gotoScene, openJourney } from './helpers';
 
 test.describe('getting around', () => {
-  test('first and last screens can skip the animation and show the CV', async ({ page }) => {
+  test('the first screen can skip the animation and show the CV', async ({ page }) => {
     await openJourney(page);
     const cv = page.locator('#cv-open');
     await expect(cv).toBeVisible();
@@ -18,10 +18,11 @@ test.describe('getting around', () => {
     // Not in the middle of the journey…
     await gotoScene(page, 3, 0.5);
     await expect(cv).toBeHidden();
-    // …but again on the last screen.
+    // …nor on the last screen, which has its own "See my CV" button on the board.
     const ids = await page.evaluate(() => window.dayEngine.scenes);
     await gotoScene(page, ids.length - 1, 0.5);
-    await expect(cv).toBeVisible();
+    await expect(cv).toBeHidden();
+    await expect(page.locator('.link-layer [data-link="cta-cv"]')).toBeVisible();
   });
 
   test('seek to the end on the progress bar, and back to the top', async ({ page }) => {

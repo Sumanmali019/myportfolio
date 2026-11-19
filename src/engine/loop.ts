@@ -5,6 +5,7 @@
  */
 import { mod } from '../lib/math';
 import { qsa, setTransform, setVisible } from '../lib/svg';
+import { clockText, dayPart } from './daylight';
 
 export interface LoopTick {
   now: number;
@@ -197,8 +198,11 @@ interface ScrolledSet {
 }
 const scrolledCache = new WeakMap<ParentNode, ScrolledSet>();
 
-/** `p`: the journey's progress 0..1, which the clock spreads over one working day. */
-export function applyScrolled(root: ParentNode, u: number, hold: number, p: number): void {
+/**
+ * `minutes`: the time on the desk clock (engine/daylight.ts). The scene SVG's `data-daypart`
+ * follows it, so the window and the room light always match the clock.
+ */
+export function applyScrolled(root: SVGSVGElement, u: number, hold: number, minutes: number): void {
   let set = scrolledCache.get(root);
   if (!set) {
     set = {
@@ -212,17 +216,41 @@ export function applyScrolled(root: ParentNode, u: number, hold: number, p: numb
     };
     scrolledCache.set(root, set);
   }
-  // 8 AM at the start of the journey, 11 PM at its end.
   const set2 = (el: Element, v: string) => {
     if (el.getAttribute('transform') !== v) el.setAttribute('transform', v);
   };
-  const mins = Math.floor(480 + p * 900) % 1440;
-  const h24 = Math.floor(mins / 60);
-  const hh = String(h24 % 12 || 12).padStart(2, '0');
-  const time = `${hh}:${String(mins % 60).padStart(2, '0')}`;
-  const ap = h24 < 12 ? 'AM' : 'PM';
+  const [time, ap] = clockText(minutes);
+  const part = dayPart(minutes);
+  if (root.dataset.daypart !== part) root.dataset.daypart = part;
   for (const el of set.digits) if (el.textContent !== time) el.textContent = time;
   for (const el of set.ampm) if (el.textContent !== ap) el.textContent = ap;
   for (const el of set.sways) set2(el, `rotate(${(Math.sin(u * 5) * 7).toFixed(2)})`);
   for (const { el, k } of set.drifts) set2(el, `translate(${((0.5 - hold) * k).toFixed(1)} 0)`);
+}
+
+const yearCache = new WeakMap<ParentNode, Element[]>();
+
+/**
+ * The desk calendar's year (`[data-desk-year]`, scripts/art/kit.mjs deskCalendar): always the
+ * year of the scene on screen. When it changes it flips in (styles/global.css `.is-flip`).
+ */
+export function applyYear(root: ParentNode, year: number): void {
+  let els = yearCache.get(root);
+  if (!els) {
+    els = qsa(root, '[data-desk-year]');
+    yearCache.set(root, els);
+  }
+  const text = String(year);
+  for (const el of els) {
+    if (el.textContent === text) continue;
+    // The first time (the authored placeholder) it is just set.
+    const first = !el.hasAttribute('data-year-set');
+    el.textContent = text;
+    el.setAttribute('data-year-set', '');
+    if (first) continue;
+    // Restart the flip.
+    el.classList.remove('is-flip');
+    void (el as SVGGraphicsElement).getBoundingClientRect();
+    el.classList.add('is-flip');
+  }
 }

@@ -72,7 +72,8 @@ export const liveTrays: LiveTray[] = [
     scene: '05-hyderabad',
     title: 'BeWorld · see them live',
     label: false,
-    from: 0.72,
+    // After the night studying (scenes/05-beworld.ts has played by 0.84).
+    from: 0.86,
     items: appsOf('05-hyderabad'),
   },
   {

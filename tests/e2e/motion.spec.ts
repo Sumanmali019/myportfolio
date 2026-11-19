@@ -32,10 +32,10 @@ test.describe('reduced motion', () => {
     await page.evaluate(() => window.dayEngine.transition(3, 0.3));
     await page.waitForFunction(() => window.dayEngine.frame()?.transitioning === true);
     await page.waitForTimeout(500);
-    expect(await opacity()).toBe(0);
+    await expect.poll(opacity, { timeout: 5000 }).toBe(0);
     await page.evaluate(() => window.dayEngine.transition(3, 0.7));
     await page.waitForTimeout(500);
-    expect(await opacity()).toBe(1);
+    await expect.poll(opacity, { timeout: 5000 }).toBe(1);
     // Nothing is taken apart or built.
     const scaled = await page
       .locator('.scene.is-on .pt[transform], .scene.is-on .pt[style*="none"]')

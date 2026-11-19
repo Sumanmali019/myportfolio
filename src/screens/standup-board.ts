@@ -1,7 +1,13 @@
-/** The team's sprint board (chapter 09, on the side of the monitor). One card slides DOING → DONE on a loop. */
+/**
+ * The team's sprint board (chapter 09). Given a hold window, its tickets move across the board
+ * one at a time, slowly enough to read: "GenAI ext" TO DO → DOING, then "Release 2.4" DOING →
+ * DONE, then "API review" TO DO → DOING (a pure function of hold, so it reverses). Without a
+ * window, one card slides DOING → DONE on a loop.
+ */
 import type { Screen } from '../engine/types';
 import { easeInOut, lerp, mod, progress } from '../lib/math';
 import { screenFrame, svgEl, svgText, UI } from '../lib/svg';
+import type { Window } from './lead-workday';
 
 const CARDS = [
   { title: 'API review', tag: UI.blue, col: 0 },
@@ -13,8 +19,18 @@ const CARDS = [
 ];
 const COLUMNS = ['TO DO', 'DOING', 'DONE'];
 const MOVER = 3; // "Release 2.4"
+/** With a window: [card, to column, to row, start, end] (in the window's 0–1). */
+const MOVES: Array<[number, number, number, number, number]> = [
+  [1, 1, 2, 0.08, 0.32], // GenAI ext → DOING
+  [3, 2, 2, 0.4, 0.64], // Release 2.4 → DONE
+  [0, 1, 1, 0.72, 0.94], // API review → DOING, where Release 2.4 was
+];
 
-export function standupBoard(rect: SVGGraphicsElement, title = 'STANDUP · THU'): Screen {
+export function standupBoard(
+  rect: SVGGraphicsElement,
+  title = 'STANDUP · THU',
+  win?: Window,
+): Screen {
   const f = screenFrame(rect);
   const { g, x, y, w, h, u } = f;
   svgEl('rect', { x, y, width: w, height: h, fill: UI.bg }, g);
@@ -29,7 +45,8 @@ export function standupBoard(rect: SVGGraphicsElement, title = 'STANDUP · THU')
   const pad = u * 3;
   const colW = (w - pad * 4) / 3;
   const top = y + u * 13;
-  const cardH = Math.min(u * 13, (h - u * 20) / 2.6);
+  // With moving tickets a column may hold three cards.
+  const cardH = win ? Math.min(u * 11, (h - u * 29) / 3) : Math.min(u * 13, (h - u * 20) / 2.6);
   COLUMNS.forEach((name, c) => {
     const cx = x + pad + c * (colW + pad);
     svgEl(
@@ -82,8 +99,23 @@ export function standupBoard(rect: SVGGraphicsElement, title = 'STANDUP · THU')
   // The mover's destination: below the DONE cards.
   const done = slot(2, 2);
 
+  // Moving cards travel over the others.
+  if (win) for (const [i] of MOVES) g.appendChild(cards[i]!.g);
+
   return {
     update({ idle, reduced, hold }) {
+      if (win) {
+        const t = progress(hold, win[0], win[1]);
+        for (const [i, col, row, a, b] of MOVES) {
+          const c = cards[i]!;
+          const to = slot(col, row);
+          const k = easeInOut(progress(t, a, b));
+          const px = lerp(c.home.x, to.x, k);
+          const py = lerp(c.home.y, to.y, k);
+          c.g.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)})`);
+        }
+        return;
+      }
       const m = cards[MOVER]!;
       // Loop: 0–0.35 waits in DOING, 0.35–0.6 slides to DONE, then rests; wraps every 5 s.
       const phase = reduced ? (hold > 0.5 ? 1 : 0) : mod(idle / 5, 1);

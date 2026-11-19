@@ -1,9 +1,8 @@
 ---
 /**
  * The fixed, decorative stage (aria-hidden): both intro SVGs inline (CSS shows the one that
- * matches the layout, so first paint needs no JS), mount point for lazy scenes, the HUD
- * calendar (top right, on every screen: its month and year roll as you scroll), the bubble layer
- * and the scroll track.
+ * matches the layout, so first paint needs no JS), mount point for lazy scenes, the mouse
+ * close-up card, the bubble layer and the scroll track.
  */
 import introDesktop from '../assets/scenes/desktop/00-intro.svg?raw';
 import introMobile from '../assets/scenes/mobile/00-intro.svg?raw';
@@ -11,12 +10,9 @@ import mouseCard from '../assets/lottie/mouse-top-view.svg?raw';
 
 interface Props {
   screens: number;
-  /** "JAN 2017": the calendar's first page. */
-  firstDate: string;
 }
 
-const { screens, firstDate } = Astro.props;
-const [firstMonth, firstYear] = firstDate.split(' ');
+const { screens } = Astro.props;
 ---
 
 <div class="stage" id="stage" aria-hidden="true">
@@ -24,15 +20,10 @@ const [firstMonth, firstYear] = firstDate.split(' ');
   <div class="scene is-on" data-intro="mobile" set:html={introMobile} />
 </div>
 
-<div class="hud" aria-hidden="true">
-  <div class="hud-cal" id="hud-cal">
-    <span class="hud-cal__pad"></span>
-    <span class="hud-cal__page">
-      <span class="hud-cal__month" id="hud-month" data-cal-month>{firstMonth}</span>
-      <span class="hud-cal__year" id="hud-year" data-cal-year>{firstYear}</span>
-    </span>
-    <span class="hud-cal__binding"><i></i><i></i></span>
-  </div>
+<!-- On the first screen: how to start, at the bottom; it goes after 3 s (engine/index.ts). -->
+<div class="begin-hint" id="begin-hint" aria-hidden="true">
+  Scroll or press <span class="begin-hint__play">▶</span> play to begin
+  <span class="begin-hint__arrow">↓</span>
 </div>
 
 <!-- Suman's hand on the mouse, shown as each on-screen click happens (engine/mouse.ts). -->

@@ -12,7 +12,8 @@
  *                   listing: title, publisher, downloads, logo, Install, screenshots, LIVE stamp.
  *
  * Web apps (a showcase entry with `site`, chapter 09b) swap the phones for a browser window
- * whose pages slide past, and the Play Store listing for the deployed site in the browser.
+ * that scrolls down the site as someone would (its pages stacked into one long page, eased
+ * wheel flicks, a moving scrollbar), and the Play Store listing for the deployed site in it.
  */
 import type { Lesson, Showcase } from '../content/showcase';
 import type { Screen } from '../engine/types';
@@ -44,8 +45,10 @@ interface Built {
   barW: number;
   status: SVGTextElement;
   app: Showcase;
-  /** Web app: the browser window's pages slide instead of the phone ring turning. */
+  /** Web app: the browser window scrolls down the site instead of the phone ring turning. */
   web: boolean;
+  /** Web app: scroll its browser (0 = top of the site, 1 = bottom). */
+  scroll: ((f: number) => void) | null;
 }
 
 export interface AppBuildOptions {
@@ -103,16 +106,19 @@ export function appBuild(
     });
   };
 
-  /** A light browser window at (bx, by), its page (a screenshot) clipped under the chrome. */
+  /**
+   * A light browser window at (bx, by): its pages (screenshots) stacked into one long page
+   * under the chrome. Returns `scrollTo(f)`: 0 = the top of the site, 1 = the bottom.
+   */
   const browser = (
     parent: Element,
     bx: number,
     by: number,
     bw: number,
     bh: number,
-    href: string,
+    hrefs: string[],
     url: string,
-  ) => {
+  ): ((f: number) => void) => {
     const bar = Math.max(fs * 1.25, bh * 0.07);
     svgEl('rect', { x: bx, y: by, width: bw, height: bh, rx: fs * 0.4, fill: '#ffffff' }, parent);
     svgEl('rect', { x: bx, y: by, width: bw, height: bar, rx: fs * 0.4, fill: '#e3e6ec' }, parent);
@@ -140,16 +146,62 @@ export function appBuild(
       'font-size': bar * 0.38,
       fill: '#5f6368',
     });
+    const viewH = bh - bar;
     const page = svgEl(
       'svg',
-      { x: bx, y: by + bar, width: bw, height: bh - bar, viewBox: `0 0 ${bw} ${bh - bar}` },
+      { x: bx, y: by + bar, width: bw, height: viewH, viewBox: `0 0 ${bw} ${viewH}` },
       parent,
     );
-    svgEl(
-      'image',
-      { href, x: 0, y: 0, width: bw, height: bh - bar, preserveAspectRatio: 'xMidYMin slice' },
+    // Each screenshot is one screen of the site (about 2:1): stack them down one long page.
+    const shotH = bw * 0.49;
+    const long = svgEl('g', {}, page);
+    hrefs.forEach((href, i) =>
+      svgEl(
+        'image',
+        {
+          href,
+          x: 0,
+          y: i * shotH,
+          width: bw,
+          height: shotH,
+          preserveAspectRatio: 'xMidYMin slice',
+        },
+        long,
+      ),
+    );
+    const total = Math.max(viewH, hrefs.length * shotH);
+    // The scrollbar: a thumb sized to the view, moving down the right edge.
+    const thumbH = Math.max(bar, (viewH * viewH) / total);
+    const thumb = svgEl(
+      'rect',
+      {
+        x: bw - bar * 0.32,
+        y: 0,
+        width: bar * 0.2,
+        height: thumbH,
+        rx: bar * 0.1,
+        fill: 'rgba(0,0,0,.35)',
+      },
       page,
     );
+    let last = '';
+    return (f: number) => {
+      const off = clamp(f) * (total - viewH);
+      const key = off.toFixed(1);
+      if (key === last) return;
+      last = key;
+      long.setAttribute('transform', off ? `translate(0 ${(-off).toFixed(1)})` : '');
+      thumb.setAttribute('y', ((off / (total - viewH || 1)) * (viewH - thumbH)).toFixed(1));
+    };
+  };
+  /**
+   * Scrolling like a person with a mouse wheel: `t` (0–1) across the visit becomes a series of
+   * eased flicks, each followed by a short pause to read.
+   */
+  const wheel = (t: number, flicks = 6) => {
+    const x = clamp(t) * flicks;
+    const i = Math.min(flicks - 1, Math.floor(x));
+    return (i + easeInOut(progress(x - i, 0, 0.6))) / flicks;
   };
 
   /* ---------- learning ---------- */
@@ -275,12 +327,9 @@ export function appBuild(
           ring,
         )
       : null;
+    const scroll = area ? browser(area, 0, 0, webW, webH, app.shots, site!.url) : null;
     const slides = area
-      ? app.shots.map((href) => {
-          const el = svgEl('g', {}, area);
-          browser(el, 0, 0, webW, webH, href, site!.url);
-          return el;
-        })
+      ? []
       : app.shots.map((href) => {
           const el = svgEl('g', {}, ring);
           svgEl(
@@ -331,7 +380,7 @@ export function appBuild(
       'font-size': fs * 0.85,
       fill: UI.text,
     });
-    return { group, panes, slides, ring, bar, barW, status, app, web: !!site };
+    return { group, panes, slides, ring, bar, barW, status, app, web: !!site, scroll };
   });
 
   /* ---------- released: the Play Store listings (web apps: the deployed site) ---------- */
@@ -369,13 +418,17 @@ export function appBuild(
     tab(group, `${site.url} · production`, app.accent);
     statusBar(group);
     const steps: SVGElement[] = [];
-    // The live site fills the body, in the browser — a tour of its pages, one after another.
+    // The live site fills the body, in the browser — scrolled down from top to bottom.
     steps.push(svgEl('g', {}, group));
-    const pages = app.shots.map((href) => {
-      const page = svgEl('g', {}, steps[0]!);
-      browser(page, x + fs * 0.6, bodyY + fs * 0.6, w - fs * 1.2, bodyH - fs * 1.2, href, site.url);
-      return page;
-    });
+    const scrollSite = browser(
+      steps[0]!,
+      x + fs * 0.6,
+      bodyY + fs * 0.6,
+      w - fs * 1.2,
+      bodyH - fs * 1.2,
+      app.shots,
+      site.url,
+    );
     const stamp = liveStamp(group, x + w - fs * 7, bodyY + fs * 5, 'LIVE · prod', STORE_GREEN);
     const status = svgText(group, x + fs, y + h - sb / 2 + fs * 0.32, '', {
       'font-size': fs * 0.85,
@@ -389,7 +442,7 @@ export function appBuild(
       app,
       pending: `▶ Deploying ${app.name} to production…`,
       live: `✓ ${app.name} is live · ${site.url}`,
-      pages,
+      scrollSite,
     };
   };
   const released = apps.map((app) => {
@@ -527,17 +580,6 @@ export function appBuild(
     };
   });
 
-  /** Web apps: the page at `pos` fills the browser; the next slides in from the right. */
-  const placePages = (b: Built, pos: number) => {
-    const k = b.slides.length;
-    b.slides.forEach((el, j) => {
-      const d = mod(j - pos + k / 2, k) - k / 2;
-      const visible = Math.abs(d) < 1;
-      el.style.display = visible ? '' : 'none';
-      if (visible) el.setAttribute('transform', `translate(${(d * (webW + fs)).toFixed(1)} 0)`);
-    });
-  };
-
   /** Place the phones: `pos` is front and centre; neighbours sit beside it, smaller and turned. */
   const placeRing = (b: Built, pos: number) => {
     const k = b.slides.length;
@@ -600,12 +642,8 @@ export function appBuild(
         const p = progress(rp, i / nApps, (i + 1) / nApps);
         const shown = Math.ceil(progress(p, 0, 0.5) * r.steps.length);
         r.steps.forEach((el, j) => (el.style.visibility = j < shown ? '' : 'hidden'));
-        // A live site: its pages, one after another.
-        if ('pages' in r && r.pages.length) {
-          const n = r.pages.length;
-          const k = Math.min(n - 1, Math.floor(progress(p, 0.08, 0.98) * n));
-          r.pages.forEach((pg, j) => (pg.style.display = j === k ? '' : 'none'));
-        }
+        // A live site: scrolled down from the top, flick by flick.
+        if ('scrollSite' in r) r.scrollSite(wheel(progress(p, 0.08, 0.95), 5));
         const st = progress(p, 0.55, 0.65);
         r.stamp.style.visibility = st > 0 ? '' : 'hidden';
         r.stamp.setAttribute('opacity', st.toFixed(2));
@@ -636,8 +674,13 @@ export function appBuild(
           const frac = steps - Math.floor(steps);
           pos = Math.floor(steps) + easeInOut(progress(frac, 1 - TURN_SECONDS / STEP_SECONDS, 1));
         }
-        if (b.web) placePages(b, pos);
-        else placeRing(b, pos);
+        if (b.scroll) {
+          // Down the site and back up, a flick every STEP_SECONDS (as a person browsing).
+          const k2 = Math.max(1, b.app.shots.length);
+          const t = reduced ? p : mod(idle / (STEP_SECONDS * k2 * 2), 1);
+          const leg = t < 0.5 ? t * 2 : 2 - t * 2;
+          b.scroll(wheel(leg, k2 + 1));
+        } else placeRing(b, pos);
 
         const build = progress(p, 0.6, 0.9);
         b.bar.setAttribute('width', (b.barW * build).toFixed(1));

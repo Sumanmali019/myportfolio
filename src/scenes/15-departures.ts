@@ -1,7 +1,8 @@
 /**
- * 15 · Departures — a split-flap board flips letter by letter to NEXT DESTINATION → YOUR
- * TEAM. Its rows are the real contact links: each row is a `[data-link]` rect, so LinkLayer
- * puts a focusable <a> exactly over it. "Book the next flight" and "Replay the journey" grow in.
+ * 15 · Departures — a split-flap board flips letter by letter to NEXT DESTINATION → LET'S
+ * CONNECT. Its rows are the real contact links: each row is a `[data-link]` rect, so LinkLayer
+ * puts a focusable control exactly over it. The first row is his email address itself (its
+ * button copies it). "See my CV" and "Replay the journey" grow in.
  */
 import type { SceneModule } from '../engine/types';
 import { clamp, easeOut, progress } from '../lib/math';
@@ -9,7 +10,8 @@ import { boxOf, qs, qsa, setScale, setText, svgEl, svgText } from '../lib/svg';
 
 const FLAPS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const ROWS: Array<[key: string, label: string]> = [
-  ['email', 'EMAIL'],
+  // The email row shows the address (data.profile.contact.email, set in prepare).
+  ['email', ''],
   ['linkedin', 'LINKEDIN'],
   ['github', 'GITHUB'],
   ['resume', 'RESUME'],
@@ -67,7 +69,7 @@ function flapRow(
 
 const scene: SceneModule = {
   id: '15-departures',
-  prepare(svg, { layout }) {
+  prepare(svg, { layout, data }) {
     flaps = [];
     ctas = qsa(svg, '[data-cta]');
     const board = qs(svg, '[data-board]');
@@ -84,11 +86,18 @@ const scene: SceneModule = {
       fill: '#a3a9c2',
       'letter-spacing': 2,
     });
-    flaps.push(...flapRow(parent, x, b.y + size * 3, cell, 'YOUR TEAM', 0.04, cols, size));
+    flaps.push(...flapRow(parent, x, b.y + size * 3, cell, "LET'S CONNECT", 0.04, cols, size));
     const rowSize = size * 0.62;
     const rowCell = cell * 0.62;
     const rowCols = 9;
+    const email = data.profile.contact.email;
+    // Room for the row's text left of its button.
+    const rowRoom = b.w - (small ? 12 : 36) - (small ? 84 : 120);
     ROWS.forEach(([key, label], i) => {
+      const text = key === 'email' ? email : label;
+      const cols = key === 'email' ? text.length : rowCols;
+      const c = key === 'email' ? Math.min(rowCell, rowRoom / text.length) : rowCell;
+      const sz = rowSize * (c / rowCell);
       const ry = b.y + size * 4.6 + i * rowSize * 2.3;
       svgEl(
         'rect',
@@ -103,18 +112,7 @@ const scene: SceneModule = {
         },
         parent,
       );
-      flaps.push(
-        ...flapRow(
-          parent,
-          x,
-          ry + rowSize * 1.05,
-          rowCell,
-          label,
-          0.3 + i * 0.06,
-          rowCols,
-          rowSize,
-        ),
-      );
+      flaps.push(...flapRow(parent, x, ry + rowSize * 1.05, c, text, 0.3 + i * 0.06, cols, sz));
     });
   },
   update({ hold, reduced }) {

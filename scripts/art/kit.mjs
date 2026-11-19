@@ -179,6 +179,10 @@ export function windowObj(
     ? `M${inset} ${h - inset} V${w / 2} A${w / 2 - inset} ${w / 2 - inset} 0 0 1 ${w - inset} ${w / 2} V${h - inset} Z`
     : null;
   let inner = rect(0, 0, w, h, 'url(#' + pfx + '-sky)');
+  // The view (city, bridge, rooftops, trees) keeps its proportions: in a tall window it sits
+  // in a band of the original shape at the bottom, and the sky fills the rest above it.
+  const vh = Math.min(h, w * 0.85);
+  const vy = h - vh;
   if (sun === 'sunrise')
     inner += g(circle(w * 0.7, h * 0.55, 34, '#ffd27a'), { 'data-sunrise': true });
   if (sun === 'sunset')
@@ -194,16 +198,17 @@ export function windowObj(
   }
   if (view === 'campus') {
     inner +=
-      ellipse(w * 0.2, h * 0.8, 70, 60, C.leaf) + ellipse(w * 0.75, h * 0.85, 80, 55, C.leafD);
+      ellipse(w * 0.2, vy + vh * 0.8, 70, 60, C.leaf) +
+      ellipse(w * 0.75, vy + vh * 0.85, 80, 55, C.leafD);
   } else if (view === 'city') {
-    inner += skyline(0, h * 0.45, w, h * 0.55, '#6b5a78');
+    inner += skyline(0, vy + vh * 0.45, w, vh * 0.55, '#6b5a78');
   } else {
     if (city === 'kolkata')
       inner += howrahBridge(
         w * 0.08,
-        h * 0.3,
+        vy + vh * 0.3,
         w * 0.84,
-        h * 0.36,
+        vh * 0.36,
         view === 'night' ? '#4d4870' : '#9a8aa0',
         {
           lights: view === 'night',
@@ -211,13 +216,21 @@ export function windowObj(
       );
     inner += rooftops(
       0,
-      h * 0.5,
+      vy + vh * 0.5,
       w,
-      h * 0.5,
-      w + h,
+      vh * 0.5,
+      w + vh,
       view === 'night' ? ['#3d3a5c', '#35324f', '#433f63'] : undefined,
     );
   }
+  // Hyderabad: the Charminar in front of the rooftops, its base on the bottom of the view.
+  if (city === 'hyderabad' && view !== 'campus' && view !== 'city')
+    inner += at(
+      w * 0.64,
+      h,
+      (vh * 0.62) / 180,
+      view === 'night' ? charminar(1, '#5d5577', '#4c4566') : charminar(),
+    );
   if (city === 'kolkata' && view !== 'night')
     inner += kite(w * 0.22, h * 0.2, 0.9, C.terra) + kite(w * 0.7, h * 0.12, 0.7, C.teal, C.terra);
   let out = `<defs><clipPath id="${clip}">${shape ? path(shape, '#000') : rect(inset, inset, w - inset * 2, h - inset * 2, '#000')}</clipPath></defs>`;
@@ -390,6 +403,8 @@ export function lamp(s = 1, { light = true } = {}) {
     (light
       ? g(path('M-40 -150 L40 -150 L130 40 L-130 40 Z', '#ffe9a8', { opacity: 0.35 }), {
           'data-lamp-light': true,
+          // On in the evening and at night (engine/daylight.ts).
+          class: 'dl dl-lamp',
         })
       : '') +
       rect(-30, -8, 60, 10, C.dark, { rx: 4 }) +
@@ -1607,6 +1622,37 @@ export function deskClock(s = 1) {
   );
 }
 
+/**
+ * A calendar hanging on the wall from a nail (top centre at (0, 0)), in the desk clock's style:
+ * the year in the same LED digits (`data-desk-year`, set by the engine from the scene on
+ * screen — engine/loop.ts applyYear — with a short flip when it changes).
+ */
+export function wallCalendar(s = 1) {
+  const mono = { 'font-family': 'ui-monospace, Consolas, Menlo, monospace', 'font-weight': 700 };
+  return at(
+    0,
+    0,
+    s,
+    // The string from the nail to the two rings.
+    path('M-30 30 L0 2 L30 30', 'none', {
+      stroke: '#5d566f',
+      'stroke-width': 1.6,
+      'stroke-linejoin': 'round',
+    }) +
+      circle(0, 2, 3.4, '#2a2438') +
+      rect(-60, 26, 120, 98, '#3b3550', { rx: 10 }) +
+      rect(-34, 20, 7, 15, '#2a2438', { rx: 3.5 }) +
+      rect(27, 20, 7, 15, '#2a2438', { rx: 3.5 }) +
+      rect(-51, 40, 102, 74, '#141019', { rx: 6 }) +
+      text(0, 57, 'YEAR', 9, '#ff6f4f', { ...mono, 'text-anchor': 'middle', opacity: 0.75 }) +
+      text(0, 96, '2017', 30, '#ff6f4f', {
+        ...mono,
+        'text-anchor': 'middle',
+        'data-desk-year': true,
+      }),
+  );
+}
+
 /** A little succulent in a pot, base centre at (0, 0); its leaves (`data-sway`) sway with the scroll. */
 export function deskSucculent(s = 1) {
   return at(
@@ -1641,4 +1687,99 @@ export function wallBookshelf(w = 220, seed = 3) {
       books(16, 168, Math.floor(w / 26), 58, seed + 5),
     { 'data-parallax': 26 },
   );
+}
+
+/* ------------------------------------------------------------------ food through the day */
+
+const steam = (x, y, s = 1) =>
+  [0, 1]
+    .map((i) =>
+      g(
+        path(`M${n(x + (i ? 7 : -5) * s)} ${n(y)} q-5 -8 0 -16 q5 -8 0 -16`, 'none', {
+          stroke: '#ffffff',
+          'stroke-width': 3.4 * s,
+          'stroke-linecap': 'round',
+          opacity: i ? 0.55 : 0.7,
+        }),
+        { class: 'idle-steam' },
+      ),
+    )
+    .join('');
+
+/**
+ * What's on the desk follows the clock (each dish shown by the scene SVG's
+ * `data-daypart`, styles/global.css pops it in): base centre at (0, 0), about 90 wide.
+ *   morning    chai in a clay bhar with two biscuits
+ *   afternoon  lunch: rice and a bowl of sabzi on a steel plate
+ *   evening    snacks: jhalmuri in a newspaper cone and two singaras
+ *   night      dinner: rotis, dal and a curry
+ */
+export function deskMeal(s = 1) {
+  const meal = (part, inner) => g(inner, { class: `meal meal-${part}` });
+  const morning = meal(
+    'morning',
+    // Saucer, biscuits, the clay cup (bhar) and steam.
+    ellipse(0, -3, 34, 5, '#d9cbb4') +
+      ellipse(20, -9, 11, 4, '#d9a35a') +
+      ellipse(26, -12, 11, 4, '#e2b56c') +
+      path('M-16 -38 L16 -38 L11 -4 L-11 -4 Z', '#b8643c') +
+      ellipse(0, -38, 16, 4, '#7a3e22') +
+      ellipse(0, -38, 13, 2.6, '#c98a4e') +
+      steam(0, -44, 0.8),
+  );
+  const afternoon = meal(
+    'afternoon',
+    // Lunch: a steel plate of rice and a bowl of sabzi (mixed vegetables), steaming.
+    ellipse(0, -6, 44, 9, '#c9ced6') +
+      ellipse(0, -8, 38, 6.5, '#e3e7ec') +
+      ellipse(-13, -14, 16, 8.5, '#fbf8f0') +
+      ellipse(-9, -18, 9, 5, '#ffffff') +
+      circle(-16, -16, 1.2, '#efe6d0') +
+      circle(-7, -13, 1.2, '#efe6d0') +
+      ellipse(18, -11, 14, 5.5, '#b9bfc8') +
+      ellipse(18, -13, 12, 4, '#d9a441') +
+      circle(13, -14, 2.2, '#5f9c3a') +
+      circle(20, -15, 2, '#e07a3a') +
+      circle(24, -13, 2.2, '#5f9c3a') +
+      circle(17, -12, 1.8, '#f2d56a') +
+      steam(-8, -26, 0.6),
+  );
+  const evening = meal(
+    'evening',
+    // A newspaper cone of jhalmuri (puffed rice, peanuts, chilli) and two golden singaras.
+    path('M-36 -2 L-12 -2 L-24 -40 Z', '#ece4d2') +
+      path('M-33 -10 L-15 -10 M-31 -18 L-17 -18 M-29 -26 L-19 -26', 'none', {
+        stroke: '#9b927f',
+        'stroke-width': 1.4,
+      }) +
+      ellipse(-24, -40, 13, 5, '#f4e3b8') +
+      circle(-29, -42, 2.2, '#fff6dd') +
+      circle(-22, -44, 2.2, '#fff6dd') +
+      circle(-18, -41, 1.8, '#b5622d') +
+      circle(-26, -45, 1.4, '#3f8a3a') +
+      ellipse(20, -3, 30, 5, '#d9cbb4') +
+      path('M0 -5 L14 -30 L26 -5 Z', '#d99a3a') +
+      path('M16 -5 L28 -26 L40 -5 Z', '#e3ac4c') +
+      path('M6 -10 L14 -24 M22 -10 L28 -21', 'none', {
+        stroke: '#b07428',
+        'stroke-width': 1.4,
+      }),
+  );
+  const night = meal(
+    'night',
+    // Dinner: rotis, a bowl of dal and a bowl of curry on a steel plate, steaming.
+    ellipse(0, -6, 46, 9, '#c9ced6') +
+      ellipse(0, -8, 40, 6.5, '#e3e7ec') +
+      ellipse(-18, -13, 15, 6, '#c99a5c') +
+      ellipse(-16, -16, 15, 6, '#dcb070') +
+      circle(-20, -17, 1.4, '#a8733c') +
+      circle(-11, -15, 1.2, '#a8733c') +
+      ellipse(8, -11, 11, 4.5, '#b9bfc8') +
+      ellipse(8, -13, 9, 3.2, '#e8b83a') +
+      ellipse(28, -10, 11, 4.5, '#b9bfc8') +
+      ellipse(28, -12, 9, 3.2, '#c8502a') +
+      circle(26, -13, 1.4, '#f3e2c0') +
+      steam(18, -20, 0.6),
+  );
+  return at(0, 0, s, morning + afternoon + evening + night);
 }
