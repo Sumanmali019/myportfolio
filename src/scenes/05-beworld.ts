@@ -10,6 +10,9 @@
  *   0.74 → 0.90   dusk falls; the monitor, phones and day props fade;
  *   0.90 → 1      night: the lamp, and the laptop with Scaler on screen (its logo and the
  *                 module, DSA through to the capstone) as the skill graph lights up.
+ * The whole animation (the stops above) plays over the first ANIM_END of the hold; after the
+ * night studying has finished, the room rests while its "see them live" shelf comes in
+ * (content/live.ts), so the links never show while it is still playing.
  * The overlays (monitor, phones) take their opacity from the Lottie layers under them.
  * The monitor is drawn bigger than the Lottie's (as in chapter 03); its screen shows the
  * Lottie's pipeline scaled up, then the builds. Suman sits centred at the desk, seen from behind (the Lottie's own 'me' layers, drawn on their
@@ -32,6 +35,8 @@ import { mountApps, screenCtx } from './shared';
 const DAY_NIGHT = motionJson as unknown as LottieAnimation;
 const TYPING = typingJson as unknown as LottieAnimation;
 /** Back view → hands on the keyboard, and back again (hold progress). */
+/** The hold progress by which everything has played (the stops below are in 0–1 of this). */
+const ANIM_END = 0.84;
 const SWAP_IN: [number, number] = [0.28, 0.36];
 const SWAP_OUT: [number, number] = [0.62, 0.7];
 
@@ -49,6 +54,17 @@ const BUILD: { start: number; buildEnd: number; end: number } = {
   buildEnd: 0.58,
   end: 0.74,
 };
+/**
+ * The desk clock's day, matching the room's: [stop, minutes] in the same 0–1 as the stops above
+ * — 10 AM, the afternoon of builds, dusk at 5 PM, night from 7:30, studying till late.
+ */
+const DAY: Array<[number, number]> = [
+  [0, 600],
+  [0.3, 690],
+  [0.74, 1020],
+  [0.9, 1170],
+  [1, 1410],
+];
 /** Confetti burst: while the store listings go live. */
 const BURST: [number, number] = [0.62, 0.8];
 
@@ -132,8 +148,8 @@ const scene: SceneModule = {
     hands = qs(svg, '[data-typing]');
     typing = hands ? bindLottie(hands, TYPING) : null;
     const mobile = layout === 'mobile';
-    sink = mobile ? 90 : 260;
-    rise = mobile ? 53 : 160;
+    sink = mobile ? 150 : 260;
+    rise = 160;
     // Each overlay follows the opacity of the Lottie layer it sits on.
     fades = qsa<SVGGraphicsElement>(svg, '[data-day]').map((el) => ({
       el,
@@ -180,7 +196,17 @@ const scene: SceneModule = {
       });
     }
   },
-  update(state) {
+  clock(hold) {
+    const h = Math.min(1, hold / ANIM_END);
+    for (let i = 1; i < DAY.length; i++) {
+      const [h1, m1] = DAY[i]!;
+      const [h0, m0] = DAY[i - 1]!;
+      if (h <= h1) return lerp(m0, m1, progress(h, h0, h1));
+    }
+    return DAY[DAY.length - 1]![1];
+  },
+  update(st) {
+    const state = { ...st, hold: Math.min(1, st.hold / ANIM_END) };
     const frame = frameAt(state.hold);
     play?.(frame);
     playMe?.(frame);

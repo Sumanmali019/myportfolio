@@ -2,26 +2,14 @@ import { expect, test } from '@playwright/test';
 import { profile } from '../../src/content/profile';
 import { openJourney } from './helpers';
 
-test.describe('Static content and the calendar', () => {
-  test('shows one calendar, top right, on every screen; no Skip button', async ({ page }) => {
+test.describe('Static content', () => {
+  test('no calendar and no Skip button on the page', async ({ page }) => {
     await openJourney(page);
     await expect(page.locator('#skip-open')).toHaveCount(0);
     await expect(page.locator('#skip')).toBeHidden();
-    const cal = page.locator('.hud-cal');
-    await expect(cal).toBeVisible();
-    await expect(page.locator('#hud-month')).toHaveText('JAN');
-    await expect(page.locator('#hud-year')).toHaveText('2017');
-    const box = (await cal.boundingBox())!;
-    const vw = page.viewportSize()!.width;
-    expect(box.x + box.width).toBeGreaterThan(vw - 40);
-    expect(box.y).toBeLessThan(40);
-
-    // Its month and year roll forward as you scroll.
+    await expect(page.locator('.hud-cal, #hud-month, #hud-year')).toHaveCount(0);
     await page.evaluate(() => window.dayEngine.goto(3, 0.5));
     await page.waitForFunction(() => document.documentElement.dataset.scene === '03-kolkata');
-    await expect(cal).toBeVisible();
-    await expect(page.locator('#hud-year')).toHaveText('2022');
-    // No wall calendar of their own in the scenes.
     await expect(page.locator('.stage [data-id="calendar"]')).toHaveCount(0);
   });
 

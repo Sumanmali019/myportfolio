@@ -12,7 +12,7 @@ interface Props {
 }
 
 const { scenes, links } = Astro.props;
-const CTA = new Set(['cta-mail', 'restart']);
+const CTA = new Set(['cta-cv', 'restart']);
 const ROW = new Set(['email', 'linkedin', 'github', 'resume']);
 const chip: Record<string, string> = {
   'flutter-pr': 'View the PR →',
@@ -27,6 +27,39 @@ const chip: Record<string, string> = {
   {
     scenes.map((scene, index) =>
       scene.links.map((key) => {
+        // Departures: "See my CV" opens the CV (engine/index.ts, [data-cv-open]).
+        if (key === 'cta-cv') {
+          return (
+            <button
+              type="button"
+              class="scene-link scene-link--cta is-parked"
+              data-link="cta-cv"
+              data-cv-open
+              data-scene-index={index}
+            >
+              <span class="scene-link__chip">See my CV</span>
+            </button>
+          );
+        }
+        const isRowKey = ROW.has(key) && scene.links.includes('cta-cv');
+        // Departures' email row: the address is on the board; this copies it.
+        if (key === 'email' && isRowKey) {
+          const address = links.email!.href.replace('mailto:', '');
+          return (
+            <button
+              type="button"
+              class="scene-link scene-link--row is-parked"
+              data-link="email"
+              data-copy={address}
+              data-scene-index={index}
+              aria-label={`Copy email address ${address}`}
+            >
+              <span class="scene-link__chip" data-copy-label>
+                Copy
+              </span>
+            </button>
+          );
+        }
         if (key === 'restart') {
           return (
             <a
@@ -42,7 +75,7 @@ const chip: Record<string, string> = {
         }
         const link = links[key]!;
         const external = link.href.startsWith('https://');
-        const isRow = ROW.has(key) && scene.links.includes('cta-mail');
+        const isRow = isRowKey;
         const cls = CTA.has(key) ? 'scene-link--cta' : isRow ? 'scene-link--row' : '';
         return (
           <a

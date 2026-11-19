@@ -165,10 +165,6 @@ export function buildLinks(p: Profile): Record<string, Link> {
     linkedin: { label: 'LinkedIn profile', href: p.contact.linkedin },
     github: { label: 'GitHub profile', href: p.contact.github },
     resume: { label: 'Download résumé (PDF)', href: publicHref(p.contact.resume) },
-    'cta-mail': {
-      label: 'Book the next flight',
-      href: `mailto:${p.contact.email}?subject=${encodeURIComponent('Book the next flight')}`,
-    },
   };
   for (const project of p.projects) {
     links[project.key] = {
@@ -217,7 +213,8 @@ export const ContentSchema = z
     const links = buildLinks(c.profile);
     for (const s of c.scenes) {
       for (const l of s.links) {
-        if (!links[l] && l !== 'restart')
+        // 'restart' and 'cta-cv' are buttons (replay the journey, open the CV), not URLs.
+        if (!links[l] && l !== 'restart' && l !== 'cta-cv')
           ctx.addIssue({
             code: 'custom',
             path: ['scenes', s.id, 'links'],

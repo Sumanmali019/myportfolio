@@ -47,7 +47,7 @@ export interface SceneState {
   beatT: number;
   /** Seconds on the shared idle clock (stops when the tab is hidden / reduced motion). */
   idle: number;
-  /** Month index on the scroll-mapped calendar (year * 12 + month - 1). */
+  /** Month index of the screen on stage (year * 12 + month - 1). */
   month: number;
   /** Downloads on the odometer. */
   downloads: number;
@@ -63,6 +63,11 @@ export interface SceneModule {
   prepare(svg: SVGSVGElement, ctx: PrepareContext): void;
   /** Called every frame while the scene is on stage. Must be a pure function of `state`. */
   update(state: SceneState): void;
+  /**
+   * The time on the desk clock (minutes after midnight) at hold progress `hold`, for a scene
+   * that tells its own day; others follow the journey (engine/daylight.ts).
+   */
+  clock?(hold: number): number;
 }
 
 /** Looping content drawn inside a screen rect (monitor, phone, TV). */

@@ -20,7 +20,6 @@ import {
   loadContent,
   resolveDate,
 } from '../content/schema';
-import { formatMonth, monthIndex } from '../engine/clock';
 import { buildTimeline } from '../engine/timeline';
 import type { EngineData } from '../engine/types';
 
@@ -102,7 +101,7 @@ const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;
   </head>
   <body>
     <SkipTheDay profile={profile} skills={skills} links={links} />
-    <Stage screens={timeline.total + 1} firstDate={formatMonth(monthIndex(scenes[0]!.date))} />
+    <Stage screens={timeline.total + 1} />
     <LinkLayer scenes={scenes} links={links} />
     <LiveProjects scenes={scenes} />
     <Player scenes={scenes} />

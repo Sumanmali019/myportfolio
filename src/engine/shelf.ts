@@ -16,6 +16,8 @@ interface Item {
   /** Slot on the shelf and where it starts in the scene (viewport px), measured on arrival. */
   slot: DOMRect | null;
   start: DOMRect | null;
+  /** Its flight last frame (0 home … 1 on the shelf), for the sounds. */
+  f: number;
 }
 
 interface Shelf {
@@ -24,7 +26,12 @@ interface Shelf {
   from: number;
   items: Item[];
   measured: string;
+  /** The shelf's own progress last frame, for the sounds. */
+  k: number;
 }
+
+/** What a shelf does, going forward: comes up, a project takes off, a project lands (its index). */
+export type ShelfEvent = 'lift' | 'fly' | 'land';
 
 export interface Shelves {
   update(
@@ -34,6 +41,8 @@ export interface Shelves {
     svg: SVGSVGElement | null,
     gen: number,
   ): void;
+  /** Called as the shelf comes up and as each project takes off and lands (forward only). */
+  onEvent: ((event: ShelfEvent, item: number) => void) | null;
 }
 
 const sourceIn = (svg: SVGSVGElement, key: string): Element =>
@@ -54,8 +63,10 @@ export function shelves(root: ParentNode): Shelves {
         key: a.dataset.liveKey ?? '',
         slot: null,
         start: null,
+        f: 0,
       })),
       measured: '',
+      k: 0,
     }),
   );
 
@@ -63,17 +74,24 @@ export function shelves(root: ParentNode): Shelves {
     if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v);
   };
 
-  return {
+  const api: Shelves = {
+    onEvent: null,
     update(index, hold, transitioning, svg, gen) {
       for (const s of list) {
         const k =
           !transitioning && index === s.index && svg ? progress(hold, s.from, s.from + SPAN) : 0;
+        // Sounds only for the shelf coming up gradually (not a jump straight onto it).
+        if (s.k <= 0 && k > 0 && k < 0.3) api.onEvent?.('lift', -1);
+        s.k = k;
         const on = k > 0;
         if (s.el.classList.contains('is-on') !== on) {
           s.el.classList.toggle('is-on', on);
           s.el.inert = !on;
         }
-        if (!on || !svg) continue;
+        if (!on || !svg) {
+          for (const it of s.items) it.f = 0;
+          continue;
+        }
         // Measure once per arrival (and after a resize): slots with no transform, and starts.
         const sig = `${gen}`;
         if (s.measured !== sig) {
@@ -91,6 +109,10 @@ export function shelves(root: ParentNode): Shelves {
           if (!it.slot || !it.start) return;
           const a = 0.15 + (i / Math.max(1, n)) * 0.45;
           const f = easeInOut(progress(k, a, a + 0.4));
+          // Takes off, and lands (only if it was seen flying: not on a jump).
+          if (it.f <= 0 && f > 0 && f < 1) api.onEvent?.('fly', i);
+          if (it.f > 0 && it.f < 1 && f >= 1) api.onEvent?.('land', i);
+          it.f = f;
           const sx = it.start.left + it.start.width / 2 - (it.slot.left + it.slot.width / 2);
           const sy = it.start.top + it.start.height / 2 - (it.slot.top + it.slot.height / 2);
           const s0 = Math.min(1.4, Math.max(0.4, it.start.height / (it.slot.height || 1)));
@@ -108,4 +130,5 @@ export function shelves(root: ParentNode): Shelves {
       }
     },
   };
+  return api;
 }

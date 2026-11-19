@@ -48,7 +48,11 @@ const me = (L, view, k, { d, m, ...opts }) =>
 /* ------------------------------------------------------------------ shared rooms */
 
 /** The desk rooms' window (x, y, w, h): big, on the left wall. */
-const windowBox = (L) => (L.m ? [18, 34, 196, 132] : [44, 100, 390, 330]);
+/**
+ * The desk rooms' window: tall, from near the top of the wall down to just above the floor
+ * (desktop); on mobile it fills the wall above the monitor.
+ */
+const windowBox = (L) => (L.m ? [18, 26, 196, 146] : [44, 40, 390, 652]);
 
 /**
  * Around the window, Kolkata touches (K.windowNook): curtains, a marigold garland over the
@@ -61,8 +65,54 @@ const windowNook = (L) => {
 };
 
 /**
- * Wall, floor, window, desk, me and a plant — the desk-scene backbone. (No wall calendar: the
- * journey's calendar is the page's own, fixed top right on every screen — components/Stage.astro.)
+ * The room's light follows the desk clock (engine/daylight.ts): over the day window, the same
+ * window at sunset and at night, and glows over the room — each shown by the scene SVG's
+ * `data-daypart` (classes `dl dl-<part>`; styles/global.css fades them in and out).
+ */
+const DUSK_SKY = [
+  [0, '#5b4a8a'],
+  [0.55, '#e2796a'],
+  [1, '#f6b56b'],
+];
+const NIGHT_SKY = [
+  [0, '#141432'],
+  [1, '#2a2756'],
+];
+function laterWindow(L, pfx, id, stops, opts, cls) {
+  const [wx, wy, ww, wh] = windowBox(L);
+  const sky =
+    `<defs><linearGradient id="${pfx}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
+    stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
+    '</linearGradient></defs>';
+  return part(
+    `${id}-window`,
+    1,
+    sky + at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, { ...opts, city: 'kolkata' })),
+    { class: cls },
+  );
+}
+function roomLight(L, pfx) {
+  const glow = (id, color, o) =>
+    part(id, 3, rect(0, 0, L.W, L.H, color, { opacity: o }), {
+      class: `dl dl-${id.split('-')[0]}`,
+    });
+  return [
+    glow('morning-light', '#fff7e0', 0.1),
+    glow('afternoon-light', '#f2a94a', 0.16),
+    glow('evening-light', '#ff7a3d', 0.14),
+    // Night: the room lights are on — a warm pool of light from the ceiling.
+    part(
+      'night-light',
+      3,
+      `<defs><radialGradient id="${pfx}-room-light" cx="0.5" cy="0" r="0.95"><stop offset="0" stop-color="#ffe2a0" stop-opacity="0.5"/><stop offset="0.6" stop-color="#ffd27a" stop-opacity="0.18"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>` +
+        rect(0, 0, L.W, L.H, `url(#${pfx}-room-light)`),
+      { class: 'dl dl-night' },
+    ),
+  ];
+}
+
+/**
+ * Wall, floor, window, desk, me and a plant — the desk-scene backbone (no calendar anywhere).
  */
 function deskRoom(
   L,
@@ -94,6 +144,10 @@ function deskRoom(
       morph ? { 'data-morph': morph } : {},
     ),
   );
+  parts.push(
+    laterWindow(L, pfx, 'dusk', DUSK_SKY, { view, sun: 'sunset' }, 'dl dl-evening'),
+    laterWindow(L, pfx, 'night', NIGHT_SKY, { view: 'night' }, 'dl dl-night'),
+  );
   if (nook) parts.push(windowNook(L));
   parts.push(part('desk', 2, L.m ? at(-10, 478, 1, K.desk(410)) : at(360, 600, 1, K.desk(1040))));
   if (plant)
@@ -104,12 +158,23 @@ function deskRoom(
   // succulent that sways, and a wall bookshelf that drifts (engine/loop.ts applyScrolled).
   parts.push(
     part('desk-clock', 3, L.m ? at(44, 478, 0.55, K.deskClock()) : at(410, 600, 1, K.deskClock())),
+    // On the wall, top right: a calendar showing the year of the scene on screen.
+    wallCalendarAt(L),
   );
   if (!L.m) parts.push(part('desk-succulent', 3, at(1060, 600, 1, K.deskSucculent())));
   if (shelf && !L.m) parts.push(part('wall-books', 1, at(1150, 196, 1, K.wallBookshelf(230))));
+  parts.push(...roomLight(L, pfx));
   if (withMe) parts.push(me(L, 'back', { d: 0.9, m: 0.48 }, meAt));
   return parts;
 }
+
+/** The year calendar hanging on the wall, top right (the same place in every room). */
+const wallCalendarAt = (L) =>
+  part(
+    'wall-calendar',
+    1,
+    L.m ? at(318, 22, 0.72, K.wallCalendar()) : at(1268, 44, 1, K.wallCalendar()),
+  );
 
 const monitorAt = (L, attrs, dims) => {
   const [x, y, w, h] = dims ?? (L.m ? [20, 220, 350, 200] : [560, 250, 520, 300]);
@@ -152,7 +217,7 @@ function stars(L, count, seed) {
  * The offer letter (chapter 02), in local coordinates (paper at 10..190 × 10..240). It grows
  * out of Suman's hand as the cap lands. Hooks for scenes/02-graduation.ts:
  *   [data-letter] scales in · [data-letter-body] text from profile.ts
- *   [data-sign] signature draws on · [data-stamp] "ACCEPTED" stamps in
+ *   [data-sign] signature draws on (no stamp)
  */
 function offerLetter() {
   return g(
@@ -168,16 +233,7 @@ function offerLetter() {
           'stroke-width': 1.8,
           'stroke-linecap': 'round',
           'data-sign': true,
-        }) +
-        g(
-          circle(152, 206, 22, 'none', { stroke: C.terra, 'stroke-width': 2.5 }) +
-            text(152, 209, 'ACCEPTED', 7.5, C.terra, {
-              'text-anchor': 'middle',
-              transform: 'rotate(-14 152 206)',
-              'letter-spacing': 0.4,
-            }),
-          { 'data-stamp': true },
-        ),
+        }),
       { 'data-anchor': 'letter' },
     ),
     { 'data-letter': true },
@@ -257,6 +313,16 @@ const INTERVIEW_NEURA = JSON.parse(
     'utf8',
   ),
 );
+// No date on the offer letters: the PDF's "Start date: 01 Dec 2026" line (grey outlined
+// glyphs, under the role) goes from both interviews.
+for (const anim of [INTERVIEW, INTERVIEW_NEURA]) {
+  const pdf = anim.layers.find((l) => l.nm === 'offer letter pdf');
+  const grp = pdf?.shapes[12];
+  const fill = grp?.it?.find((i) => i.ty === 'fl')?.c?.k;
+  if (!grp || grp.ty !== 'gr' || !fill || Math.abs(fill[0] - 0.294) > 0.01)
+    throw new Error('interview Lottie: offer letter start date line not where expected');
+  grp.it = grp.it.filter((i) => i.ty === 'tr');
+}
 /**
  * Kolkata → Hyderabad (`src/assets/lottie/india-flight-ccu-hyd.json`, 600×700): the map,
  * route and plane, shown on the seat-back screen in the flight chapter.
@@ -280,6 +346,66 @@ const FLIGHT_HOME = JSON.parse(
  * window, desk, monitor with the release pipeline, the BeWorld and Current Affairs phones, Suman
  * from behind — working by day, then dusk, then studying by lamplight. Chapter 05.
  */
+/**
+ * A tall window (as in the desk rooms) over a room Lottie's own small one (its glass is about
+ * 82–388 × 122–398 in all three rooms): from near the top of the wall to just above the floor.
+ * Its sunset and night versions show by the desk clock (engine/daylight.ts, the dl classes).
+ * Inserted just above the file's window layers, so the plant, desk and the rest stay in front;
+ * parented like them (to the camera, where there is one), so it zooms with the room.
+ */
+function tallWindowLayer(anim, city, key) {
+  const mullions = anim.layers.findIndex((l) => l.nm === 'window mullions');
+  if (mullions < 0) throw new Error(`${key} Lottie: no window layers`);
+  const parent = anim.layers[mullions].parent;
+  const [wx, wy, ww, wh] = [58, 40, 366, 652];
+  const skyDefs = (id, stops) =>
+    `<defs><linearGradient id="${key}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
+    stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
+    '</linearGradient></defs>';
+  const tallWindow = (id, stops, opts, cls) =>
+    g(
+      skyDefs(id, stops) + at(wx, wy, 1, K.windowObj(`${key}-${id}`, ww, wh, { ...opts, city })),
+      cls ? { class: cls } : {},
+    );
+  anim.layers.splice(mullions, 0, {
+    ddd: 0,
+    ind: 950,
+    ty: 4,
+    nm: 'tall window',
+    sr: 1,
+    ao: 0,
+    ip: anim.ip,
+    op: anim.op,
+    st: 0,
+    bm: 0,
+    ...(parent !== undefined ? { parent } : {}),
+    ks: {
+      o: { a: 0, k: 100 },
+      r: { a: 0, k: 0 },
+      p: { a: 0, k: [0, 0, 0] },
+      a: { a: 0, k: [0, 0, 0] },
+      s: { a: 0, k: [100, 100, 100] },
+    },
+    shapes: [
+      {
+        ty: 'gr',
+        it: [
+          {
+            ty: 'raw',
+            svg:
+              tallWindow('day', [
+                [0, '#8ec5ea'],
+                [1, '#e3f0f4'],
+              ]) +
+              tallWindow('dusk', DUSK_SKY, { sun: 'sunset' }, 'dl dl-evening') +
+              tallWindow('night', NIGHT_SKY, { view: 'night' }, 'dl dl-night'),
+          },
+        ],
+      },
+    ],
+  });
+}
+
 const DAY_NIGHT = (() => {
   const anim = JSON.parse(
     readFileSync(new URL('../../src/assets/lottie/day-night-hyd.json', import.meta.url), 'utf8'),
@@ -292,30 +418,8 @@ const DAY_NIGHT = (() => {
     // Position, not anchor: the head still nods about the base of its neck.
     l.ks.p.k[0] += dx;
   }
-  // Hyderabad through the window: Charminar in front of the skyline (the window glass is
-  // 82–388 × 122–398 in the file); the room's night darkness dims it with everything else.
-  const skyline = anim.layers.findIndex((l) => l.nm === 'buildings night');
-  if (skyline < 0) throw new Error('day-night Lottie: no buildings layer');
-  anim.layers.splice(skyline, 0, {
-    ddd: 0,
-    ind: 900,
-    ty: 4,
-    nm: 'charminar',
-    sr: 1,
-    ao: 0,
-    ip: anim.ip,
-    op: anim.op,
-    st: 0,
-    bm: 0,
-    ks: {
-      o: { a: 0, k: 100 },
-      r: { a: 0, k: 0 },
-      p: { a: 0, k: [0, 0, 0] },
-      a: { a: 0, k: [0, 0, 0] },
-      s: { a: 0, k: [100, 100, 100] },
-    },
-    shapes: [{ ty: 'gr', it: [{ ty: 'raw', svg: at(196, 398, 0.92, K.charminar()) }] }],
-  });
+  // Hyderabad through a tall window, the Charminar in the view.
+  tallWindowLayer(anim, 'hyderabad', 'hyd');
   return anim;
 })();
 const isMe = (l) => l.nm === 'me head' || l.nm === 'me body';
@@ -337,14 +441,46 @@ const onLottieMonitor = (item) => {
   const [x0, y0, x1, y1] = shapeBounds(item);
   return x0 >= 555 && x1 <= 1085 && y0 >= 245 && y1 <= 610;
 };
+/**
+ * The file's own food (a biryani pot by day, a mug at night) goes: the desk's dish follows the
+ * clock instead, as on every table (kit deskMeal).
+ */
+const BIRYANI = [405, 495, 535, 610];
+const NIGHT_MUG = [975, 505, 1040, 605];
+/** Bounds of paths, ellipses and rectangles in a shape item (recursing into groups). */
+function itemBounds(item, r = [Infinity, Infinity, -Infinity, -Infinity]) {
+  if (item.ty === 'gr') for (const it of item.it) itemBounds(it, r);
+  const grow = (x, y) => {
+    r[0] = Math.min(r[0], x);
+    r[1] = Math.min(r[1], y);
+    r[2] = Math.max(r[2], x);
+    r[3] = Math.max(r[3], y);
+  };
+  if (item.ty === 'sh') for (const [x, y] of item.ks.k.v) grow(x, y);
+  if ((item.ty === 'el' || item.ty === 'rc') && Array.isArray(item.p.k)) {
+    const [x, y] = item.p.k;
+    const [w, h] = item.s.k;
+    grow(x - w / 2, y - h / 2);
+    grow(x + w / 2, y + h / 2);
+  }
+  return r;
+}
+const within = (item, [x0, y0, x1, y1]) => {
+  const [a, b, c, d] = itemBounds(item);
+  return Number.isFinite(a) && a >= x0 && b >= y0 && c <= x1 && d <= y1;
+};
 /** The room without Suman and without the Lottie's monitor (the bigger one replaces it). */
 const DAY_NIGHT_ROOM = {
   ...DAY_NIGHT,
   layers: DAY_NIGHT.layers
-    // No wall calendar: the page's fixed one (top right) is the journey's calendar.
+    // No calendars in the journey.
     .filter((l) => !isMe(l) && l.nm !== 'calendar')
     .map((l) =>
-      l.nm === 'day props' ? { ...l, shapes: l.shapes.filter((g) => !onLottieMonitor(g)) } : l,
+      l.nm === 'day props'
+        ? { ...l, shapes: l.shapes.filter((g) => !onLottieMonitor(g) && !within(g, BIRYANI)) }
+        : l.nm === 'night shelves & mug'
+          ? { ...l, shapes: l.shapes.filter((g) => !within(g, NIGHT_MUG)) }
+          : l,
     ),
 };
 const DAY_NIGHT_ME = { ...DAY_NIGHT, layers: DAY_NIGHT.layers.filter(isMe) };
@@ -410,7 +546,7 @@ const OSS = (() => {
   const screen = anim.layers.findIndex((l) => l.nm.startsWith('screen:'));
   if (!cal || screen < 0 || anim.layers[0].nm !== 'camera')
     throw new Error('flutter Lottie: calendar / screens / camera not where expected');
-  // Its wall calendar goes: the page's fixed calendar (top right) is the only one.
+  // Its wall calendar goes: no calendars in the journey.
   cal.shapes = [];
   // The google-cla bot's comment on the PR: Google's logo as its avatar, over the CLA badge.
   const pr = anim.layers.find((l) => l.nm === 'screen: pull request');
@@ -434,11 +570,21 @@ const OSS = (() => {
     still(
       // Suman from behind (scenes/10-open-source.ts swaps him for his typing hands while the
       // code is written).
-      g(K.avatarBust('back', 820, 900, 0.9), { 'data-oss-me': true }) +
+      // The desk clock, on the left of the desk (zooms with the room; fades as the camera
+      // zooms into the contributors page, with Suman).
+      g(at(600, 597, 1, K.deskClock()), { 'data-oss-clock': true }) +
+        // Over the editor, under his head: GitHub's issue list, which he browses before the fix
+        // (scenes/10-open-source.ts, screens/github-issues.ts).
+        g(rect(572, 262, 496, 276, 'none', { 'data-screen': 'gh-issues' }), {
+          'data-issues': true,
+        }) +
+        g(K.avatarBust('back', 820, 900, 0.9), { 'data-oss-me': true }) +
         rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor', 'data-link': 'flutter-pr' }),
       'me',
     ),
   );
+  // A tall window, as in the other rooms.
+  tallWindowLayer(anim, 'kolkata', 'oss');
   return anim;
 })();
 
@@ -472,8 +618,10 @@ const REFUND = (() => {
         {
           ty: 'raw',
           svg:
-            K.avatarBust('back', 820, 900, 0.9) +
-            rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor' }),
+            // The desk clock and Suman fade as the camera zooms into the credit.
+            g(at(600, 597, 1, K.deskClock()) + K.avatarBust('back', 820, 900, 0.9), {
+              'data-zoom-fade': true,
+            }) + rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor' }),
         },
       ],
     },
@@ -520,6 +668,8 @@ const REFUND = (() => {
   };
   for (const l of anim.layers) if (l.nm.startsWith('screen:')) swap(l.shapes);
   if (marks !== 5) throw new Error(`refund Lottie: expected 5 Twilio dots, found ${marks}`);
+  // A tall window, as in the other rooms.
+  tallWindowLayer(anim, 'kolkata', 'rfd');
   return anim;
 })();
 
@@ -541,7 +691,8 @@ function writeMotion(anim, name) {
   };
   writeFileSync(
     resolve(root, `src/assets/lottie/${name}.motion.json`),
-    `${JSON.stringify(motion)}
+    // Two decimals is far below a pixel: smaller to ship.
+    `${JSON.stringify(motion, (_, v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v))}
 `,
   );
 }
@@ -555,9 +706,11 @@ const WAVE = JSON.parse(
 );
 
 const GREETING = [
-  'I’m Suman — a Tech Lead from Kolkata.',
-  'I lead teams that ship apps across',
-  'cloud, AI & mobile. Scroll to begin ↓',
+  'I’m Suman — Tech Lead / SDE II.',
+  'I turn ideas into products across',
+  'mobile, web & backend, and lead teams',
+  'from idea to launch. Always curious,',
+  'always learning.',
 ];
 
 /**
@@ -576,7 +729,7 @@ function buildDesk(L, pfx, link, room = {}) {
       g(monitorAt(L, { 'data-screen': 'app-build' }, mon), { 'data-anchor': 'monitor' }) +
         rect(mon[0], mon[1], mon[2], mon[3], 'none', { 'data-link': link }),
     ),
-    part('mug', 6, m ? '' : at(500, 600, 1, K.mug())),
+    part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
     me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
     part(
       'typing',
@@ -596,19 +749,19 @@ const SCENES = {
      The avatar is the `me` part, so it glides straight into its place at the Jadavpur gate. */
   '00-intro'(L, pfx) {
     const m = L.m;
-    // Avatar centre-left, greeting bubble mid-right beside the face.
+    // The avatar at the bottom centre (his bust ends ~385 units down its 400 box, so it sits
+    // on the frame's bottom edge); the greeting bubble above him on mobile, beside his face on
+    // desktop.
     const P = m
       ? {
-          box: [-40, 300, 260],
-          bubble: [196, 262, 160, 170],
-          tip: [150, 362],
-          hint: 790,
+          box: [20, n(L.H - 385 * 0.875), 350],
+          bubble: [40, 322, 310, 156],
+          tip: [190, 532],
         }
       : {
-          box: [485, 200, 470],
-          bubble: [975, 312, 405, 180],
-          tip: [862, 400],
-          hint: 770,
+          box: [485, n(L.H - 385 * 1.175), 470],
+          bubble: [975, 440, 405, 228],
+          tip: [862, 560],
         };
     const [bx, by, bs] = P.box;
     const [qx, qy, qw, qh] = P.bubble;
@@ -638,18 +791,20 @@ const SCENES = {
         { 'data-view': 'front' },
       ),
     );
-    // Tail from the bubble's left edge to just beside the face.
-    const tail = `M${qx + 2} ${qy + (m ? 70 : 60)} L${qx + 2} ${qy + (m ? 104 : 104)} L${P.tip[0]} ${P.tip[1]} Z`;
+    // Tail: down from the bubble's bottom edge to his head (mobile), or from its left edge to
+    // just beside his face (desktop).
+    const tail = m
+      ? `M${qx + qw / 2 - 30} ${qy + qh - 2} L${P.tip[0]} ${P.tip[1]} L${qx + qw / 2 + 2} ${qy + qh - 2} Z`
+      : `M${qx + 2} ${qy + 60} L${qx + 2} ${qy + 104} L${P.tip[0]} ${P.tip[1]} Z`;
     const pad = m ? 12 : 30;
-    const title = m ? ['Hi! Welcome to', 'my portfolio.'] : ['Hi! Welcome to my portfolio.'];
+    const title = ['Hi! Welcome to my portfolio.'];
     const lines = m
       ? [
-          'I’m Suman — a Tech',
-          'Lead from Kolkata.',
-          'I lead teams that',
-          'ship apps across',
-          'cloud, AI & mobile.',
-          'Scroll to begin ↓',
+          'I’m Suman — Tech Lead / SDE II.',
+          'I turn ideas into products across',
+          'mobile, web & backend, and lead teams',
+          'from idea to launch.',
+          'Always curious, always learning.',
         ]
       : GREETING;
     const bubble =
@@ -668,30 +823,16 @@ const SCENES = {
         )
         .join('');
     parts.push(part('greeting', 5, g(bubble, { 'data-greeting-bubble': true })));
-    parts.push(
-      part(
-        'hint',
-        4,
-        g(
-          text(L.W / 2, P.hint, 'scroll to begin', m ? 13 : 15, '#c9cbe0', {
-            'text-anchor': 'middle',
-            'letter-spacing': 2,
-          }) +
-            path(`M${L.W / 2 - 8} ${P.hint + 12} l8 8 l8 -8`, 'none', {
-              stroke: '#c9cbe0',
-              'stroke-width': 2.5,
-              'stroke-linecap': 'round',
-            }),
-          { class: 'idle-bob' },
-        ),
-      ),
-    );
+    // "Scroll or play to begin" is the page's own hint at the bottom (components/Stage.astro).
     return parts;
   },
 
   /* 01 — Jadavpur main gate at dawn, through the gate into a hostel desk; gears → code. */
   '01-jadavpur'(L) {
     const m = L.m;
+    // Desktop: the campus sits lower, so the whole gate shows even when a wide screen crops the
+    // top (bottom-anchored); no road — the ground runs to the bottom, Suman at the gate.
+    const D = m ? 0 : 80;
     // Background life: drifting clouds, birds, swaying trees, falling leaves, a passer-by.
     const bird = (x, y, sc) =>
       g(
@@ -716,12 +857,12 @@ const SCENES = {
             [360, 425],
           ]
         : [
-            [150, 450],
-            [430, 440],
-            [800, 455],
-            [1150, 445],
-            [1350, 460],
-            [610, 430],
+            [150, 530],
+            [430, 520],
+            [800, 535],
+            [1150, 525],
+            [1350, 540],
+            [610, 510],
           ]
     )
       .map(([x, y], i) =>
@@ -755,7 +896,7 @@ const SCENES = {
             g(
               K.ellipse(
                 L.W * f,
-                m ? 455 : 470,
+                (m ? 455 : 470) + D,
                 m ? 50 : 110,
                 m ? 40 : 70,
                 i % 2 ? C.leaf : C.leafD,
@@ -766,20 +907,12 @@ const SCENES = {
             ),
           )
           .join('') +
-          rect(0, m ? 470 : 500, L.W, m ? 80 : 130, '#c97f5c') +
-          rect(0, m ? 466 : 494, L.W, 10, '#a4513a'),
+          rect(0, (m ? 470 : 500) + D, L.W, m ? 80 : 130, '#c97f5c') +
+          rect(0, (m ? 466 : 494) + D, L.W, 10, '#a4513a'),
       ),
-      part(
-        'ground',
-        0,
-        rect(0, m ? 545 : 625, L.W, L.H, '#d6c2a3') +
-          rect(0, m ? 700 : 760, L.W, m ? 144 : 140, '#8d86a0') +
-          Array.from({ length: m ? 4 : 9 }, (_, i) =>
-            rect(40 + i * (m ? 100 : 170), m ? 770 : 826, m ? 50 : 80, 6, '#e9e4da'),
-          ).join(''),
-      ),
+      part('ground', 0, rect(0, (m ? 545 : 625) + D, L.W, L.H, '#d6c2a3')),
       part('leaves', 2, leaves),
-      part('gate', 3, m ? at(13, 432, 0.48, K.juGate()) : at(302, 209, 1.1, K.juGate())),
+      part('gate', 3, m ? at(13, 432, 0.48, K.juGate()) : at(302, 209 + D, 1.1, K.juGate())),
       // Only Suman at the gate.
       me(L, 'front', { d: 0.8, m: 0.5 }, { d: 680, m: 190, young: true }),
     ];
@@ -881,7 +1014,7 @@ const SCENES = {
           { 'data-late-card': true },
         ),
       ),
-      part('mug', 6, m ? '' : at(500, 600, 1, K.mug())),
+      part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
       // Suman, alone at his desk, seen from behind: centred where his typing hands come in
       // (scene module), and drawn after the monitor so his head is in front of its stand.
       me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
@@ -927,7 +1060,7 @@ const SCENES = {
           { 'data-anchor': 'monitor' },
         ),
       ),
-      part('mug', 6, m ? at(330, 478, 0.6, K.mug()) : at(1240, 600, 1, K.mug())),
+      part('meal', 6, m ? at(330, 478, 0.75, K.deskMeal()) : at(545, 600, 1.35, K.deskMeal())),
     ];
   },
 
@@ -946,10 +1079,11 @@ const SCENES = {
   /* 05 — BeWorld, Hyderabad: pipeline, metrics, app cards, biryani, confetti. */
   '05-hyderabad'(L, pfx) {
     const m = L.m;
-    // The Lottie is the room. Desktop: 1:1. Mobile: its middle (x 200–1380) across the width,
-    // on wall and floor that continue its own.
-    const s = m ? L.W / 1180 : 1;
-    const [ox, oy] = m ? [-200 * s, 300] : [0, 0];
+    // The Lottie is the room. Desktop: 1:1. Mobile: framed like chapter 03 — the big monitor
+    // across the width near the top (x 10–380, from y 172), the room around it on wall and floor
+    // that continue its own; the phones and the typing hands are placed in the frame (below).
+    const s = m ? 370 / DAY_NIGHT_MONITOR.w : 1;
+    const [ox, oy] = m ? [10 - DAY_NIGHT_MONITOR.x * s, 172 - DAY_NIGHT_MONITOR.y * s] : [0, 0];
     // Attributes go on a plain wrapper: anchors are transformed by CSS, so no transform attribute.
     const inRoom = (inner, a) => (a ? g(at(ox, oy, s, inner), a) : at(ox, oy, s, inner));
     return [
@@ -957,6 +1091,12 @@ const SCENES = {
         ? [
             part('wall', 0, rect(0, 0, L.W, L.H, '#eadfcd')),
             part('floor', 0, rect(0, oy + 720 * s, L.W, L.H, '#b98f6a')),
+            // The wall and floor beyond the room darken with its night (the Lottie's layer 4).
+            part(
+              'night-wall',
+              0,
+              g(rect(0, 0, L.W, L.H, '#14163a'), { 'data-day': '4', opacity: 0 }),
+            ),
           ]
         : []),
       part(
@@ -995,43 +1135,65 @@ const SCENES = {
           { 'data-anchor': 'monitor', 'data-day': '7' },
         ),
       ),
+      // The two apps on phones: over the Lottie's own phones (desktop), or in front of the desk
+      // either side, as in chapter 03 (mobile: the Lottie's phones are out of the frame).
       part(
         'phone-beworld',
         5,
-        inRoom(
-          rect(1117.7, 411.8, 94.6, 172.5, 'none', { rx: 6.6, 'data-screen': 'app-beworld' }),
-          {
-            'data-day': '6',
-          },
-        ),
+        m
+          ? g(phoneAt(16, 512, 84, 150, { 'data-screen': 'app-beworld' }), { 'data-day': '6' })
+          : inRoom(
+              rect(1117.7, 411.8, 94.6, 172.5, 'none', { rx: 6.6, 'data-screen': 'app-beworld' }),
+              {
+                'data-day': '6',
+              },
+            ),
       ),
       part(
         'phone-cadgk',
         5,
-        inRoom(rect(1243, 424.9, 86, 160.2, 'none', { rx: 6, 'data-screen': 'app-cadgk' }), {
-          'data-day': '5',
-        }),
+        m
+          ? g(phoneAt(292, 496, 76, 136, { 'data-screen': 'app-cadgk' }), { 'data-day': '5' })
+          : inRoom(rect(1243, 424.9, 86, 160.2, 'none', { rx: 6, 'data-screen': 'app-cadgk' }), {
+              'data-day': '5',
+            }),
       ),
       // Suman from behind, centred at the desk (the Lottie's own layers, drawn over the desk
       // things); while the code types he hands over to his hands on the keyboard, as in 03.
       part(
         'me-desk',
         6,
-        inRoom(lottieBox(DAY_NIGHT_ME, 'day-night-me', pfx, 0, 0, 1440, 900, 'xMidYMid meet')),
+        // Mobile: on the frame's bottom edge, centred and the size of the other rooms' back
+        // view (deskRoom's me at 0.48), looking up at the monitor — not mid-room.
+        m
+          ? at(
+              n(L.W / 2 - 760 * 0.53),
+              n(L.H - 900 * 0.53),
+              0.53,
+              lottieBox(DAY_NIGHT_ME, 'day-night-me', pfx, 0, 0, 1440, 900, 'xMidYMid meet'),
+            )
+          : inRoom(lottieBox(DAY_NIGHT_ME, 'day-night-me', pfx, 0, 0, 1440, 900, 'xMidYMid meet')),
       ),
       part(
         'typing',
         7,
         g(
-          inRoom(
-            at(
-              DAY_NIGHT_TYPING_AT.x,
-              DAY_NIGHT_TYPING_AT.y,
-              DAY_NIGHT_TYPING_AT.k,
-              renderLottie(TYPING, `${pfx}-type`, 0),
-            ),
-          ),
-          { 'data-typing': true, opacity: 0, transform: `translate(0 ${n(160 * s)})` },
+          m
+            ? at(
+                TYPING_AT.m.x,
+                TYPING_AT.m.y,
+                TYPING_AT.m.k,
+                renderLottie(TYPING, `${pfx}-type`, 0),
+              )
+            : inRoom(
+                at(
+                  DAY_NIGHT_TYPING_AT.x,
+                  DAY_NIGHT_TYPING_AT.y,
+                  DAY_NIGHT_TYPING_AT.k,
+                  renderLottie(TYPING, `${pfx}-type`, 0),
+                ),
+              ),
+          { 'data-typing': true, opacity: 0, transform: `translate(0 ${m ? 160 : n(160 * s)})` },
         ),
       ),
       // Night: Scaler on the laptop — its header bar gets the Scaler logo and the module being
@@ -1042,7 +1204,12 @@ const SCENES = {
         inRoom(rect(630, 430, 270, 22, 'none', { 'data-screen': 'scaler' }), { 'data-day': '3' }),
       ),
       // The biryani pot on the desk (in the Lottie) — where its speech bubble points.
-      part('biryani', 6, inRoom(rect(420, 520, 100, 86, 'none', { 'data-anchor': 'biryani' }))),
+      // The dish of the hour, where the biryani pot was: chai, lunch, snacks, dinner.
+      part('meal', 6, m ? at(38, 453, 0.7, K.deskMeal()) : at(470, 597, 1.35, K.deskMeal())),
+      // As in every room: the desk clock on the left of the desk (just right of the biryani,
+      // clear of the night lamp) and the year calendar on the wall, top right.
+      part('desk-clock', 5, m ? at(100, 453, 0.55, K.deskClock()) : at(600, 597, 1, K.deskClock())),
+      wallCalendarAt(L),
       g('', {
         'data-confetti': true,
         'data-c': m ? `${n(ox + 1220 * s)} ${n(oy + 380 * s)}` : '1220 380',
@@ -1082,7 +1249,7 @@ const SCENES = {
           { 'data-anchor': 'monitor' },
         ),
       ),
-      part('mug', 6, m ? at(330, 478, 0.6, K.mug()) : at(1240, 600, 1, K.mug())),
+      part('meal', 6, m ? at(330, 478, 0.75, K.deskMeal()) : at(545, 600, 1.35, K.deskMeal())),
     ];
   },
 
@@ -1112,54 +1279,8 @@ const SCENES = {
           }),
         { 'data-pane': key, opacity: 0 },
       );
-    // Later light: extra windows over the day one, each with its own fixed sky.
-    const [wx, wy, ww, wh] = windowBox(L);
-    const sky = (id, stops) =>
-      `<defs><linearGradient id="${pfx}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
-      stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
-      '</linearGradient></defs>';
-    const laterWindow = (id, stops, opts) =>
-      part(
-        `${id}-window`,
-        1,
-        g(
-          sky(id, stops) +
-            at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, { ...opts, city: 'kolkata' })),
-          {
-            [`data-${id}`]: true,
-            opacity: 0,
-          },
-        ),
-      );
     return [
-      ...deskRoom(L, pfx, { windowId: 'home-window', morph: null, withMe: false, nook: false }),
-      laterWindow(
-        'dusk',
-        [
-          [0, '#5b4a8a'],
-          [0.55, '#e2796a'],
-          [1, '#f6b56b'],
-        ],
-        { sun: 'sunset' },
-      ),
-      laterWindow(
-        'night',
-        [
-          [0, '#141432'],
-          [1, '#2a2756'],
-        ],
-        { view: 'night' },
-      ),
-      // Over the later windows, so the sill things stay in front of every sky.
-      windowNook(L),
-      // The room's light through the day (under the glowing monitor): afternoon gold, then
-      // the evening and night veil.
-      part(
-        'afternoon-glow',
-        3,
-        rect(0, 0, L.W, L.H, '#f2a94a', { 'data-afternoon': true, opacity: 0 }),
-      ),
-      part('night-veil', 3, rect(0, 0, L.W, L.H, '#2a2048', { 'data-veil': true, opacity: 0 })),
+      ...deskRoom(L, pfx, { windowId: 'home-window', morph: null, withMe: false }),
       part('lamp', 5, m ? '' : at(1260, 600, 1, K.lamp(1))),
       part(
         'monitor',
@@ -1181,7 +1302,7 @@ const SCENES = {
         ),
       ),
       // Clear of the screen, so its steam never drifts over it.
-      part('mug', 6, m ? '' : at(1320, 600, 1, K.mug())),
+      part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
       // Where the thought bubble points (no avatar here: he's on the call, then typing).
       part(
         'head-spot',
@@ -1235,7 +1356,7 @@ const SCENES = {
           ? phoneAt(292, 496, 76, 136, { 'data-screen': 'app-ayantra' })
           : phoneAt(1300, 432, 88, 160, { 'data-screen': 'app-ayantra' }),
       ),
-      part('mug', 6, m ? '' : at(500, 600, 1, K.mug())),
+      part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
       me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
       part(
         'role-spot',
@@ -1259,21 +1380,50 @@ const SCENES = {
   '09-twilio-refund'(L, pfx) {
     const m = L.m;
     const box = lottieBox(REFUND, 'refund', pfx, 0, 0, 1440, 900, 'xMidYMid meet');
-    if (!m) return [part('room', 1, box)];
-    // Mobile pans with the camera, as chapter 10: the monitor across the width first, then the
+    if (!m) return [part('room', 1, box), wallCalendarAt(L)];
+    // Mobile pans with the camera, as chapter 10: first the desk from the clock to the reply
+    // toasts (x ≈ 548–1180) across the width with a margin, Suman on the bottom edge; then the
     // zoomed credit (x ≈ 112–1328, y ≈ 50–868 with the banner) fit to the width.
     const r3 = (v) => Math.round(v * 1000) / 1000;
-    const s0 = L.W / 560;
-    const s1 = (L.W - 12) / 1230;
-    const from = [r3(L.W / 2 - 820 * s0), r3(L.H - 900 * s0), r3(s0)];
+    const s0 = (L.W - 24) / 632;
+    const s1 = (L.W - 32) / 1300;
+    const from = [r3(L.W / 2 - 864 * s0), r3(L.H - 900 * s0), r3(s0)];
+    // Above it, as in the other rooms on a phone: a window (top left; its sunset and night
+    // versions follow the clock), faded out as the camera zooms into the credit.
+    const [wx, wy, ww, wh] = [18, 40, 210, 300];
+    const sky = (id, stops) =>
+      `<defs><linearGradient id="${pfx}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
+      stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
+      '</linearGradient></defs>';
+    const win = (id, stops, opts, cls) =>
+      g(
+        sky(id, stops) +
+          at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, { ...opts, city: 'kolkata' })),
+        cls ? { class: cls } : {},
+      );
+    const windowPart = part(
+      'office-window',
+      1,
+      g(
+        win('day', [
+          [0, '#8ec5ea'],
+          [1, '#e3f0f4'],
+        ]) +
+          win('dusk', DUSK_SKY, { sun: 'sunset' }, 'dl dl-evening') +
+          win('night', NIGHT_SKY, { view: 'night' }, 'dl dl-night'),
+        { 'data-pan-hide': true },
+      ),
+    );
     const to = [r3(L.W / 2 - 720 * s1), r3(L.H * 0.5 - 460 * s1), r3(s1)];
     return [
       part('wall', 0, rect(0, 0, L.W, L.H, '#eadfcd')),
+      windowPart,
       part(
         'room',
         1,
         at(from[0], from[1], from[2], box, { 'data-pan': [...from, ...to].join(' ') }),
       ),
+      wallCalendarAt(L),
     ];
   },
 
@@ -1296,10 +1446,11 @@ const SCENES = {
         { 'data-typing': true, opacity: 0, transform: 'translate(0 160)' },
       ),
     );
-    if (!m) return [part('room', 1, box), typing, ossLabel(L)];
+    if (!m) return [part('room', 1, box), typing, ossLabel(L), wallCalendarAt(L)];
     const r3 = (v) => Math.round(v * 1000) / 1000;
     const s0 = L.W / 560;
-    const s1 = (L.W - 12) / 1290;
+    // The whole contributors page (x ≈ 75–1365) fits the width, nothing cut at the edges.
+    const s1 = (L.W - 16) / 1300;
     const from = [r3(L.W / 2 - 820 * s0), r3(L.H - 900 * s0), r3(s0)];
     const to = [r3(L.W / 2 - 720 * s1), r3(L.H * 0.5 - 445 * s1), r3(s1)];
     return [
@@ -1311,6 +1462,8 @@ const SCENES = {
       ),
       typing,
       ossLabel(L),
+      // Below the heading on mobile.
+      part('wall-calendar', 1, at(318, 66, 0.72, K.wallCalendar())),
     ];
   },
 
@@ -1358,20 +1511,13 @@ const SCENES = {
     ];
   },
 
-  /* 15 — departures board: NEXT DESTINATION → YOUR TEAM, with contact rows. */
-  '15-departures'(L, pfx) {
+  /* 15 — departures board: NEXT DESTINATION → LET'S CONNECT, with contact rows. */
+  '15-departures'(L) {
     const m = L.m;
     const floorY = m ? 760 : 720;
     return [
       part('wall', 0, K.wall(L.W, L.H, floorY)),
       part('floor', 0, K.floor(L.W, L.H, floorY)),
-      part(
-        'airport-window',
-        1,
-        m
-          ? at(205, 630, 1, K.windowObj(`${pfx}-aw`, 170, 110, { view: 'city', grill: false }))
-          : at(60, 200, 1, K.windowObj(`${pfx}-aw`, 420, 300, { view: 'city', grill: false })),
-      ),
       part(
         'board',
         3,
@@ -1384,8 +1530,8 @@ const SCENES = {
         5,
         g(
           m
-            ? rect(20, 410, 350, 58, C.terra, { rx: 29, 'data-link': 'cta-mail' })
-            : rect(560, 615, 390, 72, C.terra, { rx: 36, 'data-link': 'cta-mail' }),
+            ? rect(20, 410, 350, 58, C.terra, { rx: 29, 'data-link': 'cta-cv' })
+            : rect(560, 615, 390, 72, C.terra, { rx: 36, 'data-link': 'cta-cv' }),
           { 'data-cta': true },
         ) +
           g(
@@ -1399,11 +1545,12 @@ const SCENES = {
         'suitcase',
         4,
         m
-          ? rect(186, 744, 50, 74, C.mustard, { rx: 8 }) + rect(202, 732, 18, 14, C.dark, { rx: 4 })
+          ? rect(306, 744, 50, 74, C.mustard, { rx: 8 }) + rect(322, 732, 18, 14, C.dark, { rx: 4 })
           : rect(440, 700, 90, 130, C.mustard, { rx: 12 }) +
               rect(468, 678, 34, 24, C.dark, { rx: 6 }),
       ),
-      me(L, 'front', { d: 0.85, m: 0.46 }, { d: 250, m: 92 }),
+      // Suman at the bottom centre (on mobile; beside the window on desktop).
+      me(L, 'front', { d: 0.85, m: 0.46 }, { d: 250, m: 195 }),
     ];
   },
 };
@@ -1496,31 +1643,6 @@ function flight(L, pfx, { from, to, board, laptop, lottie = null }) {
             'data-morph': 'window',
           },
         ),
-    part(
-      'year',
-      4,
-      m
-        ? text(270, 120, '2023', 44, C.ink, {
-            'text-anchor': 'middle',
-            'data-year': true,
-            class: 'title-text',
-          }) +
-            text(270, 146, '', 10, C.ink, {
-              'text-anchor': 'middle',
-              'data-city': true,
-              'letter-spacing': 1,
-            })
-        : text(1220, 440, '2023', 120, C.ink, {
-            'text-anchor': 'middle',
-            'data-year': true,
-            class: 'title-text',
-          }) +
-            text(1220, 490, '', 18, C.ink, {
-              'text-anchor': 'middle',
-              'data-city': true,
-              'letter-spacing': 3,
-            }),
-    ),
   ];
   if (laptop) {
     parts.push(

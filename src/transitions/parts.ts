@@ -14,6 +14,9 @@
  * w = min(.5, max(.05, 3 / n)) of the object's progress, part k starting at k / (n − 1) × (1 − w).
  * Building runs back → front; taking apart front → back (shelves and book stacks: in a seeded
  * shuffle). Every write is cached, so a part that doesn't change costs nothing.
+ *
+ * Suman (the avatar: `data-view`, or an id `me…`) is never split into parts: he stays whole
+ * through every transition (transition.ts moves him, or slides him in and out, in one piece).
  */
 import { userBox, type Box } from '../lib/svg';
 import { backSoft, easeIn, easeOut, map } from './easing';
@@ -42,6 +45,8 @@ export interface Obj {
   key: string;
   /** Avatar view (`data-view`: front / back), if any. */
   view: string | null;
+  /** Suman: always whole, never taken apart. */
+  avatar: boolean;
   /** Box in the scene's root user units. */
   box: Box;
   parts: Pt[];
@@ -164,7 +169,8 @@ export function collectObjects(svg: SVGSVGElement): Obj[] {
     .map((el) => {
       const id = el.dataset.id ?? '';
       const screen = SCREEN.test(id);
-      const parts = partElements(el).map((c) => measure(wrap(c), screen));
+      const avatar = el.hasAttribute('data-view') || id === 'me' || id.startsWith('me-');
+      const parts = avatar ? [] : partElements(el).map((c) => measure(wrap(c), screen));
       const n = parts.length;
       const apart = SHUFFLED.test(id) ? shuffled(n, id) : parts.map((_, k) => n - 1 - k);
       return {
@@ -172,6 +178,7 @@ export function collectObjects(svg: SVGSVGElement): Obj[] {
         id,
         key: el.dataset.morph ?? id,
         view: el.dataset.view ?? null,
+        avatar,
         box: userBox(el, svg),
         parts,
         apart,

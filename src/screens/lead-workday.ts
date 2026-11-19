@@ -2,7 +2,8 @@
  * Chapter 09 monitor: the Tech Lead's day, one full-screen app at a time (the Jira board
  * comes from screens/standup-board.ts). Each screen plays across its own hold window and is a
  * pure function of hold progress, so it all plays backwards when you scroll up.
- *   dockerPanel   — afternoon: the stack comes up, container by container, logs streaming.
+ *   dockerPanel   — afternoon: the image builds step by step, then the stack comes up
+ *                   container by container, logs streaming.
  *   backendEditor — evening: the SSE chat endpoint types out, the server reloads, tests pass.
  *   prReview      — night: a teammate's PR reviewed → checks pass → approved → merged.
  */
@@ -32,14 +33,21 @@ const CONTAINERS: Array<[string, string, string]> = [
 /** [position within the window, log line, colour]. */
 const DOCKER_LOG: Array<[number, string, string]> = [
   [0, '$ docker compose up -d --build', UI.text],
-  [0.08, '✔ Network neura_default   Created', UI.green],
-  [0.16, '✔ Container postgres      Started', UI.green],
-  [0.26, '✔ Container redis         Started', UI.green],
-  [0.4, '✔ Container api           Started', UI.green],
-  [0.52, '✔ Container worker        Started', UI.green],
-  [0.64, 'api     | Uvicorn running on 0.0.0.0:8000', UI.blue],
-  [0.74, 'worker  | ready · 4 queues', UI.blue],
-  [0.84, 'api     | GET /health  200  3ms', UI.muted],
+  // The image builds, one step at a time…
+  [0.04, '[+] Building api  1/4  FROM python:3.12-slim', UI.muted],
+  [0.09, '[+] Building api  2/4  COPY requirements.txt .', UI.muted],
+  [0.14, '[+] Building api  3/4  RUN pip install -r requirements.txt', UI.muted],
+  [0.19, '[+] Building api  4/4  COPY . /app', UI.muted],
+  [0.23, '✔ Image neura/api:2.4      Built', UI.green],
+  [0.27, '✔ Network neura_default   Created', UI.green],
+  // …then the containers come up one after another (each row: Starting → Running).
+  [0.38, '✔ Container postgres      Started', UI.green],
+  [0.5, '✔ Container redis         Started', UI.green],
+  [0.62, '✔ Container api           Started', UI.green],
+  [0.74, '✔ Container worker        Started', UI.green],
+  [0.82, 'api     | Uvicorn running on 0.0.0.0:8000', UI.blue],
+  [0.88, 'worker  | ready · 4 queues', UI.blue],
+  [0.94, 'api     | GET /health  200  3ms', UI.muted],
 ];
 
 export function dockerPanel(rect: SVGGraphicsElement, win: Window): Screen {
@@ -94,7 +102,8 @@ export function dockerPanel(rect: SVGGraphicsElement, win: Window): Screen {
       { x: cols[4]!, y: ty - fs * 0.55, width: 0, height: fs * 0.55, rx: fs * 0.27, fill: UI.blue },
       g,
     );
-    return { dot, status, cpu, start: 0.1 + i * 0.12 };
+    // Starting at the 'Started' line before it, running at its own.
+    return { dot, status, cpu, start: 0.3 + i * 0.12 };
   });
 
   const logTop = headY + fs * 1 + CONTAINERS.length * rowH;

@@ -58,12 +58,13 @@ test.describe('sound', () => {
     await openJourney(page);
     const ids = await page.evaluate(() => window.dayEngine.scenes);
     const oss = ids.indexOf('10-open-source');
-    await gotoScene(page, oss, 0.06);
+    // Past the GitHub issue list (0.02 → 0.2): the fix being typed.
+    await gotoScene(page, oss, 0.21);
     await page.keyboard.press('k');
     await page.waitForFunction(() => window.__played.some((s) => s.includes('keyboard-typing')));
     await page.keyboard.press('k');
     // Past the editor (the PR review, the zoom): no typing.
-    await gotoScene(page, oss, 0.3);
+    await gotoScene(page, oss, 0.45);
     await page.evaluate(() => (window.__played = []));
     await page.keyboard.press('k');
     await page.waitForTimeout(1500);

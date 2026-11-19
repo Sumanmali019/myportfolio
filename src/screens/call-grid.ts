@@ -3,12 +3,17 @@
  * a large "You | Tech Lead" tile with the avatar laughing in a mustard tee, tiles for Faisal,
  * Rajat and "+3 others", a "You joined the meeting" toast and the call controls.
  *
+ * The stand-up plays across its window of the hold: you join, Suman asks "What's everyone
+ * working on today?", then each of the team answers in turn — a speech bubble by their tile,
+ * a green speaking ring and a little nod while they talk.
+ *
  * The drawing keeps its own 820×500 coordinates inside a nested <svg> that letterboxes into
  * the screen rect. Gradients are flattened; the one clip path gets a unique id per mount.
  * Generic call UI only — no product logos.
  */
 import type { Screen } from '../engine/types';
 import { easeOut, mod, progress } from '../lib/math';
+import type { Window } from './lead-workday';
 import { screenFrame, setTransform, svgEl } from '../lib/svg';
 
 let seq = 0;
@@ -40,11 +45,47 @@ const LAUGHING_AVATAR = `
 <path d="M138,156 L126,160 M262,156 L274,160" stroke="#0c0c0c" stroke-width="4" stroke-linecap="round"/>
 <path d="M146,152 L156,152 M214,152 L224,152" stroke="#fff" stroke-opacity="0.6" stroke-width="2.5" stroke-linecap="round"/>`;
 
+/** The stand-up, in the call's own progress (0–1): who speaks when, and what they say. */
+const TALK: Array<{ who: number; name: string; say: string; at: number; until: number }> = [
+  { who: 0, name: 'You', say: "What's everyone working on today?", at: 0.2, until: 0.34 },
+  { who: 1, name: 'Faisal', say: 'Auth API, PR up by noon', at: 0.36, until: 0.52 },
+  { who: 2, name: 'Rajat', say: 'Fixing the SSE retry bug', at: 0.54, until: 0.7 },
+  { who: 3, name: 'Priya (+2)', say: 'QA on the mobile build', at: 0.72, until: 0.88 },
+];
+/** Where each bubble sits (its box and the tip of its tail), in the drawing's units. */
+const BUBBLE: Array<{ x: number; y: number; w: number; tip: [number, number] }> = [
+  { x: 40, y: 318, w: 330, tip: [70, 380] },
+  { x: 336, y: 42, w: 250, tip: [604, 70] },
+  { x: 336, y: 186, w: 250, tip: [604, 214] },
+  { x: 336, y: 330, w: 250, tip: [604, 358] },
+];
+
+function bubbleMarkup(i: number): string {
+  const t = TALK[i]!;
+  const b = BUBBLE[i]!;
+  const h = 52;
+  // The tail: down-left for Suman's (into his tile), right for the team's (to their tiles).
+  const tail =
+    i === 0
+      ? `M${b.x + 22},${b.y + h - 1} L${b.tip[0]},${b.tip[1]} L${b.x + 46},${b.y + h - 1} Z`
+      : `M${b.x + b.w - 1},${b.y + 16} L${b.tip[0]},${b.tip[1]} L${b.x + b.w - 1},${b.y + 36} Z`;
+  return `
+<g data-bubble="${i}">
+  <path d="${tail}" fill="#fff"/>
+  <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${h}" rx="14" fill="#fff"/>
+  <text x="${b.x + 14}" y="${b.y + 19}" ${FONT} font-size="11" font-weight="700" fill="#1a73e8">${t.name}</text>
+  <text x="${b.x + 14}" y="${b.y + 39}" ${FONT} font-size="${i === 0 ? 16 : 14.5}" fill="#202124">${t.say.replace(/'/g, '&#39;')}</text>
+</g>`;
+}
+
 const sideTile = (y: number, color: string, letter: string, name: string, tile: number) => `
 <g data-tile="${tile}">
   <rect x="610" y="${y}" width="190" height="122" rx="10" fill="#3c4043"/>
+  <g data-face="${tile}">
   <circle cx="705" cy="${y + 56}" r="28" fill="${color}"/>
   <text x="705" y="${y + 66}" text-anchor="middle" ${FONT} font-size="26" fill="#fff">${letter}</text>
+  </g>
+  <rect data-ring="${tile}" x="611.5" y="${y + 1.5}" width="187" height="119" rx="9" fill="none" stroke="#34a853" stroke-width="3" opacity="0"/>
   <text x="620" y="${y + 114}" ${FONT} font-size="12" fill="#fff">${name}</text>
   <circle cx="784" cy="${y + 16}" r="10" fill="#202124" opacity="0.7"/>
   <rect x="781" y="${y + 9}" width="6" height="10" rx="3" fill="#fff"/>
@@ -62,6 +103,7 @@ function meetMarkup(clip: string): string {
     <g transform="translate(105 30)">${LAUGHING_AVATAR}</g>
   </g>
   <rect x="20" y="20" width="570" height="410" rx="14" fill="none" stroke="#8ab4f8" stroke-width="3"/>
+  <rect data-ring="0" x="20" y="20" width="570" height="410" rx="14" fill="none" stroke="#34a853" stroke-width="4" opacity="0"/>
   <rect x="32" y="396" width="124" height="24" rx="6" fill="#202124" opacity="0.75"/>
   <text x="94" y="413" text-anchor="middle" ${FONT} font-size="13" fill="#fff">You | Tech Lead</text>
   <rect x="548" y="32" width="30" height="30" rx="15" fill="#8ab4f8"/>
@@ -73,9 +115,12 @@ ${sideTile(20, '#7b5cc4', 'F', 'Faisal', 1)}
 ${sideTile(164, '#d0632b', 'R', 'Rajat', 2)}
 <g data-tile="3">
   <rect x="610" y="308" width="190" height="122" rx="10" fill="#3c4043"/>
+  <g data-face="3">
   <circle cx="705" cy="364" r="28" fill="#1e8e5a"/>
   <text x="705" y="374" text-anchor="middle" ${FONT} font-size="26" fill="#fff">+3</text>
+  </g>
   <text x="620" y="422" ${FONT} font-size="12" fill="#fff">3 others</text>
+  <rect data-ring="3" x="611.5" y="309.5" width="187" height="119" rx="9" fill="none" stroke="#34a853" stroke-width="3" opacity="0"/>
 </g>
 <g data-toast="">
   <rect x="190" y="36" width="230" height="34" rx="17" fill="#e8eaed"/>
@@ -93,13 +138,15 @@ ${sideTile(164, '#d0632b', 'R', 'Rajat', 2)}
 <path d="M512,472 Q528,456 544,472 L540,476 L534,472 L534,468 Q528,465 522,468 L522,472 L516,476 Z" fill="#fff"/>
 <path d="M728,460 L752,460 L752,474 L738,474 L732,480 L732,474 L728,474 Z" fill="none" stroke="#e8eaed" stroke-width="2"/>
 <circle cx="785" cy="462" r="5" fill="none" stroke="#e8eaed" stroke-width="2"/>
-<path d="M776,478 Q785,466 794,478" stroke="#e8eaed" stroke-width="2" fill="none"/>`;
+<path d="M776,478 Q785,466 794,478" stroke="#e8eaed" stroke-width="2" fill="none"/>
+${TALK.map((_, i) => bubbleMarkup(i)).join('')}`;
 }
 
 /** Tile centres in the drawing's coordinates (pop-in origins). */
 const TILE_ORIGIN = ['305px 225px', '705px 81px', '705px 225px', '705px 369px'];
 
-export function callGrid(rect: SVGGraphicsElement): Screen {
+/** `win`: the stand-up's window of the hold. */
+export function callGrid(rect: SVGGraphicsElement, win: Window = [0, 1]): Screen {
   const { g, x, y, w, h } = screenFrame(rect);
   svgEl('rect', { x, y, width: w, height: h, fill: '#202124' }, g);
   const view = svgEl(
@@ -114,6 +161,13 @@ export function callGrid(rect: SVGGraphicsElement): Screen {
   const toast = view.querySelector<SVGGElement>('[data-toast]');
   if (toast) toast.style.transformOrigin = '305px 53px';
   const bars = Array.from(view.querySelectorAll<SVGRectElement>('[data-bar]'));
+  const bubbles = TALK.map((_, i) => {
+    const el = view.querySelector<SVGGElement>(`[data-bubble="${i}"]`)!;
+    el.style.transformOrigin = `${BUBBLE[i]!.tip[0]}px ${BUBBLE[i]!.tip[1]}px`;
+    return el;
+  });
+  const rings = TALK.map((t) => view.querySelector<SVGRectElement>(`[data-ring="${t.who}"]`));
+  const faces = TALK.map((t) => view.querySelector<SVGGElement>(`[data-face="${t.who}"]`));
   const barBase: Array<[number, number]> = [
     [44, 8],
     [39, 13],
@@ -121,9 +175,11 @@ export function callGrid(rect: SVGGraphicsElement): Screen {
   ];
 
   return {
-    update({ hold, idle, reduced }) {
+    update({ hold: h, idle, reduced }) {
+      // The call's own progress.
+      const hold = progress(h, win[0], win[1]);
       tiles.forEach((t, i) => {
-        const k = reduced ? 1 : easeOut(progress(hold, i * 0.04, 0.1 + i * 0.04), 1.5);
+        const k = reduced ? 1 : easeOut(progress(hold, i * 0.03, 0.08 + i * 0.03), 1.5);
         setTransform(t, k >= 1 ? '' : `scale(${k.toFixed(3)})`);
         t.style.visibility = k <= 0 ? 'hidden' : '';
       });
@@ -133,10 +189,29 @@ export function callGrid(rect: SVGGraphicsElement): Screen {
           ? hold < 0.4
             ? 1
             : 0
-          : Math.min(easeOut(progress(hold, 0.06, 0.14), 1.6), 1 - progress(hold, 0.36, 0.42));
+          : Math.min(easeOut(progress(hold, 0.06, 0.12), 1.6), 1 - progress(hold, 0.16, 0.2));
         setTransform(toast, k >= 1 ? '' : `scale(${Math.max(0, k).toFixed(3)})`);
         toast.style.visibility = k <= 0 ? 'hidden' : '';
       }
+      // The stand-up: each bubble pops in as they start talking and stays; the speaker's tile
+      // lights up green and their face nods while they talk.
+      TALK.forEach((t, i) => {
+        const k = reduced
+          ? hold >= t.at
+            ? 1
+            : 0
+          : easeOut(progress(hold, t.at, t.at + 0.04), 1.5);
+        const b = bubbles[i]!;
+        setTransform(b, k >= 1 ? '' : `scale(${Math.max(0, k).toFixed(3)})`);
+        b.style.visibility = k <= 0 ? 'hidden' : '';
+        const talking = hold >= t.at && hold < t.until;
+        rings[i]?.setAttribute('opacity', talking ? '1' : '0');
+        const face = faces[i];
+        if (face && i > 0) {
+          const nod = talking && !reduced ? Math.abs(Math.sin(idle * 6)) * 5 : 0;
+          face.setAttribute('transform', nod ? `translate(0 ${nod.toFixed(1)})` : '');
+        }
+      });
       // Speaking indicator: you're laughing, so the bars dance.
       bars.forEach((b, i) => {
         const [y0, h0] = barBase[i]!;

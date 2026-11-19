@@ -6,8 +6,8 @@
  *   0.04–0.62  the cap-toss Lottie, frame by frame: he blinks, swings his arm, throws the cap;
  *              the camera zooms in and follows it up past the roof into the sky (clouds,
  *              confetti), then back down as it lands on his head again
- *   0.62–0.72  the offer letter rises into view (role and start date from profile.ts)
- *   0.72–0.82  the signature draws on · 0.82–0.88 "ACCEPTED" stamps in
+ *   0.62–0.72  the offer letter rises into view (the role and city from profile.ts; no date)
+ *   0.72–0.82  the signature draws on
  *
  * The Lottie's camera layer is applied here to the hall and the graduate together (the
  * `[data-cam]` groups), so the whole scene moves as one shot. Only the motion keyframes ship
@@ -38,7 +38,6 @@ let place = { x: 0, y: 0, k: 1 };
 let focus: [number, number] = [200, 200];
 let letter: SVGGraphicsElement | null = null;
 let sign: SVGPathElement | null = null;
-let stamp: SVGGraphicsElement | null = null;
 
 /**
  * The Lottie camera (translate(p) scale(s) translate(-a), in Lottie units) as a transform in
@@ -127,21 +126,19 @@ const scene: SceneModule = {
     tossSky = qs(svg, '[data-toss-sky]');
     letter = qs(svg, '[data-letter]');
     sign = qs<SVGPathElement>(svg, '[data-sign]');
-    stamp = qs(svg, '[data-stamp]');
     bakeHall(svg);
 
-    // The letter's words come from the first job in profile.ts (Cloudcraftz).
+    // The letter's words come from the first job in profile.ts (Cloudcraftz) — no date on it.
     const body = qs(svg, '[data-letter-body]');
     const job = [...data.profile.experience].sort((a, b) => a.start - b.start)[0];
     if (body && job) {
       qsa(body.parentElement!, '.letter-line').forEach((el) => el.remove());
       const bx = Number(body.getAttribute('x'));
       const by = Number(body.getAttribute('y'));
-      const start = job.period.split('–')[0]?.trim() ?? String(job.start);
       const lines = [
         'Dear Suman,',
         ...wrap(`We are pleased to offer you the role of ${job.role}`, 24),
-        ...wrap(`in ${job.location}, from ${start}.`, 24),
+        ...wrap(`in ${job.location}.`, 24),
         'Welcome aboard!',
       ];
       lines.slice(0, 8).forEach((l, i) =>
@@ -161,10 +158,9 @@ const scene: SceneModule = {
     for (const c of cams) setAttr(c, 'transform', tf);
     if (tossSky) setAttr(tossSky, 'opacity', zoom.toFixed(3));
 
-    // 2 · The offer letter rises into view, then is signed and stamped.
+    // 2 · The offer letter rises into view, then is signed.
     if (letter) setScale(letter, easeOut(progress(hold, 0.62, 0.72), 1.4));
     if (sign) drawOn(sign, progress(hold, 0.72, 0.82));
-    if (stamp) setScale(stamp, easeOut(progress(hold, 0.82, 0.88), 2.2));
   },
 };
 

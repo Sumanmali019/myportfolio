@@ -56,7 +56,8 @@ describe('content', () => {
   it('builds every link the scenes reference', () => {
     const links = buildLinks(loadContent().profile);
     for (const s of scenes)
-      for (const l of s.links) if (l !== 'restart') expect(links[l]).toBeDefined();
+      for (const l of s.links)
+        if (l !== 'restart' && l !== 'cta-cv') expect(links[l]).toBeDefined();
     for (const l of Object.values(links)) expect(l.href).toMatch(/^(https:\/\/|mailto:|\/)/);
   });
 
