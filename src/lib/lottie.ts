@@ -22,6 +22,12 @@ interface Keyframe {
   h?: number;
   i?: { x: Vec | number; y: Vec | number };
   o?: { x: Vec | number; y: Vec | number };
+  /**
+   * Compact ease written into `*.motion.json`: `1` is the usual ease
+   * (out 0.45 → in 0.55); a tuple is `[outX, outY, inX, inY]`.
+   * Absent `e` / `i` / `o` stays linear, which is what full Lottie files use.
+   */
+  e?: 1 | number[];
 }
 interface Prop {
   a?: number;
@@ -95,10 +101,13 @@ export function valueAt(p: Prop | undefined, frame: number, fallback: Vec): Vec 
     if (frame < b.t) {
       if (a.h === 1) return a.s;
       const lin = (frame - a.t) / (b.t - a.t || 1);
-      const e =
-        a.o && a.i
-          ? bezier(first(a.o.x), first(a.o.y), first(a.i.x, 1), first(a.i.y, 1), lin)
-          : lin;
+      const e = Array.isArray(a.e)
+        ? bezier(a.e[0] ?? 0, a.e[1] ?? 0, a.e[2] ?? 1, a.e[3] ?? 1, lin)
+        : a.e === 1
+          ? bezier(0.45, 0, 0.55, 1, lin)
+          : a.o && a.i
+            ? bezier(first(a.o.x), first(a.o.y), first(a.i.x, 1), first(a.i.y, 1), lin)
+            : lin;
       return a.s.map((v, j) => v + ((b.s[j] ?? v) - v) * e);
     }
   }

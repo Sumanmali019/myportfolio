@@ -1,6 +1,7 @@
 /**
- * 00 · Hello — Suman's waving avatar (his Lottie, `src/assets/lottie/avatar-hand-wave.json`)
- * on the night sky, with a "Hi! Welcome to my portfolio" bubble.
+ * 00 · Hello — Suman's waving avatar on the night sky, with a
+ * "Hi! Welcome to my portfolio" bubble. The drawing is in the scene SVG;
+ * the wave motion comes from `avatar-hand-wave.motion.json`.
  *
  * The wave plays on the shared idle clock (first frame only with reduced motion). The bubble
  * pops away as soon as you scroll; the stars set as the hold advances. The avatar is the `me`
@@ -10,7 +11,7 @@ import type { SceneModule } from '../engine/types';
 import { easeIn, progress } from '../lib/math';
 import { bindLottie, type LottieAnimation } from '../lib/lottie';
 import { qs, setAttr, setScale } from '../lib/svg';
-import waveJson from '../assets/lottie/avatar-hand-wave.json';
+import waveJson from '../assets/lottie/avatar-hand-wave.motion.json';
 import { takeOver } from './shared';
 
 const WAVE = waveJson as unknown as LottieAnimation;
