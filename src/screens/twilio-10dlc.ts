@@ -20,6 +20,27 @@ const STEPS: Array<[string, string]> = [
 ];
 
 const TWILIO_RED = '#f22f46';
+
+/** Twilio's mark: a ring with four dots, outer radius `r`, centred at (cx, cy). */
+function twilioMark(parent: Element, cx: number, cy: number, r: number): void {
+  const g = svgEl('g', {}, parent);
+  svgEl(
+    'circle',
+    { cx, cy, r: r * 0.867, fill: 'none', stroke: TWILIO_RED, 'stroke-width': r * 0.265 },
+    g,
+  );
+  for (const [dx, dy] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const)
+    svgEl(
+      'circle',
+      { cx: cx + dx * r * 0.25, cy: cy + dy * r * 0.25, r: r * 0.208, fill: TWILIO_RED },
+      g,
+    );
+}
 const GREEN = '#1aa36f';
 const BLUE = '#2563eb';
 const INK = '#1f2430';
@@ -97,16 +118,12 @@ export function twilio10dlc(rect: SVGGraphicsElement, win: Window): Screen {
       width: sfs * 2.4,
       height: sfs * 2.4,
       rx: sfs * 0.4,
-      fill: TWILIO_RED,
+      fill: '#ffffff',
+      stroke: '#e3e5ea',
     },
     root,
   );
-  svgText(root, cardX + sfs * 1.8, cardY + sfs * 2.35, 'T', {
-    'font-size': sfs * 1.3,
-    fill: '#ffffff',
-    'text-anchor': 'middle',
-    class: 'title-text',
-  });
+  twilioMark(root, cardX + sfs * 1.8, cardY + sfs * 1.9, sfs * 0.95);
   svgText(root, cardX + sfs * 3.6, cardY + sfs * 1.7, 'Twilio SMS', {
     'font-size': sfs * 0.9,
     fill: INK,
@@ -133,15 +150,18 @@ export function twilio10dlc(rect: SVGGraphicsElement, win: Window): Screen {
   const tile = fs * 2.2;
   svgEl(
     'rect',
-    { x: left, y: my + fs * 0.9, width: tile, height: tile, rx: fs * 0.45, fill: TWILIO_RED },
+    {
+      x: left,
+      y: my + fs * 0.9,
+      width: tile,
+      height: tile,
+      rx: fs * 0.45,
+      fill: '#ffffff',
+      stroke: '#e3e5ea',
+    },
     modal,
   );
-  svgText(modal, left + tile / 2, my + fs * 0.9 + tile * 0.68, 'T', {
-    'font-size': tile * 0.55,
-    fill: '#ffffff',
-    'text-anchor': 'middle',
-    class: 'title-text',
-  });
+  twilioMark(modal, left + tile / 2, my + fs * 0.9 + tile / 2, tile * 0.4);
   svgText(modal, left + tile + fs * 0.7, my + fs * 1.85, 'Twilio SMS', {
     'font-size': fs * 1.05,
     fill: INK,

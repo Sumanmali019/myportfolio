@@ -14,6 +14,11 @@
   --light: #ffe9a8;
   --accent: #f2b84b;
   --stage: #1b1a3a;
+  /* Room things (desk rooms): the default wood desk, terracotta mug and pot. */
+  --desk: #b9774a;
+  --desk-d: #9c6239;
+  --mug: #c8674a;
+  --pot: #c8674a;
 }
 
 [data-palette='campus'] {
@@ -112,6 +117,103 @@
   --stage: #121124;
 }
 
+/* Desk rooms: each has its own colours (walls, floor, desk, mug, pot), blended as you scroll. */
+[data-palette='mint'] {
+  --sky-top: #a9dcd8;
+  --sky-bot: #eaf6f2;
+  --wall: #dcebe1;
+  --wall-d: #c4dacb;
+  --floor: #b98e6c;
+  --floor-d: #9f7656;
+  --light: #fff6d6;
+  --accent: #3f8f8b;
+  --stage: #cfe3d6;
+  --desk: #d2a674;
+  --desk-d: #b08453;
+  --mug: #3f8f8b;
+  --pot: #c8674a;
+}
+
+[data-palette='peach'] {
+  --sky-top: #f8c7a4;
+  --sky-bot: #fdeee0;
+  --wall: #f6dccb;
+  --wall-d: #e6c2ad;
+  --floor: #b07f5e;
+  --floor-d: #946548;
+  --light: #ffe9c4;
+  --accent: #c8674a;
+  --stage: #efcfb9;
+  --desk: #8a5a3c;
+  --desk-d: #6e452c;
+  --mug: #3d6fa8;
+  --pot: #2f716e;
+}
+
+[data-palette='lilac'] {
+  --sky-top: #c9c2ec;
+  --sky-bot: #f1eefa;
+  --wall: #e4def0;
+  --wall-d: #cfc6e2;
+  --floor: #a9876f;
+  --floor-d: #8e6d56;
+  --light: #fff4d8;
+  --accent: #5b5aa8;
+  --stage: #d9d1ea;
+  --desk: #e2d6c2;
+  --desk-d: #c2b39b;
+  --mug: #e3a83b;
+  --pot: #b5578a;
+}
+
+[data-palette='sky'] {
+  --sky-top: #9fd0ea;
+  --sky-bot: #eef6fa;
+  --wall: #dbe7f1;
+  --wall-d: #c3d4e3;
+  --floor: #9c7a64;
+  --floor-d: #82614c;
+  --light: #fff6d6;
+  --accent: #2f6bff;
+  --stage: #cbdcea;
+  --desk: #5b3f2e;
+  --desk-d: #45301f;
+  --mug: #c8674a;
+  --pot: #e3a83b;
+}
+
+[data-palette='cocoa'] {
+  --sky-top: #f2c9a0;
+  --sky-bot: #fbe9d6;
+  --wall: #eadccb;
+  --wall-d: #d8c5ae;
+  --floor: #9a7558;
+  --floor-d: #7f5e45;
+  --light: #ffe7c2;
+  --accent: #c9a27a;
+  --stage: #dfcdb8;
+  --desk: #6f4e37;
+  --desk-d: #563b29;
+  --mug: #c9a27a;
+  --pot: #8b5e3c;
+}
+
+[data-palette='navy'] {
+  --sky-top: #a9c8ef;
+  --sky-bot: #eef4fb;
+  --wall: #dfe6f3;
+  --wall-d: #c7d2e6;
+  --floor: #8c7a6b;
+  --floor-d: #736255;
+  --light: #fff4d6;
+  --accent: #3b82f6;
+  --stage: #ccd7ea;
+  --desk: #35435c;
+  --desk-d: #263247;
+  --mug: #3b82f6;
+  --pot: #f2b84b;
+}
+
 /* Palette-driven SVG surfaces. */
 .p-wall {
   fill: var(--wall);
@@ -124,6 +226,21 @@
 }
 .p-floor-d {
   fill: var(--floor-d);
+}
+.p-desk {
+  fill: var(--desk);
+}
+.p-desk-d {
+  fill: var(--desk-d);
+}
+.p-mug {
+  fill: var(--mug);
+}
+.p-mug-s {
+  stroke: var(--mug);
+}
+.p-pot {
+  fill: var(--pot);
 }
 .p-light {
   fill: var(--light);

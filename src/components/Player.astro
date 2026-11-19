@@ -1,0 +1,147 @@
+---
+/**
+ * The journey as a video (engine/player.ts): it starts playing on load, and a player bar at the
+ * bottom of the frame controls it — play / pause, back to the start, next chapter, the time,
+ * the chapter on screen, playback speed, the CV and fullscreen — over a progress bar split into
+ * chapters that you can click or drag to seek. Scrolling still works and pauses playback.
+ *
+ * On the first and last screens: skip the animation and see the CV (the Skip-the-day page,
+ * components/SkipTheDay.astro).
+ */
+import type { Scene } from '../content/schema';
+
+interface Props {
+  scenes: Scene[];
+}
+
+const { scenes } = Astro.props;
+// One segment per chapter: consecutive scenes with the same section are one chapter.
+const chapters = scenes
+  .map((s) => s.section)
+  .filter((name, i, all) => i === 0 || all[i - 1] !== name);
+---
+
+<div class="player" id="player" data-player>
+  <button type="button" class="player__flash" data-player-flash tabindex="-1" aria-hidden="true">
+    <span data-player-flash-icon>▶</span>
+  </button>
+  <div class="player__chrome">
+    <div
+      class="player__bar"
+      data-player-seek
+      role="slider"
+      tabindex="0"
+      aria-label="Seek"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+      aria-valuetext="0:00"
+    >
+      <div class="player__chapters" data-player-chapters>
+        {chapters.map((name) => <span class="player__chapter" data-chapter-title={name} />)}
+      </div>
+      <span class="player__knob" data-player-knob aria-hidden="true"></span>
+      <span class="player__tip" data-player-tip aria-hidden="true">
+        <span data-player-tip-title></span>
+        <span class="player__tip-time" data-player-tip-time></span>
+      </span>
+    </div>
+    <div class="player__controls">
+      <button type="button" class="player__btn" data-player-start aria-label="Move to the top">
+        <svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M6 6h2v12H6zM9.5 12 18 6v12z"></path></svg
+        >
+      </button>
+      <button
+        type="button"
+        class="player__btn player__btn--play"
+        data-player-play
+        aria-label="Play"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="player__icon-play">
+          <path d="M8 5v14l11-7z"></path>
+        </svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="player__icon-pause">
+          <path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
+        </svg>
+      </button>
+      <button type="button" class="player__btn" data-player-next aria-label="Next chapter">
+        <svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M6 18 14.5 12 6 6zM16 6h2v12h-2z"></path></svg
+        >
+      </button>
+      <span class="player__time" aria-live="off">
+        <span data-player-now>0:00</span> / <span data-player-total>0:00</span>
+      </span>
+      <span class="player__title" data-player-title>Hello</span>
+      <span class="player__spacer"></span>
+      <button
+        type="button"
+        class="player__btn"
+        data-player-mute
+        aria-label="Mute"
+        aria-pressed="false"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="player__icon-sound">
+          <path d="M4 9h4l5-4v14l-5-4H4zM16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"></path>
+        </svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="player__icon-muted">
+          <path d="M4 9h4l5-4v14l-5-4H4zM16 9l6 6M22 9l-6 6"></path>
+        </svg>
+      </button>
+      <div class="player__speed">
+        <button
+          type="button"
+          class="player__btn player__btn--text"
+          data-player-speed
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label="Playback speed"
+        >
+          <span data-player-speed-label>1×</span>
+        </button>
+        <div class="player__menu" role="menu" data-player-menu hidden>
+          <p class="player__menu-title">Playback speed</p>
+          {
+            [0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
+              <button
+                type="button"
+                role="menuitemradio"
+                class="player__menu-item"
+                data-rate={r}
+                aria-checked={r === 1 ? 'true' : 'false'}
+              >
+                {r === 1 ? 'Normal' : `${r}×`}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+      <button
+        type="button"
+        class="player__btn player__btn--text"
+        data-cv-open
+        aria-haspopup="dialog"
+        aria-controls="skip"
+        aria-label="Skip the animation and see my CV"
+      >
+        CV
+      </button>
+      <button type="button" class="player__btn" data-player-full aria-label="Full screen">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 5h5v2H7v3H5zM14 5h5v5h-2V7h-3zM5 14h2v3h3v2H5zM17 14h2v5h-5v-2h3z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+<button
+  type="button"
+  class="cv-open"
+  id="cv-open"
+  data-cv-open
+  aria-haspopup="dialog"
+  aria-controls="skip"
+>
+  Skip the animation · <strong>see my CV</strong>
+</button>

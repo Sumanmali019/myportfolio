@@ -6,7 +6,13 @@ declare global {
       goto(index: number, frac?: number): void;
       transition(index: number, t?: number): void;
       scenes: string[];
-      frame(): { index: number; id: string; beat: number; transitioning: boolean } | null;
+      frame(): {
+        index: number;
+        id: string;
+        beat: number;
+        transitioning: boolean;
+        u: number;
+      } | null;
     };
   }
 }

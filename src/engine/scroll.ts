@@ -1,75 +1,72 @@
 /**
- * Scroll input. With motion allowed, Lenis smooths wheel scrolling and is driven by our own
- * rAF loop (autoRaf: false). With reduced motion, native scroll is used directly.
+ * Scroll input: the page's own (native) scroll. Smoothness comes from the pace (engine/pace.ts):
+ * the view chases the scroll position every frame, eased and speed-limited, so wheel steps and
+ * flicks still play smoothly — no smooth-scroll library needed.
  *
  * progress() → P in 0..1;  toScroll(P) scrolls to that progress.
  */
-import Lenis from 'lenis';
 import { clamp } from '../lib/math';
 
 export class Scroller {
-  private lenis: Lenis | null = null;
-
-  constructor(reduced: boolean) {
-    this.setReduced(reduced);
-  }
-
-  setReduced(reduced: boolean): void {
-    if (reduced && this.lenis) {
-      this.lenis.destroy();
-      this.lenis = null;
-    } else if (!reduced && !this.lenis) {
-      this.lenis = new Lenis({ autoRaf: false, lerp: 0.12, smoothWheel: true, syncTouch: false });
-    }
-  }
+  /** Set by an immediate jump: the view should land there at once, not glide (see takeJump). */
+  private jumped = false;
+  /** A smooth programmatic scroll (e.g. replay) in flight: the view follows it directly. */
+  private gliding = false;
+  private glideTo = 0;
+  private lastY = -1;
+  private still = 0;
 
   /** Maximum scroll offset in px. */
   get max(): number {
     return Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
   }
 
-  get y(): number {
-    return this.lenis ? this.lenis.scroll : window.scrollY;
-  }
-
   progress(): number {
-    return clamp(this.y / this.max);
+    return clamp(window.scrollY / this.max);
   }
 
-  /** Scroll to progress `p`. `immediate` jumps without smoothing. */
+  /** Scroll to progress `p`. `immediate` jumps; otherwise the browser scrolls smoothly there. */
   toScroll(p: number, immediate = false): void {
-    const target = Math.round(clamp(p) * this.max);
-    if (this.lenis) {
-      this.lenis.scrollTo(
-        target,
-        immediate ? { immediate: true, force: true } : { duration: 1.4, force: true },
-      );
-    } else {
-      window.scrollTo({ top: target, behavior: 'auto' });
+    const top = Math.round(clamp(p) * this.max);
+    if (immediate) this.jumped = true;
+    else {
+      this.gliding = true;
+      this.glideTo = top;
+      this.still = 0;
     }
+    window.scrollTo({ top, behavior: immediate ? 'instant' : 'smooth' });
   }
 
-  /** Advance smoothing; call once per frame. Returns true while Lenis is still moving. */
-  raf(time: number): boolean {
-    if (!this.lenis) return false;
-    this.lenis.raf(time);
-    return this.lenis.isScrolling !== false;
+  /**
+   * True after an immediate jump (links, tests), and while a smooth programmatic scroll
+   * (replay) runs: the view goes straight there instead of chasing at its top speed.
+   */
+  takeJump(): boolean {
+    const j = this.jumped || this.gliding;
+    this.jumped = false;
+    return j;
   }
 
-  resize(): void {
-    this.lenis?.resize();
+  /** Scroll to an exact px offset at once, without marking a jump (auto-scroll, shelves). */
+  scrollToPx(y: number): void {
+    window.scrollTo({ top: Math.max(0, Math.min(this.max, y)), behavior: 'instant' });
   }
 
+  /** Once per frame: notices when a smooth programmatic scroll has arrived (or stalled). */
+  raf(): void {
+    if (!this.gliding) return;
+    const y = window.scrollY;
+    this.still = y === this.lastY ? this.still + 1 : 0;
+    this.lastY = y;
+    if (Math.abs(y - this.glideTo) < 2 || this.still > 20) this.gliding = false;
+  }
+
+  /** Hold the page still (a dialog is open), and let it go again. */
   stop(): void {
-    this.lenis?.stop();
+    document.documentElement.style.overflow = 'hidden';
   }
 
   start(): void {
-    this.lenis?.start();
-  }
-
-  destroy(): void {
-    this.lenis?.destroy();
-    this.lenis = null;
+    document.documentElement.style.overflow = '';
   }
 }

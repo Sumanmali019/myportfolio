@@ -15,6 +15,10 @@ export const PALETTE_VARS = [
   '--light',
   '--accent',
   '--stage',
+  '--desk',
+  '--desk-d',
+  '--mug',
+  '--pot',
 ] as const;
 
 type RGB = [number, number, number];

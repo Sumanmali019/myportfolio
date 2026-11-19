@@ -182,3 +182,47 @@ export function applyIdle(root: ParentNode, idle: number, reduced: boolean): voi
     setTransform(el, t ? `translate(${x.toFixed(1)}px, ${bob.toFixed(1)}px)` : '');
   });
 }
+
+/**
+ * Things that follow the journey's position rather than the clock (scripts/art/kit.mjs):
+ *   [data-clock="d|ap"] digital desk clock (HH:MM, AM/PM): the time moves on as it plays or scrolls
+ *   [data-sway]         a desk plant's leaves sway with the motion
+ *   [data-parallax=k]   drifts sideways (k px) across the scene's hold
+ */
+interface ScrolledSet {
+  digits: Element[];
+  ampm: Element[];
+  sways: Element[];
+  drifts: Array<{ el: Element; k: number }>;
+}
+const scrolledCache = new WeakMap<ParentNode, ScrolledSet>();
+
+/** `p`: the journey's progress 0..1, which the clock spreads over one working day. */
+export function applyScrolled(root: ParentNode, u: number, hold: number, p: number): void {
+  let set = scrolledCache.get(root);
+  if (!set) {
+    set = {
+      digits: qsa(root, '[data-clock="d"]'),
+      ampm: qsa(root, '[data-clock="ap"]'),
+      sways: qsa(root, '[data-sway]'),
+      drifts: qsa(root, '[data-parallax]').map((el) => ({
+        el,
+        k: Number(el.getAttribute('data-parallax')) || 0,
+      })),
+    };
+    scrolledCache.set(root, set);
+  }
+  // 8 AM at the start of the journey, 11 PM at its end.
+  const set2 = (el: Element, v: string) => {
+    if (el.getAttribute('transform') !== v) el.setAttribute('transform', v);
+  };
+  const mins = Math.floor(480 + p * 900) % 1440;
+  const h24 = Math.floor(mins / 60);
+  const hh = String(h24 % 12 || 12).padStart(2, '0');
+  const time = `${hh}:${String(mins % 60).padStart(2, '0')}`;
+  const ap = h24 < 12 ? 'AM' : 'PM';
+  for (const el of set.digits) if (el.textContent !== time) el.textContent = time;
+  for (const el of set.ampm) if (el.textContent !== ap) el.textContent = ap;
+  for (const el of set.sways) set2(el, `rotate(${(Math.sin(u * 5) * 7).toFixed(2)})`);
+  for (const { el, k } of set.drifts) set2(el, `translate(${((0.5 - hold) * k).toFixed(1)} 0)`);
+}

@@ -7,7 +7,8 @@ import '../styles/palettes.css';
 import '../styles/global.css';
 
 import LinkLayer from '../components/LinkLayer.astro';
-import ProgressDots from '../components/ProgressDots.astro';
+import LiveProjects from '../components/LiveProjects.astro';
+import Player from '../components/Player.astro';
 import SceneText from '../components/SceneText.astro';
 import SeoHead from '../components/SeoHead.astro';
 import SkipTheDay from '../components/SkipTheDay.astro';
@@ -74,10 +75,11 @@ const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;
       <style>
         .stage,
         .hud,
-        .route,
         .bubble-layer,
         .link-layer,
-        .skip-open,
+        .live-layer,
+        .player,
+        .cv-open,
         .skip__close,
         .track {
           display: none !important;
@@ -100,13 +102,10 @@ const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;
   </head>
   <body>
     <SkipTheDay profile={profile} skills={skills} links={links} />
-    <Stage
-      screens={timeline.total + 1}
-      firstDate={formatMonth(monthIndex(scenes[0]!.date))}
-      firstCity={scenes[0]!.city}
-    />
-    <ProgressDots scenes={scenes} />
+    <Stage screens={timeline.total + 1} firstDate={formatMonth(monthIndex(scenes[0]!.date))} />
     <LinkLayer scenes={scenes} links={links} />
+    <LiveProjects scenes={scenes} />
+    <Player scenes={scenes} />
     <SceneText scenes={scenes} beats={beats} profile={profile} />
     <script type="application/json" id="engine-data" set:html={json} />
     <script>

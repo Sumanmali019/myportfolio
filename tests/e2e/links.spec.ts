@@ -23,10 +23,19 @@ test.describe('links', () => {
 
   test('external links open safely', async ({ page }) => {
     await openJourney(page);
-    for (const a of await page.locator('a[target="_blank"]').all()) {
-      await expect(a).toHaveAttribute('rel', /noopener/);
-      await expect(a).toHaveAttribute('rel', /noreferrer/);
-    }
+    // All at once (there are many: the CV's links too).
+    const unsafe = await page
+      .locator('a[target="_blank"]')
+      .evaluateAll((els) =>
+        els
+          .filter(
+            (el) =>
+              !/noopener/.test(el.getAttribute('rel') ?? '') ||
+              !/noreferrer/.test(el.getAttribute('rel') ?? ''),
+          )
+          .map((el) => el.getAttribute('href')),
+      );
+    expect(unsafe).toEqual([]);
   });
 
   test('stage links are keyboard-focusable and bring their scene on stage', async ({ page }) => {

@@ -32,6 +32,7 @@
   --z-stage: 1;
   --z-bubbles: 20;
   --z-links: 30;
+  --z-live: 35;
   --z-hud: 40;
   --z-route: 41;
   --z-skip: 50;

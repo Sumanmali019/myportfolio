@@ -36,18 +36,6 @@ button {
   color: inherit;
 }
 
-/* Lenis */
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
 /* ------------------------------------------------------------ focus */
 :focus {
   outline: none;
@@ -79,6 +67,8 @@ html.lenis body {
 }
 
 .stage {
+  --frame-pad: clamp(12px, 3vmin, 36px);
+  --frame-radius: 18px;
   position: fixed;
   inset: 0;
   z-index: var(--z-stage);
@@ -87,17 +77,32 @@ html.lenis body {
   contain: strict;
 }
 
+/*
+ * Each scene is a framed picture with room on every side: the whole artwork is shown (scaled to
+ * fit, never cropped), centred on the stage colour, whatever the window's shape.
+ */
 .scene {
   position: absolute;
-  inset: 0;
+  inset: var(--frame-pad);
+  display: grid;
+  place-items: center;
   visibility: hidden;
+  container-type: size;
 }
 .scene.is-on {
   visibility: visible;
 }
 .scene > svg {
-  width: 100%;
-  height: 100%;
+  --ar: 1.6;
+  width: min(100cqw, 100cqh * var(--ar));
+  height: min(100cqh, 100cqw / var(--ar));
+  max-width: none;
+  overflow: hidden;
+  border-radius: var(--frame-radius);
+  box-shadow: 0 18px 48px rgb(20 16 40 / 0.18);
+}
+.scene > svg[viewBox='0 0 390 844'] {
+  --ar: 0.4621;
 }
 
 /* Inline intro: show the art set that matches the layout (mirrors engine/layout.ts). */
@@ -137,10 +142,6 @@ html.lenis body {
 .stage [data-sticker],
 .stage [data-callout],
 .stage [data-cta],
-.stage [data-qs-phone],
-.stage [data-kp-monitor],
-.stage [data-bookshelf],
-.stage [data-press],
 .stage [data-greeting-bubble],
 .stage [data-envelope],
 .stage [data-letter],
@@ -173,175 +174,188 @@ html.lenis body {
   transform: scale(0);
 }
 
-/* ------------------------------------------------------------ HUD: calendar + odometer */
+/* ------------------------------------------------------------ HUD: the journey's calendar */
+/* One tear-off wall calendar, top right, on every screen (engine/calendar.ts): when the month
+   moves on, the old page folds forward from the binding and falls away; scrolling back, the
+   earlier page flies back onto the pad. */
 .hud {
   position: fixed;
-  top: var(--gutter);
-  left: var(--gutter);
-  z-index: var(--z-hud);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  max-width: calc(100vw - 2 * var(--gutter) - 10rem);
-  pointer-events: none;
-  font-size: var(--step--1);
-  letter-spacing: 0.06em;
-}
-.hud__pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  background: var(--paper);
-  color: var(--ink);
-  white-space: nowrap;
-}
-.hud__date {
-  font-weight: 500;
-}
-.hud__city {
-  color: var(--ink-soft);
-}
-.hud__odo-num {
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
-.hud__pill[hidden] {
-  display: none;
-}
-
-/* ------------------------------------------------------------ route line (progress) */
-/* Not on the intro: the hello screen is just the avatar. It appears once the journey starts. */
-html[data-scene='00-intro'] .route,
-html[data-scene='00-intro'] .hud {
-  visibility: hidden;
-}
-/* The Skip button stays reachable by keyboard on the intro: invisible until it gets focus. */
-html[data-scene='00-intro'] .skip-open:not(:focus-visible) {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.route {
-  position: fixed;
-  z-index: var(--z-route);
+  top: calc(var(--gutter) + 12px);
   right: var(--gutter);
-  top: 50%;
-  transform: translateY(-50%);
+  z-index: var(--z-hud);
+  pointer-events: none;
+  perspective: 700px;
 }
-.route ol {
+.hud-cal {
   position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  width: 8.5rem;
+  height: 9.25rem;
+  --cal-paper: #fbf6ee;
+  --cal-red: #c8674a;
+  --cal-ink: #2a2438;
+}
+/* The pages under the current one. */
+.hud-cal__pad {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px 4px 10px 10px;
+  background: #efe6d6;
+  box-shadow:
+    0 3px 0 #e4d9c6,
+    0 6px 0 #d8ccb7,
+    0 12px 22px rgb(20 16 40 / 0.22);
+}
+.hud-cal__page {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  overflow: hidden;
+  border-radius: 4px 4px 10px 10px;
+  background: var(--cal-paper);
+  color: var(--cal-ink);
+  transform-origin: 50% 0;
+  backface-visibility: hidden;
 }
-.route ol::before,
-.route ol::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 12px;
-  width: 3px;
-  transform: translateX(-50%);
-  border-radius: 2px;
-}
-.route ol::before {
-  bottom: 12px;
-  background: rgba(251, 246, 238, 0.45);
-}
-.route ol::after {
-  height: calc((100% - 24px) * var(--route, 0));
-  background: var(--paper);
-}
-.route button {
-  position: relative;
-  z-index: 1;
+.hud-cal__month {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
+  height: 36%;
+  padding-top: 0.6rem;
+  background: var(--cal-red);
+  color: var(--cal-paper);
+  font-family: var(--font-ui);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
 }
-.route .station__mark {
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--paper);
-  border: 2px solid var(--ink);
-  transition: transform 0.2s;
+.hud-cal__year {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  font-family: var(--font-title);
+  font-size: 2.5rem;
+  line-height: 1;
 }
-.route [data-station='transit'] .station__mark {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  transform: rotate(45deg);
-}
-.route [data-station='star'] .station__mark {
-  width: 16px;
-  height: 16px;
-  border: 0;
-  border-radius: 0;
-  background: var(--mustard);
-  clip-path: polygon(
-    50% 0,
-    61% 35%,
-    98% 35%,
-    68% 57%,
-    79% 91%,
-    50% 70%,
-    21% 91%,
-    32% 57%,
-    2% 35%,
-    39% 35%
-  );
-}
-.route [aria-current='step'] .station__mark {
-  transform: scale(1.45);
-  background: var(--mustard);
-}
-.route [data-station='transit'][aria-current='step'] .station__mark {
-  transform: rotate(45deg) scale(1.45);
-}
-.route button:hover .station__mark {
-  transform: scale(1.3);
-}
-.route .station__label {
+/* Binding and rings, over every page (the torn ones too). */
+.hud-cal__binding {
   position: absolute;
-  right: 30px;
-  padding: 0.15rem 0.5rem;
-  border-radius: 6px;
-  background: var(--paper);
-  color: var(--ink);
-  font-size: var(--step--1);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
+  z-index: 3;
+  top: -4px;
+  left: -3px;
+  right: -3px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--cal-ink);
 }
-.route button:hover .station__label,
-.route button:focus-visible .station__label {
-  opacity: 1;
+.hud-cal__binding i {
+  position: absolute;
+  top: -10px;
+  width: 10px;
+  height: 22px;
+  border: 3px solid #8d8698;
+  border-radius: 6px;
+}
+.hud-cal__binding i:first-child {
+  left: 26%;
+}
+.hud-cal__binding i:last-child {
+  right: 26%;
+}
+/* A page coming off: a ragged top edge where it tore along the perforation. */
+.hud-cal__page.is-torn {
+  z-index: 2;
+  clip-path: polygon(
+    0 0,
+    7.14% 7px,
+    14.29% 0,
+    21.43% 7px,
+    28.57% 0,
+    35.71% 7px,
+    42.86% 0,
+    50% 7px,
+    57.14% 0,
+    64.29% 7px,
+    71.43% 0,
+    78.57% 7px,
+    85.71% 0,
+    92.86% 7px,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
+  box-shadow: 0 10px 18px rgb(20 16 40 / 0.25);
+  animation: cal-tear 0.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+}
+.hud-cal__page.is-back {
+  animation-direction: reverse;
+  animation-duration: 0.6s;
+}
+@keyframes cal-tear {
+  0% {
+    transform: none;
+  }
+  /* The bottom lifts towards you, folding about the binding, pulled from the right corner… */
+  30% {
+    transform: rotateX(-38deg) rotate(4deg);
+  }
+  /* …it rips free along the perforation… */
+  48% {
+    transform: translate(-6px, 14px) rotateX(-55deg) rotate(-6deg);
+    opacity: 1;
+  }
+  /* …and falls away. */
+  100% {
+    transform: translate(-70px, 300px) rotateX(-85deg) rotate(-40deg);
+    opacity: 0;
+  }
+}
+@media (max-width: 480px) {
+  .hud-cal {
+    width: 6.4rem;
+    height: 7rem;
+  }
+  .hud-cal__month {
+    font-size: 1rem;
+    padding-top: 0.45rem;
+  }
+  .hud-cal__year {
+    font-size: 1.9rem;
+  }
 }
 
-/* Portrait: the route stays vertical (16 stations × 24px targets don't fit across a phone),
-   tucked against the right edge. */
-@media (max-aspect-ratio: 799/1000) {
-  .route {
-    right: 4px;
-  }
-  .route ol {
-    gap: 0;
-  }
-  .route .station__label {
-    right: 28px;
+/* ------------------------------------------------------------ click card */
+/* The mouse close-up (engine/mouse.ts sets its opacity and lift as a click comes up). */
+.click-card {
+  position: fixed;
+  right: calc(var(--frame-r, 16px) + 1.25rem);
+  bottom: calc(var(--frame-b, 16px) + 5.5rem);
+  z-index: 25;
+  width: 9.5rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 3px solid #fbf6ee;
+  border-radius: 1.1rem;
+  background: #6d5240;
+  box-shadow: 0 14px 30px rgb(20 14 30 / 0.35);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform-origin: 100% 100%;
+}
+.click-card.is-on {
+  visibility: visible;
+}
+.click-card svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+@media (max-width: 480px) {
+  .click-card {
+    width: 6.5rem;
+    right: calc(var(--frame-r, 12px) + 0.75rem);
+    bottom: calc(var(--frame-b, 12px) + 5rem);
   }
 }
 
@@ -507,33 +521,701 @@ html[data-scene='00-intro'] .skip-open:not(:focus-visible) {
   white-space: nowrap;
 }
 
-/* ------------------------------------------------------------ skip the journey */
-.skip-open {
+/* ------------------------------------------------------------ see it live (shelves) */
+/* After a chapter shows its projects, a wooden shelf comes up at the bottom and the projects fly
+   onto it (engine/shelf.ts). Each one on the shelf is a link to the live project. */
+.live-layer {
   position: fixed;
-  top: var(--gutter);
-  right: var(--gutter);
-  z-index: var(--z-skip);
-  padding: 0.45rem 0.9rem;
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  background: var(--paper);
-  color: var(--ink);
-  font-size: var(--step--1);
-  font-weight: 500;
-  cursor: pointer;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--frame-b, var(--frame-pad, 16px)) + 108px);
+  z-index: var(--z-live);
+  display: grid;
+  justify-items: center;
+  padding: 0 var(--gutter);
+  pointer-events: none;
 }
-.skip-open:hover {
-  background: var(--mustard);
+.shelf {
+  --shelf: 0;
+  position: relative;
+  grid-area: 1 / 1;
+  max-width: min(1000px, 100%);
+  padding: 0 1.2rem 1.55rem;
+  visibility: hidden;
+}
+.shelf.is-on {
+  visibility: visible;
+}
+/* Behind a shelf: a soft dark backdrop from the bottom, so it reads over any scene. */
+.shelf::before {
+  content: '';
+  position: fixed;
+  left: var(--frame-l, 0);
+  right: var(--frame-r, 0);
+  bottom: var(--frame-b, 0);
+  z-index: -1;
+  height: 62vh;
+  border-radius: 0 0 var(--frame-radius, 18px) var(--frame-radius, 18px);
+  background: linear-gradient(transparent, rgb(10 8 24 / 0.72) 55%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.shelf.is-on::before {
+  opacity: calc(var(--shelf, 0) * 1);
+}
+.shelf__items {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0 0.4rem;
+  list-style: none;
+}
+.shelf__item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  width: 7.2rem;
+  color: #2a2438;
+  text-decoration: none;
+  transform-origin: 50% 100%;
+  pointer-events: auto;
+  will-change: transform;
+}
+.shelf__tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 4px;
+  border-radius: 16px;
+  background: #fbf6ee;
+  box-shadow:
+    0 2px 0 rgb(0 0 0 / 0.08),
+    0 10px 18px rgb(20 16 40 / 0.28);
+  transition: transform 0.2s ease;
+}
+.shelf__tile img {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.shelf__initial {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #c8674a;
+  color: #fbf6ee;
+  font-family: var(--font-title);
+  font-size: 1.8rem;
+}
+.shelf__open {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #01875f;
+  color: #fff;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+}
+.shelf__name {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  background: rgb(251 246 238 / 0.92);
+  font-size: 0.74rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.shelf__cta {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: #2a2438;
+  color: #fbf6ee;
+  font-size: 0.66rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.shelf__item:hover .shelf__tile,
+.shelf__item:focus-visible .shelf__tile {
+  transform: translateY(-6px) rotate(-3deg);
+}
+.shelf__item:hover .shelf__cta,
+.shelf__item:focus-visible .shelf__cta {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.shelf__item.is-flying .shelf__name,
+.shelf__item.is-flying .shelf__cta,
+.shelf__item.is-flying .shelf__open {
+  opacity: 0;
+}
+/* The question while the journey waits at the shelf. */
+.shelf__ask {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gutter));
+  padding: 0.55rem 0.6rem 0.55rem 1rem;
+  border-radius: 14px;
+  background: rgb(27 26 58 / 0.9);
+  color: #fbf6ee;
+  box-shadow: 0 12px 28px rgb(10 8 30 / 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 8px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+}
+.shelf.is-asking .shelf__ask {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.shelf__q {
+  margin: 0;
+  font-size: 0.82rem;
+}
+/* Skip, like a video's skip-ad button: a white pill, bottom right, just above the player bar,
+   with the countdown over it. It skips now; left alone it skips by itself (opening a project
+   stops the count). */
+.skip-ad {
+  position: fixed;
+  right: calc(var(--frame-r, var(--frame-pad, 16px)) + 18px);
+  bottom: calc(var(--frame-b, var(--frame-pad, 16px)) + 112px);
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(16px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.shelf.is-asking .skip-ad {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.skip-ad__sub {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: #f1f1f4;
+  font-size: 0.72rem;
+}
+.skip-ad__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow: hidden;
+  padding: 0.7rem 1.4rem 0.75rem 1.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0b0b0f;
+  font-family: 'Poppins', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.35);
+  pointer-events: auto;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+.skip-ad__btn:hover,
+.skip-ad__btn:focus-visible {
+  background: #f1f1f4;
+  transform: translateY(-1px);
+}
+.skip-ad__btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+/* Time left: a thin bar along the bottom of the pill that empties. */
+.shelf__timer {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 5px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(0 0 0 / 0.1);
+}
+.shelf__timer-bar {
+  display: block;
+  height: 100%;
+  background: #0b0b0f;
+  transform: scaleX(var(--ask-left, 1));
+  transform-origin: left center;
+}
+/* You opened one: no countdown, it waits for you. */
+.shelf.is-chosen .shelf__timer,
+.shelf.is-chosen .skip-ad__sub {
+  display: none;
+}
+/* Phones: the shelf takes the bottom, so Skip sits up the right edge, under the calendar. */
+@media (max-width: 480px) {
+  .skip-ad {
+    top: calc(var(--frame-pad, 12px) + 9.5rem);
+    bottom: auto;
+  }
+  .skip-ad__btn {
+    padding: 0.55rem 1rem 0.6rem 1.2rem;
+    font-size: 1rem;
+  }
+}
+/* The plank, with its brackets and a little hanging label. */
+.shelf__plank {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.6rem;
+  height: 1.05rem;
+  border-radius: 4px;
+  background: linear-gradient(#c58b5a, #9c6239);
+  box-shadow: 0 8px 16px rgb(20 16 40 / 0.3);
+  opacity: var(--shelf);
+  transform: scaleX(var(--shelf));
+}
+.shelf__plank::before,
+.shelf__plank::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  width: 14px;
+  height: 18px;
+  background: #7a4a2a;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.shelf__plank::before {
+  left: 12%;
+}
+.shelf__plank::after {
+  right: 12%;
+  transform: scaleX(-1);
+}
+.shelf__label {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.12rem 0.6rem;
+  border-radius: 0 0 8px 8px;
+  background: #2a2438;
+  color: #fbf6ee;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.shelf__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: live-pulse 1.8s infinite;
+}
+@keyframes live-pulse {
+  70% {
+    box-shadow: 0 0 0 7px rgb(74 222 128 / 0);
+  }
+  0% {
+    box-shadow: 0 0 0 0 rgb(74 222 128 / 0.6);
+  }
 }
 @media (max-width: 480px) {
-  .skip-open__more {
-    display: none;
+  .shelf {
+    padding: 0 0.4rem 1.4rem;
   }
-  .hud {
-    max-width: calc(100vw - 2 * var(--gutter) - 5.5rem);
-    font-size: 0.74rem;
+  .shelf__items {
+    gap: 0.4rem;
+  }
+  .shelf__item {
+    width: 4.6rem;
+  }
+  .shelf__tile {
+    width: 52px;
+    height: 52px;
+  }
+  .shelf__tile img,
+  .shelf__initial {
+    width: 44px;
+    height: 44px;
+  }
+  .shelf__name {
+    font-size: 0.62rem;
   }
 }
+
+/* ------------------------------------------------------------ the player (engine/player.ts) */
+/* The journey plays like a video: a control bar along the bottom of the frame, over a gradient,
+   always on screen. */
+.player {
+  --played: 0;
+  --accent-play: #ff3b3b;
+  position: fixed;
+  /* On the picture frame (measured by the engine), else the stage padding. */
+  left: var(--frame-l, var(--frame-pad, 16px));
+  right: var(--frame-r, var(--frame-pad, 16px));
+  bottom: var(--frame-b, var(--frame-pad, 16px));
+  z-index: var(--z-live);
+  pointer-events: none;
+}
+.player__chrome {
+  padding: 2.4rem 1rem 0.5rem;
+  border-radius: 0 0 var(--frame-radius, 18px) var(--frame-radius, 18px);
+  background: linear-gradient(transparent, rgb(8 8 16 / 0.72));
+  color: #fff;
+  pointer-events: auto;
+  transition: opacity 0.35s ease;
+}
+
+/* Progress bar: one segment per chapter, a knob, a hover tip. */
+.player__bar {
+  position: relative;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+.player__bar:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.player__chapters {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  height: 4px;
+  transition: height 0.15s ease;
+}
+.player__bar:hover .player__chapters,
+.player.is-seeking .player__chapters {
+  height: 7px;
+}
+.player__chapter {
+  --fill: 0;
+  position: relative;
+  flex: 1 1 0;
+  min-width: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.3);
+}
+.player__chapter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-play);
+  transform: scaleX(var(--fill));
+  transform-origin: left center;
+}
+.player__knob {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: var(--accent-play);
+  transform: translateY(-50%) scale(0);
+  transition: transform 0.15s ease;
+}
+.player__bar:hover .player__knob,
+.player.is-seeking .player__knob,
+.player__bar:focus-visible .player__knob {
+  transform: translateY(-50%) scale(1);
+}
+.player__tip {
+  position: absolute;
+  bottom: 22px;
+  display: grid;
+  justify-items: center;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  background: rgb(20 20 28 / 0.92);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.player__tip-time {
+  color: #cfcfd8;
+  font-variant-numeric: tabular-nums;
+}
+.player__bar:hover .player__tip {
+  opacity: 1;
+}
+
+/* Buttons row. */
+.player__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+.player__btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.92;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+.player__btn:hover {
+  background: rgb(255 255 255 / 0.14);
+  opacity: 1;
+}
+.player__btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+.player__btn--play svg {
+  width: 30px;
+  height: 30px;
+}
+/* Sound on / muted: the speaker strokes (its waves, or a cross). */
+.player__icon-sound path,
+.player__icon-muted path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.player__icon-muted,
+.player.is-muted .player__icon-sound {
+  display: none;
+}
+.player.is-muted .player__icon-muted {
+  display: block;
+}
+.player__icon-pause,
+.player.is-playing .player__icon-play {
+  display: none;
+}
+.player.is-playing .player__icon-pause {
+  display: block;
+}
+.player__btn--text {
+  width: auto;
+  min-width: 40px;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.player__time {
+  margin: 0 0.5rem 0 0.3rem;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.player__title {
+  overflow: hidden;
+  color: #e6e6ee;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.player__title::before {
+  content: '•';
+  margin-right: 0.55rem;
+  color: #9a9aa8;
+}
+.player__spacer {
+  flex: 1;
+}
+
+/* Speed menu. */
+.player__speed {
+  position: relative;
+}
+.player__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  display: grid;
+  min-width: 11rem;
+  padding: 0.4rem;
+  border-radius: 12px;
+  background: rgb(24 24 32 / 0.95);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.4);
+}
+.player__menu[hidden] {
+  display: none;
+}
+.player__menu-title {
+  margin: 0.2rem 0.6rem 0.35rem;
+  color: #b8b8c6;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.player__menu-item {
+  padding: 0.45rem 0.7rem 0.45rem 2rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.player__menu-item:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+.player__menu-item[aria-checked='true']::before {
+  content: '✓';
+  position: absolute;
+  left: 0.7rem;
+}
+
+/* The big icon that flashes in the middle on play / pause. */
+.player__flash {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 1.6rem;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.8);
+  pointer-events: none;
+}
+.player__flash.is-on {
+  animation: player-flash 0.6s ease-out;
+}
+@keyframes player-flash {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+}
+@media (max-width: 480px) {
+  .player__chrome {
+    padding: 2rem 0.5rem 0.35rem;
+  }
+  .player__btn {
+    width: 34px;
+    height: 34px;
+  }
+  .player__title {
+    display: none;
+  }
+  .player__time {
+    font-size: 0.75rem;
+    margin: 0 0.3rem;
+  }
+}
+.reduced-motion .player__flash.is-on {
+  animation: none;
+}
+
+/* First and last screens: skip the animation and see the CV (top left). */
+.cv-open {
+  position: fixed;
+  top: calc(var(--frame-pad, 16px) + 12px);
+  left: calc(var(--frame-pad, 16px) + 12px);
+  z-index: var(--z-live);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #fbf6ee;
+  color: #2a2438;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgb(10 8 30 / 0.3);
+  transition: transform 0.2s ease;
+}
+.cv-open:hover {
+  transform: translateY(-2px);
+}
+.cv-open strong {
+  color: #c8674a;
+}
+html:not([data-scene='00-intro']):not([data-scene='15-departures']) .cv-open {
+  display: none;
+}
+@media (max-width: 480px) {
+  .cv-open {
+    font-size: 0.74rem;
+    padding: 0.45rem 0.75rem;
+  }
+}
+
+/* ------------------------------------------------------------ skip the journey */
 
 .skip {
   width: min(760px, calc(100vw - 2 * var(--gutter)));
@@ -622,13 +1304,148 @@ html[data-scene='00-intro'] .skip-open:not(:focus-visible) {
   font-size: var(--step--1);
 }
 
+/* The CV: laid out like the résumé PDF — white page, sans-serif, ruled section heads. */
+.skip.cv {
+  width: min(860px, calc(100vw - 2 * var(--gutter)));
+  background: #ffffff;
+  color: #1f2937;
+  font-family: 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.cv__bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: linear-gradient(#ffffff 70%, rgb(255 255 255 / 0));
+}
+.cv .skip__close {
+  position: static;
+  float: none;
+  margin: 0;
+  font: inherit;
+}
+.cv__download {
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  background: #0b5cad;
+  color: #ffffff !important;
+  font-weight: 600;
+  text-decoration: none;
+}
+.cv__download:hover {
+  background: #084a8c;
+}
+.cv .cv__page {
+  padding-top: 0;
+}
+.cv h1,
+.cv h2,
+.cv h3 {
+  font-family: inherit;
+  font-weight: 700;
+}
+.cv h1 {
+  margin: 0 0 0.3rem;
+  color: #0b5cad;
+  font-size: 2rem;
+}
+.cv h2 {
+  margin: 1.4rem 0 0.5rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1.5px solid #1f2937;
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.cv h3 {
+  margin: 0.9rem 0 0.05rem;
+  font-size: 1.02rem;
+}
+.cv__contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin: 0;
+  color: #374151;
+  font-size: 0.9rem;
+}
+.cv__contact span[aria-hidden] {
+  color: #9ca3af;
+}
+.cv a {
+  color: #0b5cad;
+}
+.cv__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.cv__date {
+  flex-shrink: 0;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: #374151;
+}
+.cv__org {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.cv p,
+.cv li {
+  max-width: none;
+}
+.cv ul {
+  margin: 0.2rem 0 0;
+  padding-left: 1.4rem;
+}
+.cv li + li {
+  margin-top: 0.15rem;
+}
+.cv__item p {
+  margin: 0.1rem 0;
+}
+.cv__link {
+  font-size: 0.88rem;
+  word-break: break-all;
+}
+.cv__skills {
+  margin: 0;
+}
+.cv__more {
+  margin-top: 2rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed #d1d5db;
+}
+.cv__more summary {
+  cursor: pointer;
+  color: #4b5563;
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .cv h1 {
+    font-size: 1.6rem;
+  }
+  .cv__row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
 /* Fallback: scene failed to load, or no JavaScript — the overlay content is the page. */
 html[data-stage='failed'] .stage,
 html[data-stage='failed'] .hud,
-html[data-stage='failed'] .route,
 html[data-stage='failed'] .bubble-layer,
+html[data-stage='failed'] .live-layer,
+html[data-stage='failed'] .player,
+html[data-stage='failed'] .cv-open,
 html[data-stage='failed'] .link-layer,
-html[data-stage='failed'] .skip-open,
 html[data-stage='failed'] .skip__close,
 html[data-stage='failed'] .track {
   display: none;

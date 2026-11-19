@@ -47,6 +47,16 @@ import docpharmaLogo from '../assets/apps/docpharma-logo.webp?url';
 import merithyre1 from '../assets/apps/merithyre-1.webp?url';
 import merithyre2 from '../assets/apps/merithyre-2.webp?url';
 import merithyreLogo from '../assets/apps/merithyre-logo.webp?url';
+import quietshelf1 from '../assets/apps/quietshelf-1.webp?url';
+import quietshelf2 from '../assets/apps/quietshelf-2.webp?url';
+import quietshelf3 from '../assets/apps/quietshelf-3.webp?url';
+import quietshelf4 from '../assets/apps/quietshelf-4.webp?url';
+import quietshelf5 from '../assets/apps/quietshelf-5.webp?url';
+import quietshelfLogo from '../assets/apps/quietshelf-logo.webp?url';
+import khyaati1 from '../assets/apps/khyaati-1.webp?url';
+import khyaati2 from '../assets/apps/khyaati-2.webp?url';
+import khyaati3 from '../assets/apps/khyaati-3.webp?url';
+import khyaatiLogo from '../assets/apps/khyaati-logo.webp?url';
 
 export interface Showcase {
   /** Matches an app `key` in profile.ts. */
@@ -456,4 +466,118 @@ export const neuraShowcase: Showcase[] = [
 ];
 
 /** Every app with a logo and screens, for lookups by `key`. */
-export const allShowcase: Showcase[] = [...showcase, ...beworldShowcase, ...neuraShowcase];
+/**
+ * Side builds, each a chapter of its own (11a, 11b): The Quiet Shelf, a reading (and watching)
+ * community; Khyaati Prakashan, a publisher's book marketplace with Razorpay checkout.
+ */
+export const quietShelfShowcase: Showcase[] = [
+  {
+    key: 'quiet-shelf',
+    name: 'The Quiet Shelf',
+    file: 'web/src/pages/Community.tsx',
+    logo: quietshelfLogo,
+    shots: [quietshelf1, quietshelf2, quietshelf3, quietshelf4, quietshelf5],
+    accent: '#c9a27a',
+    site: { url: 'thequietshelf.art', title: 'The Quiet Shelf' },
+    code: [
+      'export function Community() {',
+      '  const { data } = useFeed(tab);',
+      '  return (',
+      '    <Layout aside={<TopRated />}>',
+      '      <Composer onPost={createPost} />',
+      '      <Tabs value={tab} onChange={setTab} />',
+      '      <PostGrid posts={data.posts} />',
+      '    </Layout>',
+      '  );',
+      '}',
+    ],
+    files: [
+      {
+        file: 'api/routers/posts.py',
+        run: 'uvicorn api.main:app --reload',
+        code: [
+          '@router.post("/posts/{pid}/comments")',
+          'async def comment(pid: int, body: In,',
+          '                  user=Depends(me)):',
+          '    post = await Post.get_or_404(pid)',
+          '    c = await post.reply(user, body.text,',
+          '                         parent=body.parent)',
+          '    await feed.bump(post)',
+          '    return CommentOut.of(c)',
+        ],
+      },
+      {
+        file: 'api/library.py',
+        run: 'pytest -q api',
+        code: [
+          'SHELVES = ("reading", "later", "done")',
+          '',
+          'async def shelve(user, item, shelf):',
+          '    assert shelf in SHELVES',
+          '    await Library.upsert(user, item,',
+          '                         shelf=shelf)',
+          '    await recs.refresh(user)',
+        ],
+      },
+    ],
+  },
+];
+
+export const khyaatiShowcase: Showcase[] = [
+  {
+    key: 'khyaati',
+    name: 'Khyaati Prakashan',
+    file: 'web/app/checkout/page.tsx',
+    logo: khyaatiLogo,
+    shots: [khyaati1, khyaati2, khyaati3],
+    accent: '#3b82f6',
+    site: { url: 'khyaatiprakashan.store', title: 'Khyaati Prakashan' },
+    code: [
+      'export default function Checkout() {',
+      '  const cart = useCart();',
+      '  const pay = useRazorpay();',
+      '  return (',
+      '    <OrderSummary items={cart.items}',
+      '      onPay={() => pay(cart)} />',
+      '  );',
+      '}',
+    ],
+    files: [
+      {
+        file: 'api/orders/razorpay.go',
+        run: 'go run ./cmd/api',
+        code: [
+          'func (s *Svc) Pay(c *gin.Context) {',
+          '  o, _ := s.orders.Get(c, id)',
+          '  rp, err := s.rzp.Order.Create(',
+          '    map[string]any{"amount": o.Paise,',
+          '      "currency": "INR"}, nil)',
+          '  if err != nil { fail(c, err) }',
+          '  c.JSON(200, rp)',
+          '}',
+        ],
+      },
+      {
+        file: 'api/orders/verify.go',
+        run: 'go test ./...',
+        code: [
+          'func Verify(p Pay, k []byte) bool {',
+          '  h := hmac.New(sha256.New, k)',
+          '  h.Write([]byte(p.Order+"|"+p.ID))',
+          '  s := hex.EncodeToString(h.Sum(nil))',
+          '  return hmac.Equal([]byte(s),',
+          '    []byte(p.Signature))',
+          '}',
+        ],
+      },
+    ],
+  },
+];
+
+export const allShowcase: Showcase[] = [
+  ...showcase,
+  ...beworldShowcase,
+  ...neuraShowcase,
+  ...quietShelfShowcase,
+  ...khyaatiShowcase,
+];

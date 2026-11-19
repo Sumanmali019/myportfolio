@@ -18,7 +18,7 @@ export const profile = {
   experience: [
     {
       company: 'Neura Dynamics',
-      role: 'SDE-2 / Technical Lead',
+      role: 'Technical Lead',
       period: 'May 2024 – Present',
       start: 2024,
       location: 'Remote',
@@ -31,8 +31,8 @@ export const profile = {
     },
     {
       company: 'BeWorld',
-      role: 'Associate Developer & Frontend Developer',
-      period: 'Sep – Dec 2023',
+      role: 'Frontend Engineer',
+      period: 'Sep 2023 – Nov 2023',
       start: 2023,
       location: 'Hyderabad',
       apps: ['BeWorld', 'Current Affairs Daily GK'],
@@ -46,8 +46,8 @@ export const profile = {
     },
     {
       company: 'Cloudcraftz',
-      role: 'Associate Software Engineer',
-      period: 'Feb 2022 – Oct 2023',
+      role: 'Associate Software Developer',
+      period: 'Jan 2022 – Oct 2023',
       start: 2022,
       location: 'Kolkata',
       apps: ['QOMIX'],
@@ -75,8 +75,7 @@ export const profile = {
     {
       key: 'flutter-pr',
       name: 'Flutter open-source contribution',
-      // TODO: replace with the merged PR URL.
-      url: 'https://github.com/your-username/flutter-samples-pr',
+      url: 'https://github.com/flutter/samples/pull/2293',
       summary:
         'Bug fix in a Flutter sample app — reviewed and merged into the official Flutter repository.',
       stack: ['Flutter', 'Dart'],
@@ -99,6 +98,7 @@ export const profile = {
     {
       key: 'qomix',
       name: 'QOMIX',
+      url: 'https://play.google.com/store/apps/details?id=com.optiquesutra.school&hl=en',
       company: 'Cloudcraftz',
       scene: '03-kolkata',
       downloads: 10_000,
@@ -108,6 +108,7 @@ export const profile = {
     {
       key: 'ten90',
       name: 'Tan90',
+      url: 'https://play.google.com/store/apps/details?id=com.ekodroid.tanninety',
       company: 'Cloudcraftz',
       scene: '03-kolkata',
       summary: 'OMR exam app: answer keys, bubble sheets, scanning and reports.',
@@ -116,6 +117,7 @@ export const profile = {
     {
       key: 'beworld',
       name: 'BeWorld',
+      url: 'https://play.google.com/store/apps/details?id=com.mybeworld.beWorldApp',
       company: 'BeWorld',
       scene: '05-hyderabad',
       downloads: 500_000,
@@ -125,6 +127,7 @@ export const profile = {
     {
       key: 'cadgk',
       name: 'Current Affairs Daily GK',
+      url: 'https://play.google.com/store/apps/details?id=com.current_affairs_app.jobsafal.com',
       company: 'BeWorld',
       scene: '05-hyderabad',
       downloads: 50_000,
@@ -136,12 +139,15 @@ export const profile = {
       name: 'DocPharma',
       company: 'Neura Dynamics',
       scene: '09-neura-apps',
+      // Check: the live site's address.
+      url: 'https://docpharma.in',
       summary:
         'India’s first healthcare quick-commerce supply chain: prescription medicines in under 30 minutes.',
     },
     {
       key: 'klass-online',
       name: 'Klass Online',
+      url: 'https://play.google.com/store/apps/details?id=com.klass.online',
       company: 'Neura Dynamics',
       scene: '09-neura-apps',
       downloads: 100,
@@ -152,6 +158,7 @@ export const profile = {
     {
       key: 'ayantra',
       name: 'Ayantra',
+      url: 'https://play.google.com/store/apps/details?id=com.ayantra.ai',
       company: 'Neura Dynamics',
       scene: '09-neura-apps',
       downloads: 50,
@@ -163,6 +170,7 @@ export const profile = {
       name: 'MeritHyre',
       company: 'Neura Dynamics',
       scene: '09-neura-apps',
+      url: 'https://merithyre.ai',
       summary:
         'AI-led interviews and a recruiting assistant, with Twilio SMS (A2P 10DLC) to reach candidates.',
     },
@@ -195,10 +203,9 @@ export const profile = {
   certifications: ['HackerRank Java (Basic)', 'HackerRank Problem Solving (Basic)'],
 
   contact: {
-    // TODO: replace the placeholders below.
-    email: 'hello@example.com',
+    email: 'sumanmali019@gmail.com',
     linkedin: 'https://www.linkedin.com/in/suman-mali-3408981ab/',
-    github: 'https://github.com/your-username',
+    github: 'https://github.com/Sumanmali019',
     resume: '/resume.pdf',
   },
 } satisfies ProfileInput;

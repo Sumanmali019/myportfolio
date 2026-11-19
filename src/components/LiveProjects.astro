@@ -1,0 +1,96 @@
+---
+/**
+ * "See it live" shelves (content/live.ts): one per chapter that shows projects. Once the
+ * chapter has shown them, a wooden shelf comes up at the bottom and each project flies onto it
+ * from where it is in the scene (its desk phone, the monitor…), scrubbed by scroll so it
+ * reverses (engine/shelf.ts). On the shelf each one is a real link to the live project — its
+ * store listing or site — opening in a new tab. Hidden shelves are inert.
+ * The journey then waits here and asks: open one, or say no and carry on (engine/index.ts).
+ * With no answer it carries on by itself after 15 s; a bar and a count show the time left.
+ */
+import type { Scene } from '../content/schema';
+import { liveTrays } from '../content/live';
+
+interface Props {
+  scenes: Scene[];
+}
+
+const { scenes } = Astro.props;
+const shelves = liveTrays
+  .map((t) => ({ ...t, index: scenes.findIndex((s) => s.id === t.scene) }))
+  .filter((t) => t.index >= 0);
+---
+
+<div class="live-layer">
+  {
+    shelves.map((t) => (
+      <nav
+        class="shelf"
+        aria-label={t.title}
+        data-live-scene={t.index}
+        data-live-from={t.from}
+        inert
+      >
+        <div class="shelf__ask" data-live-ask>
+          <p class="shelf__q">Want to visit any of these live? Tap one to open it.</p>
+        </div>
+        <div class="skip-ad">
+          <span class="skip-ad__sub" aria-hidden="true">
+            Continuing in <span data-live-count>15s</span>
+          </span>
+          <button
+            type="button"
+            class="skip-ad__btn"
+            data-live-continue
+            aria-label="No thanks, continue the journey"
+          >
+            <span aria-hidden="true">Skip links</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 18.5 15 12 5 5.5zM17 5.5h2.6v13H17z" />
+            </svg>
+            <span class="shelf__timer" aria-hidden="true">
+              <span class="shelf__timer-bar" />
+            </span>
+          </button>
+        </div>
+        <ul class="shelf__items">
+          {t.items.map((item) => (
+            <li>
+              <a
+                class="shelf__item"
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-live-key={item.key}
+                aria-label={`${item.name}: open ${item.cta.replace(' ↗', '')} (opens in a new tab)`}
+              >
+                <span class="shelf__tile">
+                  {item.logo ? (
+                    <img src={item.logo} alt="" width="56" height="56" />
+                  ) : (
+                    <span class="shelf__initial" aria-hidden="true">
+                      {item.name.charAt(0)}
+                    </span>
+                  )}
+                  <span class="shelf__open" aria-hidden="true">
+                    ↗
+                  </span>
+                </span>
+                <span class="shelf__name">{item.name}</span>
+                <span class="shelf__cta">{item.cta}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <span class="shelf__plank" aria-hidden="true">
+          {t.label !== false && (
+            <span class="shelf__label">
+              <span class="shelf__dot" />
+              {t.title}
+            </span>
+          )}
+        </span>
+      </nav>
+    ))
+  }
+</div>
