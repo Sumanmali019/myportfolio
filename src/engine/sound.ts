@@ -180,18 +180,6 @@ export const CUES: Record<string, Array<[number, SoundName]>> = {
     [0.76, 'swoosh'],
     [0.899, 'click'],
   ],
-  // The refund (frames over 0.04 → 0.78): the −$300 charge 46, the ticket 88, submitted 150,
-  // Twilio Support's reply 184, the credit 252, the banner 292.
-  '09-twilio-refund': [
-    [0.143, 'error'],
-    [0.238, 'paper'],
-    [0.377, 'click'],
-    [0.395, 'blip'],
-    [0.454, 'mail'],
-    [0.607, 'coin'],
-    [0.697, 'chord'],
-    [0.697, 'confetti'],
-  ],
   // ★ Open source. First GitHub's issue list (hold 0.02 → 0.2): it scrolls (0.034 → 0.096), the
   // pointer clicks the RenderFlex overflow issue (0.128) and it opens (0.135). Then the Lottie
   // (frames over 0.2 → 0.52 → 0.94): editor to PR 104, review rows 112 / 136 / 150, MERGED 152,
@@ -286,7 +274,6 @@ function bedFor(scene: string, hold: number): BedKind | null {
       return hold < 0.3 ? 'airport' : 'cabin';
     case '04-interview':
     case '08-interview':
-    case '09-twilio-refund':
     case '10-open-source':
     case '11-khyaati':
     case '11-quiet-shelf':

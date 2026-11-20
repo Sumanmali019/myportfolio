@@ -5,7 +5,7 @@
  * downloads badge (the odometer starts), then Tan90 builds in.
  *
  * While he learns (monitor: Dart, Flutter, Testing, Firebase, React) we see Suman from behind,
- * centred at the desk; then his view hands over to his own eyes: as the hold reaches 0.22–0.36 his
+ * centred at the desk; then his view hands over to his own eyes: as the lessons end (SWAP) his
  * back sinks out of the frame and his hands (the typing Lottie,
  * `src/assets/lottie/typing-top-view.json`) rise onto the keyboard and keep typing on the
  * shared idle clock — fingers tapping, keys flashing. Scroll-driven, so it reverses too.
@@ -15,14 +15,24 @@ import { easeInOut, easeOut, lerp, progress } from '../lib/math';
 import { bindLottie, type LottieAnimation } from '../lib/lottie';
 import { qs, setAttr, setScale } from '../lib/svg';
 import { appCard } from '../screens/app-card';
-import { appBuild } from '../screens/app-build';
+import { appBuild, appWindows, liveAt } from '../screens/app-build';
 import { learning, showcase } from '../content/showcase';
 import motionJson from '../assets/lottie/typing-top-view.motion.json';
 import { mountApps, mountScreen, screenCtx } from './shared';
 
 const TYPING = motionJson as unknown as LottieAnimation;
-/** Hand-over window, in hold progress. */
-const SWAP: [number, number] = [0.22, 0.36];
+/**
+ * The chapter in seconds at 1× (weight in content/scenes.ts = SECONDS × AUTO_SPEED): the
+ * lessons, then QOMIX and Tan90 one after the other, done before the "see them live" shelf
+ * (content/live.ts, from 0.86).
+ */
+const SECONDS = 38;
+const LEARN = 5 / SECONDS;
+const BUILD = { learnEnd: LEARN, end: 0.855 };
+/** Hand-over window, in hold progress: at the end of the lessons. */
+const SWAP: [number, number] = [LEARN * 0.6, LEARN];
+/** Tan90's card builds in on the desk as Tan90 is introduced. */
+const TAN90 = appWindows(showcase, BUILD.learnEnd, BUILD.end)[1]!;
 
 let screens: Screen[] = [];
 let late: SVGGraphicsElement | null = null;
@@ -46,8 +56,10 @@ const scene: SceneModule = {
   id: '03-kolkata',
   prepare(svg, { data }) {
     screens = [
-      mountScreen(svg, 'app-build', (rect) => appBuild(rect, showcase, learning)),
-      ...mountApps(svg, data, appCard, { qomix: [0.2, 0.35] }),
+      mountScreen(svg, 'app-build', (rect) => appBuild(rect, showcase, learning, BUILD)),
+      ...mountApps(svg, data, appCard, {
+        qomix: liveAt(showcase, 'qomix', BUILD.learnEnd, BUILD.end),
+      }),
     ].filter((s): s is Screen => !!s);
     late = qs(svg, '[data-late-card]');
     back = innerWrap(svg.querySelector('[data-id="me"]'));
@@ -57,7 +69,7 @@ const scene: SceneModule = {
   update(state) {
     const ctx = screenCtx(state);
     for (const s of screens) s.update(ctx);
-    if (late) setScale(late, easeOut(progress(state.hold, 0.42, 0.52), 1.6));
+    if (late) setScale(late, easeOut(progress(state.hold, TAN90.a, TAN90.code), 1.6));
 
     // Back view → his hands on the keyboard.
     const k = easeInOut(progress(state.hold, ...SWAP));

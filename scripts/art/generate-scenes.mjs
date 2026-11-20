@@ -56,7 +56,7 @@ const windowBox = (L) => (L.m ? [18, 26, 196, 146] : [44, 40, 390, 652]);
 
 /**
  * Around the window, Kolkata touches (K.windowNook): curtains, a marigold garland over the
- * top, a tulsi pot and a chai cup with books on the sill. A part of its own, so it glides
+ * top, a tulsi pot and books on the sill. A part of its own, so it glides
  * from room to room with the window.
  */
 const windowNook = (L) => {
@@ -154,10 +154,9 @@ function deskRoom(
     parts.push(
       part('plant', 3, L.m ? at(352, 700, 0.55, K.plant()) : at(130, 720, 1.1, K.plant())),
     );
-  // Things that follow the journey: a desk clock whose hands turn as it plays or scrolls, a
-  // succulent that sways, and a wall bookshelf that drifts (engine/loop.ts applyScrolled).
+  // Things that follow the journey: a succulent that sways and a wall bookshelf that drifts
+  // (engine/loop.ts applyScrolled).
   parts.push(
-    part('desk-clock', 3, L.m ? at(44, 478, 0.55, K.deskClock()) : at(410, 600, 1, K.deskClock())),
     // On the wall, top right: a calendar showing the year of the scene on screen.
     wallCalendarAt(L),
   );
@@ -442,8 +441,8 @@ const onLottieMonitor = (item) => {
   return x0 >= 555 && x1 <= 1085 && y0 >= 245 && y1 <= 610;
 };
 /**
- * The file's own food (a biryani pot by day, a mug at night) goes: the desk's dish follows the
- * clock instead, as on every table (kit deskMeal).
+ * The file's own food (a biryani pot by day, a mug at night) goes: no food or drink on the
+ * desks.
  */
 const BIRYANI = [405, 495, 535, 610];
 const NIGHT_MUG = [975, 505, 1040, 605];
@@ -521,6 +520,8 @@ const OSS = (() => {
       'utf8',
     ),
   );
+  // No food or drink on the desks: the file's mug goes.
+  anim.layers = anim.layers.filter((l) => l.nm !== 'mug');
   const still = (shapes, nm) => ({
     ddd: 0,
     ind: 900 + anim.layers.length,
@@ -570,14 +571,11 @@ const OSS = (() => {
     still(
       // Suman from behind (scenes/10-open-source.ts swaps him for his typing hands while the
       // code is written).
-      // The desk clock, on the left of the desk (zooms with the room; fades as the camera
-      // zooms into the contributors page, with Suman).
-      g(at(600, 597, 1, K.deskClock()), { 'data-oss-clock': true }) +
-        // Over the editor, under his head: GitHub's issue list, which he browses before the fix
-        // (scenes/10-open-source.ts, screens/github-issues.ts).
-        g(rect(572, 262, 496, 276, 'none', { 'data-screen': 'gh-issues' }), {
-          'data-issues': true,
-        }) +
+      // Over the editor, under his head: GitHub's issue list, which he browses before the fix
+      // (scenes/10-open-source.ts, screens/github-issues.ts).
+      g(rect(572, 262, 496, 276, 'none', { 'data-screen': 'gh-issues' }), {
+        'data-issues': true,
+      }) +
         g(K.avatarBust('back', 820, 900, 0.9), { 'data-oss-me': true }) +
         rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor', 'data-link': 'flutter-pr' }),
       'me',
@@ -585,91 +583,6 @@ const OSS = (() => {
   );
   // A tall window, as in the other rooms.
   tallWindowLayer(anim, 'kolkata', 'oss');
-  return anim;
-})();
-
-/**
- * MeritHyre's Twilio refund (`src/assets/lottie/twilio-a2p-refund.json`, 1440×900, same room
- * as the Flutter one): Twilio billing shows an unexpected −$300 A2P 10DLC charge, a support
- * ticket is filed, Twilio replies and approves, the camera zooms into the +$300.00 credit, then
- * a banner and confetti. Chapter 09c. As in chapter 10: its calendar goes, and Suman from
- * behind is patched in under the monitor (its screen is the beat anchor).
- */
-const REFUND = (() => {
-  const anim = JSON.parse(
-    readFileSync(
-      new URL('../../src/assets/lottie/twilio-a2p-refund.json', import.meta.url),
-      'utf8',
-    ),
-  );
-  const cal = anim.layers.find((l) => l.nm === 'calendar');
-  const screen = anim.layers.findIndex((l) => l.nm.startsWith('screen:'));
-  if (!cal || screen < 0 || anim.layers[0].nm !== 'camera')
-    throw new Error('refund Lottie: calendar / screens / camera not where expected');
-  cal.shapes = [];
-  const me = structuredClone(OSS.layers.find((l) => l.nm === 'me'));
-  me.ind = 900 + anim.layers.length;
-  me.ip = anim.ip;
-  me.op = anim.op;
-  me.shapes = [
-    {
-      ty: 'gr',
-      it: [
-        {
-          ty: 'raw',
-          svg:
-            // The desk clock and Suman fade as the camera zooms into the credit.
-            g(at(600, 597, 1, K.deskClock()) + K.avatarBust('back', 820, 900, 0.9), {
-              'data-zoom-fade': true,
-            }) + rect(572, 262, 496, 276, 'none', { 'data-anchor': 'monitor' }),
-        },
-      ],
-    },
-  ];
-  anim.layers.splice(screen, 0, me);
-  // Twilio's own mark (ring and four dots) for the red dots: the console header on every
-  // screen, and Twilio Support's avatar on its reply.
-  const isRed = (it) => {
-    const c = it.find((x) => x.ty === 'fl')?.c?.k;
-    return Array.isArray(c) && typeof c[0] === 'number' && c[0] > 0.85 && c[1] < 0.35;
-  };
-  const bounds = (it) => {
-    const xs = [];
-    const ys = [];
-    JSON.stringify(it, (k, v) => {
-      if (k === 'v' && Array.isArray(v))
-        for (const p of v) {
-          if (!Array.isArray(p)) continue;
-          xs.push(p[0]);
-          ys.push(p[1]);
-        }
-      return v;
-    });
-    return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  };
-  let marks = 0;
-  const swap = (items) => {
-    for (const x of items) {
-      if (x.ty !== 'gr') continue;
-      if (isRed(x.it)) {
-        const [x0, x1, y0, y1] = bounds(x.it);
-        if (x1 - x0 < 20 && y1 - y0 < 20) {
-          const r = Math.max(x1 - x0, y1 - y0) / 2 + 0.5;
-          x.it = [
-            { ty: 'raw', svg: K.twilioMark((x0 + x1) / 2, (y0 + y1) / 2, r) },
-            ...x.it.filter((i) => i.ty === 'tr'),
-          ];
-          marks++;
-          continue;
-        }
-      }
-      swap(x.it);
-    }
-  };
-  for (const l of anim.layers) if (l.nm.startsWith('screen:')) swap(l.shapes);
-  if (marks !== 5) throw new Error(`refund Lottie: expected 5 Twilio dots, found ${marks}`);
-  // A tall window, as in the other rooms.
-  tallWindowLayer(anim, 'kolkata', 'rfd');
   return anim;
 })();
 
@@ -774,7 +687,6 @@ function buildDesk(L, pfx, link, room = {}) {
       g(monitorAt(L, { 'data-screen': 'app-build' }, mon), { 'data-anchor': 'monitor' }) +
         rect(mon[0], mon[1], mon[2], mon[3], 'none', { 'data-link': link }),
     ),
-    part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
     me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
     part(
       'typing',
@@ -1059,7 +971,6 @@ const SCENES = {
           { 'data-late-card': true },
         ),
       ),
-      part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
       // Suman, alone at his desk, seen from behind: centred where his typing hands come in
       // (scene module), and drawn after the monitor so his head is in front of its stand.
       me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
@@ -1105,7 +1016,6 @@ const SCENES = {
           { 'data-anchor': 'monitor' },
         ),
       ),
-      part('meal', 6, m ? at(330, 478, 0.75, K.deskMeal()) : at(545, 600, 1.35, K.deskMeal())),
     ];
   },
 
@@ -1248,12 +1158,7 @@ const SCENES = {
         6,
         inRoom(rect(630, 430, 270, 22, 'none', { 'data-screen': 'scaler' }), { 'data-day': '3' }),
       ),
-      // The biryani pot on the desk (in the Lottie) — where its speech bubble points.
-      // The dish of the hour, where the biryani pot was: chai, lunch, snacks, dinner.
-      part('meal', 6, m ? at(38, 453, 0.7, K.deskMeal()) : at(470, 597, 1.35, K.deskMeal())),
-      // As in every room: the desk clock on the left of the desk (just right of the biryani,
-      // clear of the night lamp) and the year calendar on the wall, top right.
-      part('desk-clock', 5, m ? at(100, 453, 0.55, K.deskClock()) : at(600, 597, 1, K.deskClock())),
+      // As in every room: the year calendar on the wall, top right (the time is on the monitor).
       wallCalendarAt(L),
       g('', {
         'data-confetti': true,
@@ -1294,7 +1199,6 @@ const SCENES = {
           { 'data-anchor': 'monitor' },
         ),
       ),
-      part('meal', 6, m ? at(330, 478, 0.75, K.deskMeal()) : at(545, 600, 1.35, K.deskMeal())),
     ];
   },
 
@@ -1347,7 +1251,6 @@ const SCENES = {
         ),
       ),
       // Clear of the screen, so its steam never drifts over it.
-      part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
       // Where the thought bubble points (no avatar here: he's on the call, then typing).
       part(
         'head-spot',
@@ -1401,7 +1304,6 @@ const SCENES = {
           ? phoneAt(292, 496, 76, 136, { 'data-screen': 'app-ayantra' })
           : phoneAt(1300, 432, 88, 160, { 'data-screen': 'app-ayantra' }),
       ),
-      part('meal', 6, m ? '' : at(545, 600, 1.35, K.deskMeal())),
       me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
       part(
         'role-spot',
@@ -1418,57 +1320,6 @@ const SCENES = {
           { 'data-typing': true, opacity: 0, transform: 'translate(0 160)' },
         ),
       ),
-    ];
-  },
-
-  /* 09c — the Twilio A2P 10DLC refund: the refund Lottie is the room (as chapter 10). */
-  '09-twilio-refund'(L, pfx) {
-    const m = L.m;
-    const box = lottieBox(REFUND, 'refund', pfx, 0, 0, 1440, 900, 'xMidYMid meet');
-    if (!m) return [part('room', 1, box), wallCalendarAt(L)];
-    // Mobile pans with the camera, as chapter 10: first the desk from the clock to the reply
-    // toasts (x ≈ 548–1180) across the width with a margin, Suman on the bottom edge; then the
-    // zoomed credit (x ≈ 112–1328, y ≈ 50–868 with the banner) fit to the width.
-    const r3 = (v) => Math.round(v * 1000) / 1000;
-    const s0 = (L.W - 24) / 632;
-    const s1 = (L.W - 32) / 1300;
-    const from = [r3(L.W / 2 - 864 * s0), r3(L.H - 900 * s0), r3(s0)];
-    // Above it, as in the other rooms on a phone: a window (top left; its sunset and night
-    // versions follow the clock), faded out as the camera zooms into the credit.
-    const [wx, wy, ww, wh] = [18, 40, 210, 300];
-    const sky = (id, stops) =>
-      `<defs><linearGradient id="${pfx}-${id}-sky" x1="0" y1="0" x2="0" y2="1">` +
-      stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') +
-      '</linearGradient></defs>';
-    const win = (id, stops, opts, cls) =>
-      g(
-        sky(id, stops) +
-          at(wx, wy, 1, K.windowObj(`${pfx}-${id}`, ww, wh, { ...opts, city: 'kolkata' })),
-        cls ? { class: cls } : {},
-      );
-    const windowPart = part(
-      'office-window',
-      1,
-      g(
-        win('day', [
-          [0, '#8ec5ea'],
-          [1, '#e3f0f4'],
-        ]) +
-          win('dusk', DUSK_SKY, { sun: 'sunset' }, 'dl dl-evening') +
-          win('night', NIGHT_SKY, { view: 'night' }, 'dl dl-night'),
-        { 'data-pan-hide': true },
-      ),
-    );
-    const to = [r3(L.W / 2 - 720 * s1), r3(L.H * 0.5 - 460 * s1), r3(s1)];
-    return [
-      part('wall', 0, rect(0, 0, L.W, L.H, '#eadfcd')),
-      windowPart,
-      part(
-        'room',
-        1,
-        at(from[0], from[1], from[2], box, { 'data-pan': [...from, ...to].join(' ') }),
-      ),
-      wallCalendarAt(L),
     ];
   },
 
@@ -1723,7 +1574,6 @@ function render(id, layoutName) {
     '08-interview': 'in',
     '09-leading': 'ld',
     '09-neura-apps': 'na',
-    '09-twilio-refund': 'tr',
     '11-quiet-shelf': 'qs',
     '11-khyaati': 'kp',
   };
@@ -1754,7 +1604,6 @@ writeMotion(FLIGHT_MAP, 'india-flight-ccu-hyd');
 writeMotion(FLIGHT_HOME, 'india-flight-hyd-ccu');
 writeMotion(DAY_NIGHT, 'day-night-hyd');
 writeMotion(OSS, 'flutter-oss-contributor');
-writeMotion(REFUND, 'twilio-a2p-refund');
 const only = process.argv.slice(2);
 for (const id of Object.keys(SCENES)) {
   if (only.length && !only.some((p) => id.startsWith(p))) continue;

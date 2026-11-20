@@ -118,6 +118,17 @@ export function planTransition(
   const byId = (list: Obj[], id: string, used: Set<Obj>) =>
     list.find((o) => !used.has(o) && (o.id === id || o.key === id));
 
+  // Pinned: the same part in both, kept in place as it is.
+  for (const id of spec.pin ?? []) {
+    const a = byId(A, id, usedA);
+    const b = byId(B, id, usedB);
+    if (a && b) {
+      usedA.add(a);
+      usedB.add(b);
+      t.keeps.push([a, b]);
+    }
+  }
+
   const pairs: Array<[Obj, Obj]> = [];
   for (const [ai, bi] of spec.move ?? []) {
     const a = byId(A, ai, usedA);

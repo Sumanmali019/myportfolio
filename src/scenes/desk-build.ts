@@ -11,11 +11,11 @@ import { qs, setAttr } from '../lib/svg';
 import type { Showcase } from '../content/showcase';
 import { appBuild, type AppBuildOptions } from '../screens/app-build';
 import motionJson from '../assets/lottie/typing-top-view.motion.json';
-import { screenCtx } from './shared';
+import { screenCtx, smoothDaylight } from './shared';
 
 const TYPING = motionJson as unknown as LottieAnimation;
-/** Back view → hands on the keyboard (hold progress). */
-const SWAP: [number, number] = [0.03, 0.12];
+/** Back view → hands on the keyboard (hold progress), while the first project is introduced. */
+const SWAP: [number, number] = [0.005, 0.03];
 
 /** Wrap a part's children so the scene can move them without touching the part itself. */
 function innerWrap(part: Element | null): SVGGElement | null {
@@ -36,7 +36,23 @@ export function deskBuildScene(opts: {
   extra?: (monitor: SVGGraphicsElement) => Screen | null;
   /** More screens in the room (e.g. the desk phones). */
   more?: (svg: SVGSVGElement, data: EngineData) => Array<Screen | null>;
+  /**
+   * The chapter's own day: [hold, minutes] stops for the desk clock. The window and the room's
+   * light then go smoothly from morning to night with it (smoothDaylight).
+   */
+  day?: Array<[number, number]>;
 }): SceneModule {
+  const day = opts.day;
+  const minutesAt = (hold: number) => {
+    if (!day) return 0;
+    for (let i = 1; i < day.length; i++) {
+      const [h0, m0] = day[i - 1]!;
+      const [h1, m1] = day[i]!;
+      if (hold <= h1) return lerp(m0, m1, progress(hold, h0, h1));
+    }
+    return day[day.length - 1]![1];
+  };
+  let daylight: ((minutes: number) => void) | null = null;
   let screens: Screen[] = [];
   let back: SVGGElement | null = null;
   let hands: SVGGraphicsElement | null = null;
@@ -50,11 +66,14 @@ export function deskBuildScene(opts: {
         monitor && opts.extra ? opts.extra(monitor) : null,
         ...(opts.more?.(svg, data) ?? []),
       ].filter((s): s is Screen => !!s);
+      daylight = day ? smoothDaylight(svg) : null;
       back = innerWrap(svg.querySelector('[data-id="me"]'));
       hands = qs(svg, '[data-typing]');
       typing = hands ? bindLottie(hands, TYPING) : null;
     },
+    ...(day ? { clock: minutesAt } : {}),
     update(state) {
+      daylight?.(minutesAt(state.hold));
       const ctx = screenCtx(state);
       for (const s of screens) s.update(ctx);
       const k = easeInOut(progress(state.hold, ...SWAP));

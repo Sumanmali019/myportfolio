@@ -22,6 +22,8 @@ export interface TimelineSceneInput {
   id: string;
   weight: number;
   beats: number;
+  /** Screens of scroll for the transition into this scene (default TRANSITION). */
+  enter?: number;
 }
 
 export interface Segment {
@@ -64,7 +66,7 @@ export function buildTimeline(scenes: TimelineSceneInput[]): Timeline {
   let u = 0;
   scenes.forEach((s, index) => {
     const enterStart = u;
-    const enterEnd = index === 0 ? u : u + TRANSITION;
+    const enterEnd = index === 0 ? u : u + (s.enter ?? TRANSITION);
     const holdStart = enterEnd;
     const hold = holdLength(s.weight, s.beats);
     const holdEnd = holdStart + hold;

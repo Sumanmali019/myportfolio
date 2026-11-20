@@ -60,7 +60,12 @@ const data: EngineData = {
 const json = JSON.stringify(data).replace(/</g, '\\u003c');
 
 const timeline = buildTimeline(
-  scenes.map((s) => ({ id: s.id, weight: s.weight, beats: beats[s.id]?.length ?? 0 })),
+  scenes.map((s) => ({
+    id: s.id,
+    weight: s.weight,
+    enter: s.enter,
+    beats: beats[s.id]?.length ?? 0,
+  })),
 );
 const title = `${profile.name} — The journey so far`;
 const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;

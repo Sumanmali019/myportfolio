@@ -66,8 +66,8 @@ export function player(deps: PlayerDeps): Player | null {
   const duration = total / AUTO_SPEED;
   totalEl.textContent = fmt(duration);
 
-  // Chapters: consecutive scenes with the same title are one chapter (e.g. the Neura Dynamics
-  // work and its Twilio refund). Each is as wide as its share of the timeline.
+  // Chapters: consecutive scenes with the same title are one chapter. Each is as wide as its
+  // share of the timeline.
   const groups: Array<{ title: string; first: number; last: number }> = [];
   titles.forEach((title, i) => {
     const g = groups[groups.length - 1];

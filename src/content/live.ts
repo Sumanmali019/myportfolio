@@ -77,8 +77,8 @@ export const liveTrays: LiveTray[] = [
     items: appsOf('05-hyderabad'),
   },
   {
-    // After the Twilio work (MeritHyre's onboarding and refund): one shelf for all of Neura's.
-    scene: '09-twilio-refund',
+    // After the Twilio onboarding: one shelf for all of Neura's.
+    scene: '09-neura-apps',
     title: 'Neura Dynamics · see them live',
     label: false,
     from: 0.86,
@@ -87,13 +87,13 @@ export const liveTrays: LiveTray[] = [
   {
     scene: '11-quiet-shelf',
     title: 'The Quiet Shelf · explore it live',
-    from: 0.8,
+    from: 0.86,
     items: projectsOf(['quiet-shelf']),
   },
   {
     scene: '11-khyaati',
     title: 'Khyaati Prakashan · explore it live',
-    from: 0.88,
+    from: 0.86,
     items: projectsOf(['khyaati']),
   },
 ].filter((t) => t.items.length > 0);

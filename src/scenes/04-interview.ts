@@ -22,7 +22,7 @@ const scene: SceneModule = {
     play = el ? bindLottie(el, INTERVIEW) : null;
   },
   update({ hold }) {
-    play?.(progress(hold, 0.04, 0.94) * (INTERVIEW.op - 1));
+    play?.(progress(hold, 0, 0.94) * (INTERVIEW.op - 1));
   },
 };
 

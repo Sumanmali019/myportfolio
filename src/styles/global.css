@@ -193,26 +193,6 @@ button {
   opacity: 1;
 }
 
-/* What's on the desk follows the clock too (scripts/art/kit.mjs deskMeal): the dish for this
-   part of the day springs up onto the desk with a little wobble; the last one sinks away. */
-.stage .meal {
-  opacity: 0;
-  transform: translateY(18px) scale(0.3) rotate(-10deg);
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  transition:
-    opacity 0.3s ease,
-    transform 0.65s cubic-bezier(0.3, 1.7, 0.45, 1);
-}
-.stage svg[data-daypart='morning'] .meal-morning,
-.stage svg[data-daypart='afternoon'] .meal-afternoon,
-.stage svg[data-daypart='evening'] .meal-evening,
-.stage svg[data-daypart='night'] .meal-night {
-  opacity: 1;
-  transform: none;
-  transition-delay: 0.25s;
-}
-
 /* The desk calendar's year flips in when it changes (engine/loop.ts applyYear). */
 .stage [data-desk-year].is-flip {
   transform-box: fill-box;

@@ -161,3 +161,36 @@ export function mountApps(
   }
   return out;
 }
+
+/**
+ * A desk room's daylight, blended by the clock instead of switched by the part of the day
+ * (styles/global.css .dl, scripts/art/generate-scenes.mjs deskRoom): over the day window,
+ * the dusk window warms in late afternoon and the night window follows; the room's tints
+ * cross-fade morning → afternoon → evening → night. Returns `(minutes) => void`.
+ */
+export function smoothDaylight(svg: SVGSVGElement): (minutes: number) => void {
+  const ramp = (m: number, a: number, b: number) => easeInOut(progress(m, a, b));
+  const parts: Array<[string, (m: number) => number]> = [
+    // Windows: a first warmth through the afternoon, the sunset, then night.
+    ['[data-id="dusk-window"]', (m) => 0.25 * ramp(m, 870, 990) + 0.75 * ramp(m, 990, 1080)],
+    ['[data-id="night-window"]', (m) => ramp(m, 1110, 1190)],
+    // Room tints.
+    ['[data-id="morning-light"]', (m) => 1 - ramp(m, 690, 780)],
+    ['[data-id="afternoon-light"]', (m) => ramp(m, 690, 780) * (1 - ramp(m, 1020, 1080))],
+    ['[data-id="evening-light"]', (m) => ramp(m, 1000, 1080) * (1 - ramp(m, 1140, 1200))],
+    ['[data-id="night-light"]', (m) => ramp(m, 1110, 1190)],
+    ['.dl-lamp', (m) => ramp(m, 1080, 1140)],
+  ];
+  const els = parts.flatMap(([sel, f]) =>
+    qsa<SVGGraphicsElement>(svg, sel).map((el) => {
+      el.style.transition = 'none';
+      return { el, f };
+    }),
+  );
+  return (minutes) => {
+    for (const { el, f } of els) {
+      const v = f(minutes).toFixed(3);
+      if (el.style.opacity !== v) el.style.opacity = v;
+    }
+  };
+}

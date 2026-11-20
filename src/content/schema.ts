@@ -134,7 +134,10 @@ export const SceneSchema = z.object({
     'navy',
   ]),
   /** Length of the scene's hold, in screen-heights of scroll. */
-  weight: z.number().min(0.6).max(8),
+  // Up to ~50 s at 1× (the project chapters run 30–40 s).
+  weight: z.number().min(0.6).max(20),
+  /** Screens of scroll for the transition into it (default 2: engine/timeline.ts TRANSITION). */
+  enter: z.number().min(0.5).max(2).optional(),
   /** Plain-language description of the scene for screen readers (SceneText). */
   description: nonEmpty,
   /** Keys into the link registry (see buildLinks) shown over this scene. */

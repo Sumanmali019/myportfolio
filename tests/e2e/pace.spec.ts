@@ -27,8 +27,10 @@ test.describe('pace', () => {
     await page.waitForFunction(() => document.documentElement.dataset.scene !== '00-intro', null, {
       timeout: 15_000,
     });
-    // A wheel (or, on a phone, a touch) of your own.
-    if (test.info().project.name === 'mobile') await page.touchscreen.tap(200, 300);
+    // A wheel (or, on a phone, a drag) of your own. A plain tap does not take over: it may be
+    // on a button (Skip links, the player).
+    if (test.info().project.name === 'mobile')
+      await page.evaluate(() => window.dispatchEvent(new Event('touchmove')));
     else {
       await page.mouse.move(400, 400);
       await page.mouse.wheel(0, 200);

@@ -376,10 +376,26 @@ export function renderLottie(
   return `${ctx.defs.length ? `<defs>${ctx.defs.join('')}</defs>` : ''}${body}`;
 }
 
-/** Animate markup produced by renderLottie. Returns a function taking a frame number. */
-export function bindLottie(root: ParentNode, anim: LottieAnimation): (frame: number) => void {
+/**
+ * Animate markup produced by renderLottie. Returns a function taking a frame number.
+ * `only` limits it to some layers (by `ind`), so a scene can run parts of one animation on
+ * different timelines (e.g. the sky by the clock, the props by the story).
+ */
+export function bindLottie(
+  root: ParentNode,
+  anim: LottieAnimation,
+  only?: (ind: number) => boolean,
+): (frame: number) => void {
   // Null layers (ty 3) only move their children; shape (4) and image (2) layers also fade.
-  const layers = anim.layers.filter((l) => l.ty === 4 || l.ty === 3 || l.ty === 2);
+  const layers = anim.layers.filter(
+    (l) => (l.ty === 4 || l.ty === 3 || l.ty === 2) && (!only || only(l.ind)),
+  );
+  /** Whether an element inside a layer belongs to one this binding drives. */
+  const mine = (el: Element) => {
+    if (!only) return true;
+    const ind = el.closest('[data-ltr]')?.getAttribute('data-ltr');
+    return ind == null || only(Number(ind));
+  };
   const animated = (p?: Prop) => !!p && isKeyframes(p.k);
   const moving = layers.filter(
     (l) => animated(l.ks.p) || animated(l.ks.r) || animated(l.ks.s) || animated(l.ks.a),
@@ -392,10 +408,12 @@ export function bindLottie(root: ParentNode, anim: LottieAnimation): (frame: num
     fading.map((l) => [l, Array.from(root.querySelectorAll(`[data-lop="${l.ind}"]`))]),
   );
   function all<T>(attr: string): Array<{ el: SVGElement; v: T }> {
-    return Array.from(root.querySelectorAll<SVGElement>(`[${attr}]`)).map((el) => ({
-      el,
-      v: JSON.parse(el.getAttribute(attr) ?? 'null') as T,
-    }));
+    return Array.from(root.querySelectorAll<SVGElement>(`[${attr}]`))
+      .filter(mine)
+      .map((el) => ({
+        el,
+        v: JSON.parse(el.getAttribute(attr) ?? 'null') as T,
+      }));
   }
   const groupFades = all<Keyframe[]>('data-lgo').map(({ el, v }) => ({
     el,
@@ -415,10 +433,12 @@ export function bindLottie(root: ParentNode, anim: LottieAnimation): (frame: num
       prop: { a: 1, k: v } as Prop,
     })),
   ];
-  const inOut = Array.from(root.querySelectorAll<SVGElement>('[data-lio]')).map((el) => {
-    const [a = 0, b = 0] = (el.getAttribute('data-lio') ?? '').split(' ').map(Number);
-    return { el, a, b };
-  });
+  const inOut = Array.from(root.querySelectorAll<SVGElement>('[data-lio]'))
+    .filter(mine)
+    .map((el) => {
+      const [a = 0, b = 0] = (el.getAttribute('data-lio') ?? '').split(' ').map(Number);
+      return { el, a, b };
+    });
   const set = (el: Element, name: string, v: string) => {
     if (el.getAttribute(name) !== v) el.setAttribute(name, v);
   };

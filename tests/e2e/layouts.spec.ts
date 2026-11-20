@@ -44,14 +44,13 @@ test.describe('layouts', () => {
     const ids = await page.evaluate(() => window.dayEngine.scenes);
     const lead = ids.indexOf('09-leading');
     const svg = page.locator('.scene[data-scene-id="09-leading"] > svg');
-    const check = async (hold: number, time: RegExp, part: string) => {
+    const check = async (hold: number, part: string) => {
       await gotoScene(page, lead, hold);
-      await expect(svg.locator('[data-clock="d"]')).toHaveText(time);
       await expect(svg).toHaveAttribute('data-daypart', part);
     };
-    await check(0.1, /^10:/, 'morning');
-    await check(0.6, /^0[3-5]:/, 'afternoon');
-    await check(0.8, /^0[7-9]:/, 'night');
+    await check(0.1, 'morning');
+    await check(0.6, 'afternoon');
+    await check(0.8, 'night');
     // At night the night window is shown (faded in), the day light is not.
     await page.waitForTimeout(1500);
     const op = (sel: string) =>

@@ -11,12 +11,19 @@ import { deskBuildScene } from './desk-build';
 import cart from '../assets/apps/khyaati-3.webp?url';
 import logo from '../assets/apps/khyaati-logo.webp?url';
 
+/** The chapter in seconds at 1× (weight in content/scenes.ts = SECONDS × AUTO_SPEED). */
+const SECONDS = 36;
+/** The build, then 6 s of checkout. */
+const END = 0.855 - 6.4 / SECONDS;
+/** Then the checkout, done before the "explore it live" shelf (content/live.ts, from 0.86). */
+const CHECKOUT: [number, number] = [END + 0.4 / SECONDS, 0.855];
+
 export default deskBuildScene({
   id: '11-khyaati',
   apps: khyaatiShowcase,
-  build: { start: 0, buildEnd: 0.36, end: 0.62, stop: 0.64 },
+  build: { start: 0, end: END, stop: CHECKOUT[0] },
   extra: (monitor) =>
-    razorpayCheckout(monitor, [0.64, 0.88], {
+    razorpayCheckout(monitor, CHECKOUT, {
       page: cart,
       merchant: 'Khyaati Prakashan',
       amount: '₹424',

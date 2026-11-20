@@ -79,8 +79,8 @@ test.describe('sound', () => {
     await openJourney(page);
     const ids = await page.evaluate(() => window.dayEngine.scenes);
     const card = page.locator('#click-card');
-    // The refund ticket's Submit (Suman from behind): the close-up.
-    await gotoScene(page, ids.indexOf('09-twilio-refund'), 0.38);
+    // Leaving the interview call (his hands on the mouse, not the keyboard): the close-up.
+    await gotoScene(page, ids.indexOf('04-interview'), 0.483);
     await expect(card).toBeVisible();
     expect(Number(await card.evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0.9);
     // Twilio onboarding's Test connection, typing hands on screen: no close-up.

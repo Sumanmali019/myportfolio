@@ -131,7 +131,12 @@ function boot(): void {
   root.classList.toggle('reduced-motion', reduced);
 
   const tl = buildTimeline(
-    scenes.map((s) => ({ id: s.id, weight: s.weight, beats: data.beats[s.id]?.length ?? 0 })),
+    scenes.map((s) => ({
+      id: s.id,
+      weight: s.weight,
+      enter: s.enter,
+      beats: data.beats[s.id]?.length ?? 0,
+    })),
   );
   const months = scenes.map((s) => monthIndex(s.date));
   const added = data.downloads;
@@ -507,6 +512,9 @@ function boot(): void {
   // Any input of your own while it plays hands the journey back to you.
   const takeOver = (e: Event) => {
     if (travel.mode() !== 'auto') return;
+    // Tapping a control (Skip links, a shelf link, the player) is an answer, not a take-over.
+    const t = e.target;
+    if (t instanceof Element && t.closest('button, a, [role="slider"], .player, dialog')) return;
     if (
       e instanceof KeyboardEvent &&
       !['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End'].includes(e.key)
@@ -515,7 +523,8 @@ function boot(): void {
     travel.setMode('manual');
   };
   window.addEventListener('wheel', takeOver, { passive: true });
-  window.addEventListener('touchstart', takeOver, { passive: true });
+  // A drag, not a tap: a plain tap anywhere shouldn't pause it.
+  window.addEventListener('touchmove', takeOver, { passive: true });
   window.addEventListener('keydown', takeOver);
 
   loop = startLoop(({ now, dt, idle }) => {

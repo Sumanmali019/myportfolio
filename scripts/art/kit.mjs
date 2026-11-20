@@ -1566,22 +1566,19 @@ export function tulsiPot(s = 1) {
   );
 }
 
-/** A clay chai cup (bhar) and two books, base at (0, 0). */
+/** Two books, base at (0, 0). */
 export function sillStill(s = 1) {
   return at(
     0,
     0,
     s,
-    rect(-30, -10, 40, 10, C.teal, { rx: 2 }) +
-      rect(-26, -18, 34, 8, C.mustard, { rx: 2 }) +
-      path('M18 -16 L34 -16 L31 0 L21 0 Z', '#b0603f') +
-      ellipse(26, -16, 8, 2.5, '#7a3e28'),
+    rect(-30, -10, 40, 10, C.teal, { rx: 2 }) + rect(-26, -18, 34, 8, C.mustard, { rx: 2 }),
   );
 }
 
 /**
  * Around a window of (w × h) at its own origin: curtains at both sides, a marigold garland
- * over the top, and on the sill a tulsi pot and a chai cup with books. `k` scales the trims.
+ * over the top, and on the sill a tulsi pot and books. `k` scales the trims.
  */
 export function windowNook(w, h, { k = 1, curtainColor = C.terra } = {}) {
   const cw = 46 * k;
@@ -1687,99 +1684,4 @@ export function wallBookshelf(w = 220, seed = 3) {
       books(16, 168, Math.floor(w / 26), 58, seed + 5),
     { 'data-parallax': 26 },
   );
-}
-
-/* ------------------------------------------------------------------ food through the day */
-
-const steam = (x, y, s = 1) =>
-  [0, 1]
-    .map((i) =>
-      g(
-        path(`M${n(x + (i ? 7 : -5) * s)} ${n(y)} q-5 -8 0 -16 q5 -8 0 -16`, 'none', {
-          stroke: '#ffffff',
-          'stroke-width': 3.4 * s,
-          'stroke-linecap': 'round',
-          opacity: i ? 0.55 : 0.7,
-        }),
-        { class: 'idle-steam' },
-      ),
-    )
-    .join('');
-
-/**
- * What's on the desk follows the clock (each dish shown by the scene SVG's
- * `data-daypart`, styles/global.css pops it in): base centre at (0, 0), about 90 wide.
- *   morning    chai in a clay bhar with two biscuits
- *   afternoon  lunch: rice and a bowl of sabzi on a steel plate
- *   evening    snacks: jhalmuri in a newspaper cone and two singaras
- *   night      dinner: rotis, dal and a curry
- */
-export function deskMeal(s = 1) {
-  const meal = (part, inner) => g(inner, { class: `meal meal-${part}` });
-  const morning = meal(
-    'morning',
-    // Saucer, biscuits, the clay cup (bhar) and steam.
-    ellipse(0, -3, 34, 5, '#d9cbb4') +
-      ellipse(20, -9, 11, 4, '#d9a35a') +
-      ellipse(26, -12, 11, 4, '#e2b56c') +
-      path('M-16 -38 L16 -38 L11 -4 L-11 -4 Z', '#b8643c') +
-      ellipse(0, -38, 16, 4, '#7a3e22') +
-      ellipse(0, -38, 13, 2.6, '#c98a4e') +
-      steam(0, -44, 0.8),
-  );
-  const afternoon = meal(
-    'afternoon',
-    // Lunch: a steel plate of rice and a bowl of sabzi (mixed vegetables), steaming.
-    ellipse(0, -6, 44, 9, '#c9ced6') +
-      ellipse(0, -8, 38, 6.5, '#e3e7ec') +
-      ellipse(-13, -14, 16, 8.5, '#fbf8f0') +
-      ellipse(-9, -18, 9, 5, '#ffffff') +
-      circle(-16, -16, 1.2, '#efe6d0') +
-      circle(-7, -13, 1.2, '#efe6d0') +
-      ellipse(18, -11, 14, 5.5, '#b9bfc8') +
-      ellipse(18, -13, 12, 4, '#d9a441') +
-      circle(13, -14, 2.2, '#5f9c3a') +
-      circle(20, -15, 2, '#e07a3a') +
-      circle(24, -13, 2.2, '#5f9c3a') +
-      circle(17, -12, 1.8, '#f2d56a') +
-      steam(-8, -26, 0.6),
-  );
-  const evening = meal(
-    'evening',
-    // A newspaper cone of jhalmuri (puffed rice, peanuts, chilli) and two golden singaras.
-    path('M-36 -2 L-12 -2 L-24 -40 Z', '#ece4d2') +
-      path('M-33 -10 L-15 -10 M-31 -18 L-17 -18 M-29 -26 L-19 -26', 'none', {
-        stroke: '#9b927f',
-        'stroke-width': 1.4,
-      }) +
-      ellipse(-24, -40, 13, 5, '#f4e3b8') +
-      circle(-29, -42, 2.2, '#fff6dd') +
-      circle(-22, -44, 2.2, '#fff6dd') +
-      circle(-18, -41, 1.8, '#b5622d') +
-      circle(-26, -45, 1.4, '#3f8a3a') +
-      ellipse(20, -3, 30, 5, '#d9cbb4') +
-      path('M0 -5 L14 -30 L26 -5 Z', '#d99a3a') +
-      path('M16 -5 L28 -26 L40 -5 Z', '#e3ac4c') +
-      path('M6 -10 L14 -24 M22 -10 L28 -21', 'none', {
-        stroke: '#b07428',
-        'stroke-width': 1.4,
-      }),
-  );
-  const night = meal(
-    'night',
-    // Dinner: rotis, a bowl of dal and a bowl of curry on a steel plate, steaming.
-    ellipse(0, -6, 46, 9, '#c9ced6') +
-      ellipse(0, -8, 40, 6.5, '#e3e7ec') +
-      ellipse(-18, -13, 15, 6, '#c99a5c') +
-      ellipse(-16, -16, 15, 6, '#dcb070') +
-      circle(-20, -17, 1.4, '#a8733c') +
-      circle(-11, -15, 1.2, '#a8733c') +
-      ellipse(8, -11, 11, 4.5, '#b9bfc8') +
-      ellipse(8, -13, 9, 3.2, '#e8b83a') +
-      ellipse(28, -10, 11, 4.5, '#b9bfc8') +
-      ellipse(28, -12, 9, 3.2, '#c8502a') +
-      circle(26, -13, 1.4, '#f3e2c0') +
-      steam(18, -20, 0.6),
-  );
-  return at(0, 0, s, morning + afternoon + evening + night);
 }

@@ -67,7 +67,8 @@ export const scenes = [
     city: 'Kolkata',
     station: 'stop',
     palette: 'mint',
-    weight: 2,
+    // 38 s at 1× (scenes/03-cloudcraftz.ts SECONDS × AUTO_SPEED 0.4): lessons, then each app.
+    weight: 15.2,
     description:
       'The first desk, at Cloudcraftz. The monitor runs QOMIX test suites; the QOMIX app card lands on a phone with a 10K+ downloads badge, and a card for Tan90 builds in beside it. The downloads odometer starts at 10K.',
     links: [],
@@ -75,6 +76,9 @@ export const scenes = [
   {
     id: '04-interview',
     module: '04-interview',
+    // The same kind of desk as the office before it: a short transition, so the call starts
+    // straight away (it plays from the first frame of the hold).
+    enter: 0.7,
     svg: '04-interview.svg',
     title: 'Kolkata, 2023 — the BeWorld interview',
     section: 'BeWorld interview',
@@ -112,10 +116,11 @@ export const scenes = [
     city: 'Hyderabad',
     station: 'stop',
     palette: 'day',
-    // The animation, then a rest for the live shelf (scenes/05-beworld.ts ANIM_END).
-    weight: 3.8,
+    // 42 s at 1× (scenes/05-beworld.ts SECONDS × AUTO_SPEED 0.4): pipeline, each app, then
+    // the night studying Scaler module by module.
+    weight: 16.8,
     description:
-      'The BeWorld office in Hyderabad, from day to night. By day, the release pipeline on the monitor lights up stage by stage; then Suman builds the apps on it — BeWorld, the Bengali social hub, then Current Affairs Daily GK — their Flutter code typing out beside a carousel of their real screens, and each goes live on its Play Store listing. The desk phones show their logos; BeWorld stamps 500K+ downloads and Current Affairs 50K+, and the odometer races up. Then dusk falls: the monitor fades, the lamp comes on, and by night he studies with Scaler at a laptop — the Scaler logo on screen, modules from DSA to the capstone — as a skill graph lights up.',
+      'The BeWorld office in Hyderabad, from day to night. By day, the release pipeline on the monitor lights up stage by stage; then Suman builds the apps on it — BeWorld, the Bengali social hub, then Current Affairs Daily GK — their Flutter code typing out beside a carousel of their real screens, and each goes live on its Play Store listing. The desk phones show their logos; BeWorld stamps 500K+ downloads and Current Affairs 50K+, and the odometer races up. Then dusk falls: the monitor fades, the lamp comes on, and by night he studies with Scaler on the same monitor — the Scaler curriculum ticks off module by module, DSA, LLD, HLD, System Design, Databases, Concurrency and the Capstone, each with its code typing out.',
 
     links: [],
   },
@@ -192,55 +197,45 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'stop',
     palette: 'sky',
-    weight: 5,
+    // 42 s at 1× (scenes/09-neura-apps.ts SECONDS × AUTO_SPEED 0.4): four products, Twilio,
+    // then the "see them live" shelf.
+    weight: 16.8,
     description:
-      'Back at the desk, his hands on the keyboard, the big monitor shows what Suman shipped at Neura Dynamics as Tech Lead. For each product the editor types out its whole stack, file by file — the Flutter or React front end, the Python (FastAPI) backend and its Docker setup. Klass Online, an app to learn or teach any skill live, and Ayantra, a calm reflection app: their code types out beside a carousel of their real screens, each release builds and goes live on its Play Store listing, and its desk phone stamps the downloads badge. Then two web platforms: DocPharma, a healthcare quick-commerce supply chain, and MeritHyre, AI-led interviews with a recruiting assistant — their code types out while their pages slide through a browser, and each deploys to production. Last, MeritHyre’s Twilio SMS integration: the A2P 10DLC onboarding ticks off step by step — subaccount, phone number, Trust Hub profiles, brand, campaign — the connection tests OK and it saves. (The refund that followed is the next chapter.)',
-    links: [],
-  },
-  {
-    id: '09-twilio-refund',
-    module: '09-twilio-refund',
-    svg: '09-twilio-refund.svg',
-    title: 'MeritHyre — the Twilio refund',
-    // Part of the Neura Dynamics work: one chapter with it in the player.
-    section: 'Neura Dynamics work',
-    date: '2025-02',
-    city: 'Kolkata · Remote',
-    station: 'stop',
-    palette: 'day',
-    weight: 2.4,
-    description:
-      'Right after the Twilio onboarding, Suman at his desk, in the middle under the monitor. Twilio billing shows an unexpected $300 A2P 10DLC charge, and a toast flags it. He files a support ticket; Twilio Support replies and approves the refund. The view zooms into the billing: a +$300.00 credit, and a banner rises with confetti.',
+      'Back at the desk, his hands on the keyboard, the big monitor shows what Suman shipped at Neura Dynamics as Tech Lead. For each product the editor types out its whole stack, file by file — the Flutter or React front end, the Python (FastAPI) backend and its Docker setup. Klass Online, an app to learn or teach any skill live, and Ayantra, a calm reflection app: their code types out beside a carousel of their real screens, each release builds and goes live on its Play Store listing, and its desk phone stamps the downloads badge. Then two web platforms: DocPharma, a healthcare quick-commerce supply chain, and MeritHyre, AI-led interviews with a recruiting assistant — their code types out while their pages slide through a browser, and each deploys to production. Last, MeritHyre’s Twilio SMS integration: the A2P 10DLC onboarding ticks off step by step — subaccount, phone number, Trust Hub profiles, brand, campaign — the connection tests OK and it saves.',
     links: [],
   },
   {
     id: '11-quiet-shelf',
     module: '11-quiet-shelf',
     svg: '11-quiet-shelf.svg',
-    title: 'Side build — The Quiet Shelf',
-    section: 'The Quiet Shelf',
+    title: 'Personal work — The Quiet Shelf',
+    // Both personal projects are one chapter in the player: "Personal work".
+    section: 'Personal work',
     date: '2025-06',
     city: 'Kolkata',
     station: 'stop',
     palette: 'cocoa',
-    weight: 3,
+    // 36.5 s at 1× (scenes/11-quiet-shelf.ts SECONDS × AUTO_SPEED 0.4): the "Personal work"
+    // card, then the build.
+    weight: 14.6,
     description:
-      'A side build: The Quiet Shelf, a reading and watching community. At the desk, his hands on the keyboard, the big monitor builds it: its React and FastAPI code types out file by file while its real pages slide through a browser — the community feed with reviews and picks, a picks discussion, My Library, Discover, and search — then it deploys to thequietshelf.art, linked to explore.',
+      'Personal work begins: a card on the big monitor says these are projects Suman builds on his own time, outside the day job — designed, coded and shipped end to end — and The Quiet Shelf and Khyaati Prakashan pop in. First, The Quiet Shelf, a reading and watching community. At the desk, his hands on the keyboard, the big monitor builds it: its React and FastAPI code types out file by file while its real pages slide through a browser — the community feed with reviews and picks, a picks discussion, My Library, Discover, and search — then it deploys to thequietshelf.art, linked to explore.',
     links: ['quiet-shelf'],
   },
   {
     id: '11-khyaati',
     module: '11-khyaati',
     svg: '11-khyaati.svg',
-    title: 'Side build — Khyaati Prakashan',
-    section: 'Khyaati Prakashan',
+    title: 'Personal work — Khyaati Prakashan',
+    section: 'Personal work',
     date: '2025-09',
     city: 'Kolkata',
     station: 'stop',
     palette: 'navy',
-    weight: 3.4,
+    // 36 s at 1× (scenes/11-khyaati.ts SECONDS × AUTO_SPEED 0.4).
+    weight: 14.4,
     description:
-      'A side build: Khyaati Prakashan, a publisher’s book marketplace. The big monitor builds it: its React and Go code types out file by file while its real pages slide through a browser — the marketplace, a book page, the cart — and it deploys to khyaatiprakashan.store. Then a reader buys: on the cart, the Razorpay checkout opens for ₹424, UPI is chosen, the payment succeeds and the order is placed.',
+      'More personal work: Khyaati Prakashan, a publisher’s book marketplace. The big monitor builds it: its React and Go code types out file by file while its real pages slide through a browser — the marketplace, a book page, the cart — and it deploys to khyaatiprakashan.store. Then a reader buys: on the cart, the Razorpay checkout opens for ₹424, UPI is chosen, the payment succeeds and the order is placed.',
     links: ['khyaati'],
   },
   {
