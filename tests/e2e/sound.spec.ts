@@ -9,13 +9,13 @@ declare global {
 
 test.describe('sound', () => {
   test.beforeEach(async ({ page }) => {
-    // Record which sounds the page plays (file names), without needing real audio output.
+    // Record which sounds the page plays (the engine announces each one as a `day:sound` event),
+    // without needing real audio output.
     await page.addInitScript(() => {
       window.__played = [];
-      HTMLMediaElement.prototype.play = function () {
-        window.__played.push(this.src.split('/').pop() ?? '');
-        return Promise.resolve();
-      };
+      window.addEventListener('day:sound', (e) => {
+        window.__played.push(String((e as CustomEvent).detail));
+      });
     });
   });
 
@@ -24,14 +24,10 @@ test.describe('sound', () => {
     const ids = await page.evaluate(() => window.dayEngine.scenes);
     await gotoScene(page, ids.indexOf('09-neura-apps'), 0.3);
     await page.getByRole('button', { name: 'Play', exact: true }).click();
-    await page.waitForFunction(() => window.__played.some((s) => s.includes('mouse-click')));
-    await page.waitForFunction(
-      () => window.__played.some((s) => s.includes('keyboard-typing')),
-      null,
-      {
-        timeout: 8000,
-      },
-    );
+    await page.waitForFunction(() => window.__played.some((s) => s === 'click'));
+    await page.waitForFunction(() => window.__played.some((s) => s === 'typing'), null, {
+      timeout: 8000,
+    });
 
     // Mute: remembered after a reload.
     const mute = page.locator('[data-player-mute]');
@@ -49,7 +45,7 @@ test.describe('sound', () => {
     const ids = await page.evaluate(() => window.dayEngine.scenes);
     await gotoScene(page, ids.indexOf('04-interview'), 0.5);
     await page.keyboard.press('k');
-    await page.waitForFunction(() => window.__played.some((s) => s.includes('bell')), null, {
+    await page.waitForFunction(() => window.__played.some((s) => s === 'mail'), null, {
       timeout: 15000,
     });
   });
@@ -61,16 +57,14 @@ test.describe('sound', () => {
     // Past the GitHub issue list (0.02 → 0.2): the fix being typed.
     await gotoScene(page, oss, 0.21);
     await page.keyboard.press('k');
-    await page.waitForFunction(() => window.__played.some((s) => s.includes('keyboard-typing')));
+    await page.waitForFunction(() => window.__played.some((s) => s === 'typing'));
     await page.keyboard.press('k');
     // Past the editor (the PR review, the zoom): no typing.
     await gotoScene(page, oss, 0.45);
     await page.evaluate(() => (window.__played = []));
     await page.keyboard.press('k');
     await page.waitForTimeout(1500);
-    expect(
-      await page.evaluate(() => window.__played.filter((s) => s.includes('keyboard-typing'))),
-    ).toEqual([]);
+    expect(await page.evaluate(() => window.__played.filter((s) => s === 'typing'))).toEqual([]);
   });
 
   test('the mouse close-up shows at a click, but not while his hands are on the keyboard', async ({

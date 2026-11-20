@@ -749,6 +749,15 @@ function makeBed(ctx: AudioContext, out: AudioNode, kind: BedKind): Bed {
 /* ---------- the player ---------- */
 
 const KEY = 'day-muted';
+
+/**
+ * Tells the page a sound has started: a `day:sound` event on window whose `detail` is the sound's
+ * name. Nothing in the app listens; the end-to-end tests do (the audio itself can't be observed
+ * from a headless browser).
+ */
+const announce = (name: SoundName): void => {
+  window.dispatchEvent(new CustomEvent('day:sound', { detail: name }));
+};
 const AMBIENCE_LEVEL = 0.9;
 
 export interface Sound {
@@ -887,6 +896,7 @@ export function sound(): Sound {
       src.connect(g).connect(sfxBus);
       src.start();
       typingSrc = src;
+      announce('typing');
     });
   };
 
@@ -908,6 +918,7 @@ export function sound(): Sound {
     },
     play(name) {
       if (!live() || !ctx || !sfxBus) return;
+      announce(name);
       if (DUCK.has(name)) duck();
       if (name in FILES) playFile(name as FileSound);
       else SYNTHS[name as SynthSound](ctx, sfxBus, ctx.currentTime + 0.01);
