@@ -5,12 +5,12 @@
  *                      Firebase, React) ticks off while a lesson panel shows each topic's code.
  *   learnEnd → end     the projects, one after another. Each one plays through, start to end,
  *                      before the next begins (its share of the window follows PACE, so a
- *                      project with more files or screens gets more time):
- *                        intro   "Now building X": its logo, what it is, its stack;
- *                        code    its files type out, one tab each (front end, backend, Docker…);
- *                        screens every screenshot in turn, one at a time, each with a caption,
- *                                beside a panel describing the product ("Screen 2 of 4");
- *                        build   the release / production build;
+ *                      project with more screens gets more time). No code is shown: only what
+ *                      the product is and what each screen shows.
+ *                        screens every screenshot in turn, one at a time, each with its name
+ *                                (the caption), beside a panel describing the product
+ *                                ("Screen 2 of 4"); the view glides from one to the next and
+ *                                the caption fades with it;
  *                        live    its Play Store listing (apps) or the deployed site (web apps),
  *                                with the LIVE stamp and where to find it.
  *   end → stop         the last project's live page stays up.
@@ -23,6 +23,9 @@ import type { Screen } from '../engine/types';
 import { clamp, easeInOut, mod, progress } from '../lib/math';
 import { screenFrame, setText, svgEl, svgText, UI } from '../lib/svg';
 
+/** Smootherstep: eases in and out more gently than easeInOut, so the glide never lurches. */
+const smooth = (t: number): number => t * t * t * (t * (t * 6 - 15) + 10);
+
 /** Hold progress where learning ends and building starts (when there are lessons). */
 export const LEARN_END = 0.32;
 
@@ -32,26 +35,26 @@ export const LEARN_END = 0.32;
  * project with more files or screens gets a bigger share. Screens get the most: they are what
  * a visitor looks at.
  */
-export const PACE = { intro: 2.5, file: 1.6, shot: 2.4, build: 0.8, live: 2.6 } as const;
-
-const fileCount = (app: Showcase) => 1 + (app.files?.length ?? 0);
+export const PACE = { shot: 1.7, live: 1.1 } as const;
+/** Seconds the view takes to glide from one screen to the next (inside a screen's share). */
+const GLIDE = 0.7;
+/** Seconds a project's screen takes to fade in as it starts. */
+const FADE = 0.35;
 
 /** How long one project plays, in seconds at 1×. */
-export const appSeconds = (app: Showcase): number =>
-  PACE.intro + PACE.file * fileCount(app) + PACE.shot * app.shots.length + PACE.build + PACE.live;
+export const appSeconds = (app: Showcase): number => PACE.shot * app.shots.length + PACE.live;
 
 /** How long a list of projects plays, in seconds at 1×. */
 export const buildSeconds = (apps: Showcase[]): number =>
   apps.reduce((t, a) => t + appSeconds(a), 0);
 
-/** One project's window in hold progress, and where each of its parts starts. */
+/** One project's window in hold progress: its screens from `a`, then live from `live` to `b`. */
 export interface AppWindow {
   a: number;
-  code: number;
-  shots: number;
-  build: number;
   live: number;
   b: number;
+  /** Hold progress per second of this chapter's build window (to turn seconds into progress). */
+  k: number;
 }
 
 /** Each project's window inside [start, end], in order, sized by its `appSeconds`. */
@@ -61,13 +64,10 @@ export function appWindows(apps: Showcase[], start: number, end: number): AppWin
   let t = start;
   return apps.map((app) => {
     const a = t;
-    const code = a + PACE.intro * k;
-    const shots = code + PACE.file * fileCount(app) * k;
-    const build = shots + PACE.shot * app.shots.length * k;
-    const live = build + PACE.build * k;
+    const live = a + PACE.shot * app.shots.length * k;
     const b = live + PACE.live * k;
     t = b;
-    return { a, code, shots, build, live, b };
+    return { a, live, b, k };
   });
 }
 
@@ -105,17 +105,8 @@ function wrap(text: string, max: number, limit = Infinity): string[] {
   return out;
 }
 
-/** One file in the editor: its tab and code lines, and the command in the status bar. */
-interface Pane {
-  g: SVGGElement;
-  lines: SVGTextElement[];
-  run: string;
-}
-
 interface Built {
   group: SVGGElement;
-  /** The app's files, typed one after another (main file first). */
-  panes: Pane[];
   slides: SVGGElement[];
   ring: SVGGElement;
   bar: SVGRectElement;
@@ -124,10 +115,10 @@ interface Built {
   app: Showcase;
   /** Web app: the browser window shows its pages instead of the phone ring turning. */
   web: boolean;
+  /** "MOBILE APP" / "WEB PLATFORM" (personal projects say so), shown with the screen count. */
+  kind: string;
   /** Web app: show page `pos` of the site (fractional while scrolling to the next). */
   page: ((pos: number) => void) | null;
-  /** "Now building X": logo, what it is, its stack. */
-  intro: SVGGElement;
   /** Left of the screens while they play: the product described, and this screen's caption. */
   about: SVGGElement;
   captions: SVGGElement[];
@@ -292,16 +283,6 @@ export function appBuild(
       page: (pos: number) => to(pos * shotH),
     };
   };
-  /**
-   * Scrolling like a person with a mouse wheel: `t` (0–1) across the visit becomes a series of
-   * eased flicks, each followed by a short pause to read.
-   */
-  const wheel = (t: number, flicks = 6) => {
-    const x = clamp(t) * flicks;
-    const i = Math.min(flicks - 1, Math.floor(x));
-    return (i + easeInOut(progress(x - i, 0, 0.6))) / flicks;
-  };
-
   /* ---------- preface ---------- */
   const pre = opts.preface;
   const preG = svgEl('g', { 'data-phase': 'preface' }, g);
@@ -472,83 +453,8 @@ export function appBuild(
   const webH = Math.min(bodyH - fs * 1.2, webW * 0.62);
   const webY = bodyY + (bodyH - webH) / 2;
 
-  /** A row of stack chips from (cx0, cy0); returns nothing — purely drawn. */
-  const chips = (
-    parent: Element,
-    cx0: number,
-    cy0: number,
-    labels: string[],
-    size: number,
-    maxX: number,
-  ) => {
-    let cxi = cx0;
-    for (const label of labels) {
-      const cw = label.length * size * 0.6 + size * 1.4;
-      if (cxi + cw > maxX) break;
-      svgEl(
-        'rect',
-        { x: cxi, y: cy0, width: cw, height: size * 1.8, rx: size * 0.9, fill: '#262d44' },
-        parent,
-      );
-      svgText(parent, cxi + cw / 2, cy0 + size * 1.25, label, {
-        'font-size': size,
-        fill: UI.text,
-        'text-anchor': 'middle',
-      });
-      cxi += cw + size * 0.6;
-    }
-  };
   /** Rough characters per line for text of size `size` across `width`. */
   const perLine = (width: number, size: number) => Math.max(12, Math.floor(width / (size * 0.62)));
-
-  /** "Now building X" — the project introduced before its code: what it is and what it uses. */
-  const introCard = (parent: Element, app: Showcase): SVGGElement => {
-    const c = svgEl('g', { 'data-intro': app.key }, parent);
-    svgEl('rect', { x, y: bodyY, width: w, height: bodyH, fill: '#141826' }, c);
-    svgEl('rect', { x, y: bodyY, width: fs * 0.3, height: bodyH, fill: app.accent }, c);
-    const L = Math.min(fs * 5.5, bodyH * 0.32, w * 0.16);
-    const lx = x + fs * 2;
-    const ly = bodyY + fs * 1.4;
-    svgEl('rect', { x: lx, y: ly, width: L, height: L, rx: L * 0.22, fill: '#ffffff' }, c);
-    svgEl(
-      'image',
-      { href: app.logo, x: lx + L * 0.1, y: ly + L * 0.1, width: L * 0.8, height: L * 0.8 },
-      c,
-    );
-    const rx = lx + L + fs * 1.4;
-    svgText(
-      c,
-      rx,
-      ly + fs * 1.1,
-      `${app.personal ? 'PERSONAL PROJECT' : 'NOW BUILDING'} · ${app.site ? 'WEB PLATFORM' : 'MOBILE APP'}`,
-      {
-        'font-size': fs * 0.75,
-        fill: app.accent,
-      },
-    );
-    const nameSize = Math.min(fs * 2, ((x + w - rx - fs) / Math.max(6, app.name.length)) * 1.6);
-    svgText(c, rx, ly + fs * 3.2, app.name, {
-      'font-size': nameSize,
-      fill: UI.text,
-      class: 'title-text',
-    });
-    chips(c, rx, ly + fs * 4, app.stack, fs * 0.72, x + w - fs);
-    const aboutSize = fs * 0.95;
-    const top = ly + L + fs * 2;
-    const room = Math.max(1, Math.floor((bodyY + bodyH - fs * 2.6 - top) / (aboutSize * 1.5)) + 1);
-    wrap(app.about, perLine(w - fs * 4, aboutSize), room).forEach((line, i) =>
-      svgText(c, lx, top + i * aboutSize * 1.5, line, { 'font-size': aboutSize, fill: UI.text }),
-    );
-    const files = fileCount(app);
-    svgText(
-      c,
-      lx,
-      bodyY + bodyH - fs * 1.1,
-      `${files} file${files > 1 ? 's' : ''} of code · ${app.shots.length} screens · then live at ${app.site ? app.site.url : 'Google Play'}`,
-      { 'font-size': fs * 0.75, fill: UI.muted },
-    );
-    return c;
-  };
 
   /** Left of the screens: the product described, and what the screen in front shows. */
   const aboutPanel = (parent: Element, app: Showcase) => {
@@ -578,8 +484,8 @@ export function appBuild(
       fill: UI.text,
       class: 'title-text',
     });
-    const size = fs * 0.78;
-    const lines = wrap(app.about, perLine(pw0 - fs * 2.4, size), 5);
+    const size = fs * 0.72;
+    const lines = wrap(app.about, perLine(pw0 - fs * 2.4, size), 6);
     lines.forEach((line, i) =>
       svgText(about, lx, bodyY + fs * 4.4 + i * size * 1.45, line, {
         'font-size': size,
@@ -626,46 +532,24 @@ export function appBuild(
   const built: Built[] = apps.map((app) => {
     const group = svgEl('g', { 'data-app': app.key }, g);
     const site = app.site;
-    const files = [
-      { file: app.file, code: app.code, run: site ? 'npm run dev' : 'flutter run' },
-      ...(app.files ?? []),
-    ];
-    const panes: Pane[] = files.map((f) => {
-      const pg = svgEl('g', { 'data-file': f.file }, group);
-      tab(pg, `${app.name.toLowerCase()}/${f.file}`, app.accent);
-      svgEl(
-        'image',
-        {
-          href: app.logo,
-          x: x + fs * 4.9,
-          y: y + th / 2 - fs * 0.55,
-          width: fs * 1.3,
-          height: fs * 1.3,
-        },
-        pg,
-      );
-      const lines = f.code.map((line, i) => {
-        const ly = bodyY + fs * (1.7 + i * 1.32);
-        svgText(pg, x + fs * 1.7, ly, String(i + 1), {
-          'font-size': fs * 0.7,
-          fill: UI.muted,
-          'text-anchor': 'end',
-        });
-        // Comments muted, the first code line in the app's accent.
-        const comment = /^\s*(#|\/\/)/.test(line);
-        return svgText(pg, x + fs * 2.4, ly, line, {
-          'font-size': fs * 0.74,
-          fill: comment ? UI.muted : i === 0 ? app.accent : UI.text,
-          style: 'white-space: pre',
-        });
-      });
-      return { g: pg, lines, run: f.run };
-    });
+    // The window's tab: the product and what this is (no code is shown).
+    tab(group, `${app.name} · ${site ? 'web platform' : 'mobile app'}`, app.accent);
+    svgEl(
+      'image',
+      {
+        href: app.logo,
+        x: x + fs * 4.9,
+        y: y + th / 2 - fs * 0.55,
+        width: fs * 1.3,
+        height: fs * 1.3,
+      },
+      group,
+    );
     // Phones on a ring; each a bezel with the screenshot clipped inside a nested <svg>.
     const ring = svgEl('g', {}, group);
     const iw = pw - pad * 2;
     const ih = ph - pad * 4;
-    // Web app: one browser window right of the code; its pages slide past inside it.
+    // Web app: one browser window right of the description; its pages slide past inside it.
     const area = site
       ? svgEl(
           'svg',
@@ -727,10 +611,8 @@ export function appBuild(
       fill: UI.text,
     });
     const about = aboutPanel(group, app);
-    const intro = introCard(group, app);
     return {
       group,
-      panes,
       slides,
       ring,
       bar,
@@ -738,8 +620,8 @@ export function appBuild(
       status,
       app,
       web: !!site,
+      kind: `${app.personal ? 'PERSONAL · ' : ''}${site ? 'WEB PLATFORM' : 'MOBILE APP'}`,
       page,
-      intro,
       ...about,
     };
   });
@@ -1025,11 +907,13 @@ export function appBuild(
         const on = i === active && isLive;
         r.group.style.display = on ? '' : 'none';
         if (!on) return;
+        const fade = reduced ? 1 : easeInOut(progress(hold, win!.live, win!.live + FADE * win!.k));
+        r.group.setAttribute('opacity', fade < 1 ? fade.toFixed(3) : '1');
         const p = progress(hold, win!.live, win!.b);
         const shown = Math.ceil(progress(p, 0, 0.25) * r.steps.length);
         r.steps.forEach((el, j) => (el.style.visibility = j < shown ? '' : 'hidden'));
-        // A live site: scrolled down from the top, flick by flick.
-        if ('scrollSite' in r) r.scrollSite(wheel(progress(p, 0.08, 0.95), 4));
+        // A live site: scrolled gently down from the top.
+        if ('scrollSite' in r) r.scrollSite(smooth(progress(p, 0.1, 1)));
         const st = progress(p, 0.25, 0.4);
         r.stamp.style.visibility = st > 0 ? '' : 'hidden';
         r.stamp.setAttribute('opacity', st.toFixed(2));
@@ -1037,57 +921,42 @@ export function appBuild(
       });
 
       built.forEach((b, i) => {
-        const on = i === active && !isLive;
+        // Its screens stay under the store listing / site while that fades in over them.
+        const fadeOut = win ? FADE * win.k : 0;
+        const on = i === active && (!isLive || hold < win!.live + fadeOut);
         b.group.style.display = on ? '' : 'none';
         if (!on) return;
         const wi = win!;
-        const phase =
-          hold < wi.code ? 'intro' : hold < wi.shots ? 'code' : hold < wi.build ? 'shots' : 'build';
-        b.intro.style.display = phase === 'intro' ? '' : 'none';
-        b.about.style.display = phase === 'shots' ? '' : 'none';
+        // It fades up from the dark as the project starts.
+        const rise = reduced ? 1 : easeInOut(progress(hold, wi.a, wi.a + FADE * wi.k));
+        b.group.setAttribute('opacity', rise < 1 ? rise.toFixed(3) : '1');
 
-        // Code: its files type out one after another, each in its own tab (then it stays up).
-        const n = b.panes.length;
-        const tp = phase === 'intro' ? 0 : progress(hold, wi.code, wi.shots) * n;
-        const cur = Math.min(n - 1, Math.floor(tp));
-        b.panes.forEach((pane, j) => {
-          pane.g.style.display = j === cur ? '' : 'none';
-          if (j !== cur) return;
-          const typed = Math.ceil(progress(tp - j, 0, 0.7) * pane.lines.length);
-          pane.lines.forEach((l, q) => (l.style.visibility = q < typed ? '' : 'hidden'));
-        });
-
-        // Screens: each one in turn, the turn to it at the start of its own share of time.
+        // Screens: each one in turn. The view glides to the next at the start of its share of
+        // time (ease in and out, no jump), and its caption fades out and in with it.
         const k = Math.max(1, b.app.shots.length);
-        const sp =
-          phase === 'shots'
-            ? progress(hold, wi.shots, wi.build) * k
-            : phase === 'build'
-              ? k - 1
-              : 0;
+        const sp = progress(hold, wi.a, wi.live) * k;
         const shot = Math.min(k - 1, Math.floor(sp));
-        const pos =
-          shot === 0 ? 0 : shot - 1 + easeInOut(progress(sp - shot, 0, reduced ? 0.01 : 0.22));
+        const glide = reduced ? 0.01 : Math.min(0.8, GLIDE / PACE.shot);
+        const pos = shot === 0 ? 0 : shot - 1 + smooth(progress(sp - shot, 0, glide));
         if (b.page) b.page(pos);
         else placeRing(b, pos);
-        b.captions.forEach((c, j) => (c.style.display = j === shot ? '' : 'none'));
-        setText(b.counter, `SCREEN ${shot + 1} OF ${k}`);
-        b.dots.forEach((d, j) => d.setAttribute('fill', j === shot ? b.app.accent : '#3a405c'));
+        const front = Math.min(k - 1, Math.round(pos));
+        b.captions.forEach((c, j) => {
+          const d = j - pos;
+          const vis = reduced ? (j === front ? 1 : 0) : clamp(1 - Math.abs(d) * 2.2);
+          c.style.display = vis > 0.01 ? '' : 'none';
+          c.setAttribute('opacity', vis.toFixed(3));
+          c.setAttribute(
+            'transform',
+            vis < 0.99 ? `translate(0 ${(-d * fs * 0.9).toFixed(1)})` : '',
+          );
+        });
+        setText(b.counter, `${b.kind} · SCREEN ${front + 1} OF ${k}`);
+        b.dots.forEach((d, j) => d.setAttribute('fill', j === front ? b.app.accent : '#3a405c'));
 
-        const build = progress(hold, wi.build, wi.live);
-        b.bar.setAttribute('width', (b.barW * build).toFixed(1));
-        setText(
-          b.status,
-          phase === 'intro'
-            ? `● Starting a new project · ${b.app.name}`
-            : phase === 'code'
-              ? `● ${b.app.name} · file ${cur + 1} of ${n} · ${b.panes[cur]!.run}`
-              : phase === 'shots'
-                ? `● ${b.app.name} · screen ${shot + 1} of ${k}`
-                : build < 1
-                  ? `▶ Building ${b.app.name} ${b.web ? 'for production' : 'release'}… ${Math.round(build * 100)}%`
-                  : `✓ ${b.app.name} build ready`,
-        );
+        // The bar in the status line: how far through this project's screens.
+        b.bar.setAttribute('width', (b.barW * progress(hold, wi.a, wi.live)).toFixed(1));
+        setText(b.status, `● ${b.app.name} · screen ${front + 1} of ${k}`);
       });
     },
   };

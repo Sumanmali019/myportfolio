@@ -7,7 +7,7 @@
  */
 import { easeInOut, lerp, progress } from '../lib/math';
 
-/** Hold progress the whole move takes, from `from`. */
+/** Hold progress the whole move takes, from `from`, when a shelf gives no span of its own. */
 export const SPAN = 0.12;
 
 interface Item {
@@ -24,6 +24,8 @@ interface Shelf {
   el: HTMLElement;
   index: number;
   from: number;
+  /** Hold progress the move takes, from `from`. */
+  span: number;
   items: Item[];
   measured: string;
   /** The shelf's own progress last frame, for the sounds. */
@@ -58,6 +60,7 @@ export function shelves(root: ParentNode): Shelves {
       el,
       index: Number(el.dataset.liveScene),
       from: Number(el.dataset.liveFrom),
+      span: Number(el.dataset.liveSpan) || SPAN,
       items: Array.from(el.querySelectorAll<HTMLElement>('[data-live-key]')).map((a) => ({
         el: a,
         key: a.dataset.liveKey ?? '',
@@ -79,7 +82,7 @@ export function shelves(root: ParentNode): Shelves {
     update(index, hold, transitioning, svg, gen) {
       for (const s of list) {
         const k =
-          !transitioning && index === s.index && svg ? progress(hold, s.from, s.from + SPAN) : 0;
+          !transitioning && index === s.index && svg ? progress(hold, s.from, s.from + s.span) : 0;
         // Sounds only for the shelf coming up gradually (not a jump straight onto it).
         if (s.k <= 0 && k > 0 && k < 0.3) api.onEvent?.('lift', -1);
         s.k = k;

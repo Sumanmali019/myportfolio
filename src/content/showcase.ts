@@ -64,20 +64,17 @@ export interface Showcase {
   /** Matches an app `key` in profile.ts. */
   key: string;
   name: string;
-  /** File open in the editor tab. */
-  file: string;
   logo: string;
-  /** What it is and what Suman built, shown before its code and beside its screens. */
+  /** What it is and what Suman built, shown beside its screens. */
   about: string;
-  /** Its stack, as chips on the intro card. */
+  /** Its stack. */
   stack: string[];
   shots: string[];
   /** One line per screenshot (same order as `shots`): what that screen shows. */
   captions: string[];
-  code: string[];
-  /** Accent colour for the editor tab, build bar and status. */
+  /** Accent colour for the window tab, progress bar and caption. */
   accent: string;
-  /** A project of Suman's own (personal work), not for an employer: its intro says so. */
+  /** A project of Suman's own (personal work), not for an employer: its screen says so. */
   personal?: boolean;
   /** Its Play Store listing, shown once the release is live (mobile apps). */
   store?: {
@@ -92,12 +89,6 @@ export interface Showcase {
    * phones) and, once deployed, the live site at `url` replaces the Play Store listing.
    */
   site?: { url: string; title: string };
-  /**
-   * More files typed after `file` / `code`, each in its own editor tab (e.g. the Python
-   * backend and the Docker setup behind a Flutter or React front end). `run` is the command in
-   * the status bar while it types.
-   */
-  files?: Array<{ file: string; run: string; code: string[] }>;
 }
 
 /** What Suman learns first, on the same monitor, while we still see him from behind. */
@@ -254,12 +245,30 @@ export const scalerModules: ScalerModule[] = [
 
 export const showcase: Showcase[] = [
   {
+    key: 'ten90',
+    name: 'Tan90',
+    logo: ten90Logo,
+    about:
+      'An exam app for teachers: set the answer key, print OMR bubble sheets, scan the students’ sheets with the phone camera and get graded reports in seconds.',
+    stack: ['Flutter', 'Dart', 'OMR scanning', 'PDF export'],
+    shots: [ten901, ten902, ten903, ten904, ten905, ten906],
+    captions: [
+      'Exam list with sync and visibility status',
+      'Exam details with scanning and reports',
+      'Answer key setup with MCQ and true/false',
+      'Exams list grouped by class',
+      'Scan answer sheets to generate a report',
+      'OMR bubble sheet preview and PDF export',
+    ],
+    accent: '#8f7ad6',
+    store: { title: 'Tan-ninety Scanner', publisher: 'Ekodroid labs', downloads: '500+' },
+  },
+  {
     key: 'qomix',
     name: 'QOMIX',
-    file: 'lib/feed/comic_feed.dart',
     logo: qomixLogo,
     about:
-      'A comic-reading app from Auteur with an all-star line-up of creators. At Cloudcraftz, Suman wrote its system-integration and performance test suites in Flutter, keeping the feed and reader fast and stable.',
+      'A comic-reading app from Auteur with an all-star line-up of creators. At Cloudcraftz, I wrote its system-integration and performance test suites in Flutter, keeping the feed and reader fast and stable.',
     stack: ['Flutter', 'Dart', 'Integration tests', 'Performance tests'],
     shots: [qomix1, qomix2, qomix3, qomix4],
     captions: [
@@ -276,95 +285,14 @@ export const showcase: Showcase[] = [
       rating: '4.3★',
       reviews: '53 reviews',
     },
-    code: [
-      'class ComicFeed extends StatelessWidget {',
-      '  @override',
-      '  Widget build(BuildContext context) {',
-      '    final comics = context.watch<Feed>();',
-      '    return CustomScrollView(slivers: [',
-      '      CategoryChips(onPick: comics.filter),',
-      '      CarouselOf(comics.featured),',
-      '      SurpriseMe(comics.random),',
-      '    ]);',
-      '  }',
-      '}',
-    ],
-  },
-  {
-    key: 'ten90',
-    name: 'Tan90',
-    file: 'lib/exam/answer_key.dart',
-    logo: ten90Logo,
-    about:
-      'An exam app for teachers: set the answer key, print OMR bubble sheets, scan the students’ sheets with the phone camera and get graded reports in seconds.',
-    stack: ['Flutter', 'Dart', 'OMR scanning', 'PDF export'],
-    shots: [ten901, ten902, ten903, ten904, ten905, ten906],
-    captions: [
-      'Exam list with sync and visibility status',
-      'Exam details with scanning and reports',
-      'Answer key setup with MCQ and true/false',
-      'Exams list grouped by class',
-      'Scan answer sheets to generate a report',
-      'OMR bubble sheet preview and PDF export',
-    ],
-    accent: '#8f7ad6',
-    store: { title: 'Tan-ninety Scanner', publisher: 'Ekodroid labs', downloads: '500+' },
-    code: [
-      'class AnswerKey extends StatefulWidget {',
-      '  final Exam exam;',
-      '  const AnswerKey(this.exam);',
-      '}',
-      '',
-      'Future<Report> scanSheet(Image omr) async {',
-      '  final marks = await Omr.detect(omr);',
-      '  return Report.grade(marks, key);',
-      '}',
-    ],
   },
 ];
 
 /** Chapter 05: what Suman ships at BeWorld, built on the monitor after the CI/CD pipeline. */
 export const beworldShowcase: Showcase[] = [
   {
-    key: 'beworld',
-    name: 'BeWorld',
-    file: 'lib/feed/for_you_feed.dart',
-    logo: beworldLogo,
-    about:
-      'A Bengali social hub with 500K+ downloads: a social feed plus mini apps for news (Khobor), games and an AI assistant. Suman built features in Flutter and set up Codemagic CI/CD to both stores.',
-    stack: ['Flutter', 'Riverpod', 'Codemagic CI/CD', 'Firebase'],
-    shots: [beworld1, beworld2, beworld3, beworld4],
-    captions: [
-      'Social feed with links to mini apps',
-      'Khobor news feed by category',
-      'Games hub with search and genre filters',
-      'Ask Anything AI assistant intro',
-    ],
-    accent: '#6366f1',
-    store: {
-      title: 'BeWorld : Bengali Social Hub',
-      publisher: 'BeWorld Webservice PVT LTD.',
-      downloads: '500K+',
-      rating: '3.0★',
-      reviews: '414 reviews',
-    },
-    code: [
-      'class ForYouFeed extends ConsumerWidget {',
-      '  @override',
-      '  Widget build(BuildContext context, WidgetRef ref) {',
-      '    final posts = ref.watch(feedProvider);',
-      '    return CustomScrollView(slivers: [',
-      '      ExploreApps(khobor, panjika, marriage, market),',
-      '      PostList(posts, onLike: ref.read(likes).toggle),',
-      '    ]);',
-      '  }',
-      '}',
-    ],
-  },
-  {
     key: 'cadgk',
     name: 'Current Affairs',
-    file: 'lib/daily/daily_digest.dart',
     logo: cadgkLogo,
     about:
       'A daily current-affairs and GK app for exam aspirants, with 50K+ downloads: news tagged by exam, revision capsules and practice quizzes, in English and Hindi.',
@@ -382,17 +310,29 @@ export const beworldShowcase: Showcase[] = [
       publisher: 'BeWorld Webservice PVT LTD.',
       downloads: '50K+',
     },
-    code: [
-      'class DailyDigest extends StatelessWidget {',
-      '  final DateTime day;',
-      '  const DailyDigest(this.day);',
-      '',
-      '  Future<List<Story>> load(Exam exam) =>',
-      '      api.stories(day, exam: exam, lang: locale);',
-      '',
-      '  Quiz quizFor(List<Story> s) => Quiz.from(s, n: 10);',
-      '}',
+  },
+  {
+    key: 'beworld',
+    name: 'BeWorld',
+    logo: beworldLogo,
+    about:
+      'A Bengali social hub with 500K+ downloads: a social feed plus mini apps for news (Khobor), games and an AI assistant. I built features in Flutter and set up Codemagic CI/CD to both stores.',
+    stack: ['Flutter', 'Riverpod', 'Codemagic CI/CD', 'Firebase'],
+    shots: [beworld1, beworld2, beworld3, beworld4],
+    captions: [
+      'Social feed with links to mini apps',
+      'Khobor news feed by category',
+      'Games hub with search and genre filters',
+      'Ask Anything AI assistant intro',
     ],
+    accent: '#6366f1',
+    store: {
+      title: 'BeWorld : Bengali Social Hub',
+      publisher: 'BeWorld Webservice PVT LTD.',
+      downloads: '500K+',
+      rating: '3.0★',
+      reviews: '414 reviews',
+    },
   },
 ];
 
@@ -406,10 +346,9 @@ export const neuraShowcase: Showcase[] = [
   {
     key: 'klass-online',
     name: 'Klass Online',
-    file: 'lib/sessions/session_schedule.dart',
     logo: klassLogo,
     about:
-      'An app to learn or teach any skill live, built for a client in Qatar. As Tech Lead, Suman shipped the Flutter app, the FastAPI booking backend and its Docker setup.',
+      'An app to learn or teach any skill live, built for a client in Qatar. As Tech Lead, I shipped the Flutter app, the FastAPI booking backend and its Docker setup.',
     stack: ['Flutter', 'FastAPI', 'PostgreSQL', 'Docker'],
     shots: [klass1, klass2, klass3, klass4],
     captions: [
@@ -420,53 +359,10 @@ export const neuraShowcase: Showcase[] = [
     ],
     accent: '#2f6bff',
     store: { title: 'Klass Online', publisher: 'Klass Online LLC', downloads: '100+' },
-    code: [
-      'class SessionSchedule extends ConsumerWidget {',
-      '  @override',
-      '  Widget build(BuildContext context, WidgetRef ref) {',
-      '    final week = ref.watch(sessionsProvider(range));',
-      '    return CalendarGrid(',
-      '      sessions: week,',
-      '      legend: [oneOnOne, group, home, paused, booked],',
-      '      onBook: ref.read(booking).reserve,',
-      '    );',
-      '  }',
-      '}',
-    ],
-    files: [
-      {
-        file: 'backend/app/routers/sessions.py',
-        run: 'uvicorn app.main:app --reload',
-        code: [
-          '@router.post("/sessions/{sid}/book")',
-          'async def book(sid: int, user=Depends(me)):',
-          '    slot = await Session.get_or_404(sid)',
-          '    if slot.is_full:',
-          '        raise HTTPException(409, "Full")',
-          '    booking = await slot.reserve(user)',
-          '    await notify.teacher(booking)',
-          '    return BookingOut.of(booking)',
-        ],
-      },
-      {
-        file: 'Dockerfile',
-        run: 'docker build -t klass-api .',
-        code: [
-          'FROM python:3.12-slim',
-          'WORKDIR /app',
-          'COPY requirements.txt .',
-          'RUN pip install -r requirements.txt',
-          'COPY app ./app',
-          'EXPOSE 8000',
-          'CMD ["uvicorn", "app.main:app"]',
-        ],
-      },
-    ],
   },
   {
     key: 'ayantra',
     name: 'Ayantra',
-    file: 'lib/phases/your_phase.dart',
     logo: ayantraLogo,
     about:
       'A calmer way to navigate life: AI reflections on your situations, the phases you go through and the people in them, with end-to-end encrypted conversations.',
@@ -480,56 +376,13 @@ export const neuraShowcase: Showcase[] = [
     ],
     accent: '#a0663f',
     store: { title: 'Ayantra', publisher: 'AyantraPath Private Limited', downloads: '50+' },
-    code: [
-      'class YourPhase extends ConsumerWidget {',
-      '  @override',
-      '  Widget build(BuildContext context, WidgetRef ref) {',
-      '    final phase = ref.watch(phaseProvider);',
-      '    return ReflectionView(',
-      '      phase: phase,',
-      '      people: ref.watch(peopleInPhase),',
-      '      chat: EncryptedChat(ref.read(keys)),',
-      '    );',
-      '  }',
-      '}',
-    ],
-    files: [
-      {
-        file: 'backend/app/phases.py',
-        run: 'uvicorn app.main:app --reload',
-        code: [
-          '@router.get("/phases/current")',
-          'async def current(user=Depends(me)):',
-          '    phase = await Phase.today(user)',
-          '    people = await phase.people(limit=12)',
-          '    # reflections stay end-to-end encrypted',
-          '    return PhaseOut(phase, people)',
-        ],
-      },
-      {
-        file: 'docker-compose.yml',
-        run: 'docker compose up -d',
-        code: [
-          'services:',
-          '  api:',
-          '    build: ./backend',
-          '    env_file: .env',
-          '    ports: ["8000:8000"]',
-          '    depends_on: [db]',
-          '  db:',
-          '    image: postgres:16',
-          '    volumes: [pgdata:/var/lib/pg]',
-        ],
-      },
-    ],
   },
   {
     key: 'docpharma',
     name: 'DocPharma',
-    file: 'app/(site)/page.tsx',
     logo: docpharmaLogo,
     about:
-      'India’s first healthcare quick-commerce supply chain: prescription medicines delivered in under 30 minutes. Suman led the Next.js site and the Python order-dispatch services.',
+      'India’s first healthcare quick-commerce supply chain: prescription medicines delivered in under 30 minutes. I led the Next.js site and the Python order-dispatch services.',
     stack: ['Next.js', 'React', 'FastAPI', 'Docker'],
     shots: [docpharma1, docpharma2, docpharma3, docpharma4],
     captions: [
@@ -540,51 +393,10 @@ export const neuraShowcase: Showcase[] = [
     ],
     accent: '#1e88c7',
     site: { url: 'docpharma.in', title: 'DocPharma — Healthcare quick commerce' },
-    code: [
-      'export default async function Home() {',
-      '  const brands = await cms.partners();',
-      '  return (',
-      '    <main>',
-      '      <Hero tagline="30 Minutes Delivery" />',
-      '      <TrustedBy logos={brands} />',
-      '      <FulfilmentFlow steps={checkpoints} />',
-      '    </main>',
-      '  );',
-      '}',
-    ],
-    files: [
-      {
-        file: 'services/orders/dispatch.py',
-        run: 'uvicorn orders.main:app --reload',
-        code: [
-          'async def dispatch(order: Order):',
-          '    store = await nearest(order.pincode)',
-          '    if order.needs_prescription:',
-          '        await verify_rx(order)',
-          '    rider = await riders.assign(store)',
-          '    return await deliver(order, rider)',
-        ],
-      },
-      {
-        file: 'Dockerfile',
-        run: 'docker build -t docpharma-web .',
-        code: [
-          'FROM node:20-alpine AS build',
-          'WORKDIR /app',
-          'COPY . .',
-          'RUN npm ci && npm run build',
-          '',
-          'FROM node:20-alpine',
-          'COPY --from=build /app/.next ./.next',
-          'CMD ["npm", "start"]',
-        ],
-      },
-    ],
   },
   {
     key: 'merithyre',
     name: 'MeritHyre',
-    file: 'app/dashboard/page.tsx',
     logo: merithyreLogo,
     about:
       'AI-led interviews and a recruiting assistant: campaigns, candidate scores and an LLM interview agent, with Twilio SMS (A2P 10DLC) to reach candidates.',
@@ -593,48 +405,6 @@ export const neuraShowcase: Showcase[] = [
     captions: ['Hiring dashboard with campaigns and scores', 'AI recruiting assistant chat'],
     accent: '#7c4dff',
     site: { url: 'merithyre.ai', title: 'MeritHyre — AI interviews' },
-    code: [
-      'export default async function Dashboard() {',
-      '  const org = await session.org();',
-      '  const [stats, campaigns] = await Promise.all([',
-      '    api.metrics(org, { days: 7 }),',
-      '    api.campaigns(org, { active: true }),',
-      '  ]);',
-      '  return <Metrics {...stats} campaigns={campaigns} />;',
-      '}',
-    ],
-    files: [
-      {
-        file: 'ai/interview_agent.py',
-        run: 'python -m ai.worker',
-        code: [
-          'class InterviewAgent:',
-          '    async def ask(self, ctx) -> str:',
-          '        past = await ctx.transcript(6)',
-          '        reply = await llm.chat(',
-          '            system=prompts.of(ctx.role),',
-          '            messages=past,',
-          '        )',
-          '        await ctx.score(reply.rubric)',
-          '        return reply.question',
-        ],
-      },
-      {
-        file: 'docker-compose.yml',
-        run: 'docker compose up -d',
-        code: [
-          'services:',
-          '  web:',
-          '    build: ./web',
-          '    ports: ["3000:3000"]',
-          '  agent:',
-          '    build: ./ai',
-          '    env_file: .env  # Twilio, LLM keys',
-          '  redis:',
-          '    image: redis:7-alpine',
-        ],
-      },
-    ],
   },
 ];
 
@@ -648,7 +418,6 @@ export const quietShelfShowcase: Showcase[] = [
     key: 'quiet-shelf',
     name: 'The Quiet Shelf',
     personal: true,
-    file: 'web/src/pages/Community.tsx',
     logo: quietshelfLogo,
     about:
       'A personal project: a reading and watching community. Post reviews, ask for picks, keep Currently Reading / Read Later / Completed lists, and discover books with their film adaptations.',
@@ -663,47 +432,6 @@ export const quietShelfShowcase: Showcase[] = [
     ],
     accent: '#c9a27a',
     site: { url: 'thequietshelf.art', title: 'The Quiet Shelf' },
-    code: [
-      'export function Community() {',
-      '  const { data } = useFeed(tab);',
-      '  return (',
-      '    <Layout aside={<TopRated />}>',
-      '      <Composer onPost={createPost} />',
-      '      <Tabs value={tab} onChange={setTab} />',
-      '      <PostGrid posts={data.posts} />',
-      '    </Layout>',
-      '  );',
-      '}',
-    ],
-    files: [
-      {
-        file: 'api/routers/posts.py',
-        run: 'uvicorn api.main:app --reload',
-        code: [
-          '@router.post("/posts/{pid}/comments")',
-          'async def comment(pid: int, body: In,',
-          '                  user=Depends(me)):',
-          '    post = await Post.get_or_404(pid)',
-          '    c = await post.reply(user, body.text,',
-          '                         parent=body.parent)',
-          '    await feed.bump(post)',
-          '    return CommentOut.of(c)',
-        ],
-      },
-      {
-        file: 'api/library.py',
-        run: 'pytest -q api',
-        code: [
-          'SHELVES = ("reading", "later", "done")',
-          '',
-          'async def shelve(user, item, shelf):',
-          '    assert shelf in SHELVES',
-          '    await Library.upsert(user, item,',
-          '                         shelf=shelf)',
-          '    await recs.refresh(user)',
-        ],
-      },
-    ],
   },
 ];
 
@@ -712,7 +440,6 @@ export const khyaatiShowcase: Showcase[] = [
     key: 'khyaati',
     name: 'Khyaati Prakashan',
     personal: true,
-    file: 'web/app/checkout/page.tsx',
     logo: khyaatiLogo,
     about:
       'A personal project for a publishing house: a book marketplace with author and admin portals, role-based access and Razorpay checkout.',
@@ -725,45 +452,6 @@ export const khyaatiShowcase: Showcase[] = [
     ],
     accent: '#3b82f6',
     site: { url: 'khyaatiprakashan.store', title: 'Khyaati Prakashan' },
-    code: [
-      'export default function Checkout() {',
-      '  const cart = useCart();',
-      '  const pay = useRazorpay();',
-      '  return (',
-      '    <OrderSummary items={cart.items}',
-      '      onPay={() => pay(cart)} />',
-      '  );',
-      '}',
-    ],
-    files: [
-      {
-        file: 'api/orders/razorpay.go',
-        run: 'go run ./cmd/api',
-        code: [
-          'func (s *Svc) Pay(c *gin.Context) {',
-          '  o, _ := s.orders.Get(c, id)',
-          '  rp, err := s.rzp.Order.Create(',
-          '    map[string]any{"amount": o.Paise,',
-          '      "currency": "INR"}, nil)',
-          '  if err != nil { fail(c, err) }',
-          '  c.JSON(200, rp)',
-          '}',
-        ],
-      },
-      {
-        file: 'api/orders/verify.go',
-        run: 'go test ./...',
-        code: [
-          'func Verify(p Pay, k []byte) bool {',
-          '  h := hmac.New(sha256.New, k)',
-          '  h.Write([]byte(p.Order+"|"+p.ID))',
-          '  s := hex.EncodeToString(h.Sum(nil))',
-          '  return hmac.Equal([]byte(s),',
-          '    []byte(p.Signature))',
-          '}',
-        ],
-      },
-    ],
   },
 ];
 

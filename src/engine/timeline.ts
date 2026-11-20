@@ -11,10 +11,11 @@
 import { clamp } from '../lib/math';
 
 /**
- * Screens of scroll per transition: most of the scroll goes to the build (transitions/), so it
- * reads piece by piece. (The reference site uses ≈ 6.6; this keeps the video near its length.)
+ * Screens of scroll per transition: the scene is taken apart and the next one built piece by
+ * piece (transitions/). At 0.4 screens a second that is 2½ s, which keeps the whole journey to
+ * about 3½ minutes.
  */
-export const TRANSITION = 2;
+export const TRANSITION = 1;
 export const BEAT = 0.6;
 export const LEAD = 0.25;
 
@@ -94,8 +95,11 @@ export function resolve(tl: Timeline, p: number): Frame {
   const u = pc * tl.total;
   const seg = segmentAt(tl, u);
   const transitioning = seg.index > 0 && u < seg.enterEnd;
+  // The first scene, and one with no transition into it, are already fully entered.
   const enter =
-    seg.index === 0 ? 1 : clamp((u - seg.enterStart) / (seg.enterEnd - seg.enterStart || 1));
+    seg.index === 0 || seg.enterEnd === seg.enterStart
+      ? 1
+      : clamp((u - seg.enterStart) / (seg.enterEnd - seg.enterStart));
   const holdSpan = seg.holdEnd - seg.holdStart || 1;
   const hold = clamp((u - seg.holdStart) / holdSpan);
   let beat = -1;

@@ -1,8 +1,10 @@
 /**
- * 03 · Kolkata office, 2022 — Cloudcraftz. On the monitor Suman builds his first two apps,
- * QOMIX then Tan90 (code, emulator with their real screens, release build — see
- * screens/app-build.ts and content/showcase.ts); the QOMIX card lands on a phone with its
- * downloads badge (the odometer starts), then Tan90 builds in.
+ * 03 · Kolkata office, 2022 — Cloudcraftz. On the monitor Suman's first two apps, Tan90 then
+ * QOMIX, each with a description and its real screens one at a time, each named (see
+ * screens/app-build.ts and content/showcase.ts), then live on the Play Store; the Tan90 card is
+ * on the desk's first phone from the start and QOMIX's builds in beside it when QOMIX is
+ * introduced. The art draws QOMIX on the first phone and Tan90 on the late one, so the two
+ * phones swap names here (prepare).
  *
  * While he learns (monitor: Dart, Flutter, Testing, Firebase, React) we see Suman from behind,
  * centred at the desk; then his view hands over to his own eyes: as the lessons end (SWAP) his
@@ -16,6 +18,7 @@ import { bindLottie, type LottieAnimation } from '../lib/lottie';
 import { qs, setAttr, setScale } from '../lib/svg';
 import { appCard } from '../screens/app-card';
 import { appBuild, appWindows, liveAt } from '../screens/app-build';
+import { doneAt, SECONDS as chapter } from '../content/pacing';
 import { learning, showcase } from '../content/showcase';
 import motionJson from '../assets/lottie/typing-top-view.motion.json';
 import { mountApps, mountScreen, screenCtx } from './shared';
@@ -23,16 +26,16 @@ import { mountApps, mountScreen, screenCtx } from './shared';
 const TYPING = motionJson as unknown as LottieAnimation;
 /**
  * The chapter in seconds at 1× (weight in content/scenes.ts = SECONDS × AUTO_SPEED): the
- * lessons, then QOMIX and Tan90 one after the other, done before the "see them live" shelf
- * (content/live.ts, from 0.86).
+ * lessons, then Tan90 and QOMIX one after the other, done before the "see them live" shelf
+ * (content/live.ts).
  */
-const SECONDS = 38;
-const LEARN = 5 / SECONDS;
-const BUILD = { learnEnd: LEARN, end: 0.855 };
+const SECONDS = chapter['03-kolkata'];
+const LEARN = 4 / SECONDS;
+const BUILD = { learnEnd: LEARN, end: doneAt(SECONDS) };
 /** Hand-over window, in hold progress: at the end of the lessons. */
 const SWAP: [number, number] = [LEARN * 0.6, LEARN];
-/** Tan90's card builds in on the desk as Tan90 is introduced. */
-const TAN90 = appWindows(showcase, BUILD.learnEnd, BUILD.end)[1]!;
+/** The second app's card (QOMIX) builds in on the desk as it is introduced. */
+const SECOND = appWindows(showcase, BUILD.learnEnd, BUILD.end)[1]!;
 
 let screens: Screen[] = [];
 let late: SVGGraphicsElement | null = null;
@@ -55,9 +58,15 @@ function innerWrap(part: Element | null): SVGGElement | null {
 const scene: SceneModule = {
   id: '03-kolkata',
   prepare(svg, { data }) {
+    // Tan90 plays first: the art's first phone becomes Tan90's, its late-arriving one QOMIX's.
+    const first = qs(svg, '[data-screen="app-qomix"]');
+    const second = qs(svg, '[data-screen="app-ten90"]');
+    first?.setAttribute('data-screen', 'app-ten90');
+    second?.setAttribute('data-screen', 'app-qomix');
     screens = [
       mountScreen(svg, 'app-build', (rect) => appBuild(rect, showcase, learning, BUILD)),
       ...mountApps(svg, data, appCard, {
+        ten90: liveAt(showcase, 'ten90', BUILD.learnEnd, BUILD.end),
         qomix: liveAt(showcase, 'qomix', BUILD.learnEnd, BUILD.end),
       }),
     ].filter((s): s is Screen => !!s);
@@ -69,7 +78,8 @@ const scene: SceneModule = {
   update(state) {
     const ctx = screenCtx(state);
     for (const s of screens) s.update(ctx);
-    if (late) setScale(late, easeOut(progress(state.hold, TAN90.a, TAN90.code), 1.6));
+    if (late)
+      setScale(late, easeOut(progress(state.hold, SECOND.a, SECOND.a + 0.5 * SECOND.k), 1.6));
 
     // Back view → his hands on the keyboard.
     const k = easeInOut(progress(state.hold, ...SWAP));

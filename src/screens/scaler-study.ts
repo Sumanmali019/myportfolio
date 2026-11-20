@@ -25,11 +25,11 @@ export function scalerStudy(
   win: Window,
   logo: string,
   /** The card that opens it: what this is, before the first module. */
-  intro: { title: string; kicker: string; about: string },
+  intro: { title: string; kicker: string; about: string; share?: number },
 ): Screen {
   const [a, b] = win;
-  /** The intro card's share of the window; the modules share the rest. */
-  const INTRO = 0.14;
+  /** The intro card's share of the window (enough to read it); the modules share the rest. */
+  const INTRO = intro.share ?? 0.14;
   const { g, x, y, w, h, u } = screenFrame(rect);
   const fs = Math.min(u * 2.4, h / 22);
   const th = fs * 2.3;

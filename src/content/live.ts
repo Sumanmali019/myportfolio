@@ -7,6 +7,7 @@
  * Apps link to their `url` in profile.ts (store listing or site); an app without one links to a
  * Google Play search for its name.
  */
+import { SECONDS, shelfAt } from './pacing';
 import { profile } from './profile';
 import { allShowcase } from './showcase';
 
@@ -26,8 +27,9 @@ export interface LiveTray {
   title: string;
   /** Show the title on the shelf's plank (it is always the shelf's accessible name). */
   label?: boolean;
-  /** Hold progress from which the tray shows. */
+  /** Hold progress from which the tray shows, and how long its projects take to land on it. */
   from: number;
+  span: number;
   items: LiveItem[];
 }
 
@@ -65,15 +67,15 @@ export const liveTrays: LiveTray[] = [
     scene: '03-kolkata',
     title: 'Cloudcraftz · see them live',
     label: false,
-    from: 0.86,
+    ...shelfAt(SECONDS['03-kolkata']),
     items: appsOf('03-kolkata'),
   },
   {
     scene: '05-hyderabad',
     title: 'BeWorld · see them live',
     label: false,
-    // After the night studying (scenes/05-beworld.ts has played by 0.84).
-    from: 0.86,
+    // After the night studying (scenes/05-beworld.ts has played by then).
+    ...shelfAt(SECONDS['05-hyderabad']),
     items: appsOf('05-hyderabad'),
   },
   {
@@ -81,19 +83,19 @@ export const liveTrays: LiveTray[] = [
     scene: '09-neura-apps',
     title: 'Neura Dynamics · see them live',
     label: false,
-    from: 0.86,
+    ...shelfAt(SECONDS['09-neura-apps']),
     items: appsOf('09-neura-apps'),
   },
   {
     scene: '11-quiet-shelf',
     title: 'The Quiet Shelf · explore it live',
-    from: 0.86,
+    ...shelfAt(SECONDS['11-quiet-shelf']),
     items: projectsOf(['quiet-shelf']),
   },
   {
     scene: '11-khyaati',
     title: 'Khyaati Prakashan · explore it live',
-    from: 0.86,
+    ...shelfAt(SECONDS['11-khyaati']),
     items: projectsOf(['khyaati']),
   },
 ].filter((t) => t.items.length > 0);

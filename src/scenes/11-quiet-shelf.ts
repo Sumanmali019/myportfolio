@@ -2,18 +2,19 @@
  * 11a · Personal work opens: first a "Personal work" card on the big monitor (what these are:
  * projects of his own, outside the day job — The Quiet Shelf and Khyaati Prakashan pop in one
  * by one), then The Quiet Shelf, a reading (and watching) community — community posts and
- * picks, your library, Discover, search. Built on the big monitor (scenes/desk-build.ts): its
- * React and FastAPI code types out file by file while its real pages slide through a browser,
- * then it deploys to thequietshelf.art.
+ * picks, your library, Discover, search. Shown on the big monitor (scenes/desk-build.ts): what
+ * it is, then its real pages sliding through a browser, each named, then the live site at
+ * thequietshelf.art.
  */
+import { doneAt, SECONDS as chapter } from '../content/pacing';
 import { khyaatiShowcase, quietShelfShowcase } from '../content/showcase';
 import { deskBuildScene } from './desk-build';
 
-/** The chapter is 36.5 s at 1× (weight 14.6 in content/scenes.ts). */
-const SECONDS = 36.5;
-/** The "Personal work" card, then the build, done before the shelf (content/live.ts, 0.86). */
-const PREFACE = 4.5 / SECONDS;
-const END = 0.855;
+/** The chapter's length in seconds at 1× (its weight in content/scenes.ts). */
+const SECONDS = chapter['11-quiet-shelf'];
+/** The "Personal work" card, then the project, done before the shelf (content/live.ts). */
+const PREFACE = 3 / SECONDS;
+const END = doneAt(SECONDS);
 
 const [quiet] = quietShelfShowcase;
 const [khyaati] = khyaatiShowcase;
@@ -29,7 +30,7 @@ export default deskBuildScene({
       kicker: 'PERSONAL WORK · OUTSIDE THE DAY JOB',
       title: 'Personal work',
       about:
-        'Products Suman builds on his own time: he designs, codes and ships each one end to end — front end, backend and deployment.',
+        'Products I build on my own time: I design, code and ship each one end to end — front end, backend and deployment.',
       accent: '#f2b84b',
       items: [
         {

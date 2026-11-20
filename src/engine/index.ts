@@ -175,7 +175,8 @@ function boot(): void {
   const gates = Array.from(document.querySelectorAll<HTMLElement>('[data-live-scene]')).map(
     (el) => {
       const index = Number(el.dataset.liveScene);
-      const frac = Math.min(0.99, Number(el.dataset.liveFrom) + SHELF_SPAN + 0.01);
+      const span = Number(el.dataset.liveSpan) || SHELF_SPAN;
+      const frac = Math.min(0.99, Number(el.dataset.liveFrom) + span + 0.01);
       return {
         el,
         index,

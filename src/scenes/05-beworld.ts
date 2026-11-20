@@ -2,9 +2,9 @@
  * 05 · Hyderabad, 2023 — BeWorld, day to night. The room is a Lottie
  * (`src/assets/lottie/day-night-hyd.json`) scrubbed by scroll:
  *   0 → 0.30      day: the release pipeline on the monitor lights up stage by stage;
- *   0.30 → 0.74   still day: on the monitor Suman builds BeWorld, then Current Affairs Daily GK
- *                 (code, their real screens on a phone carousel, release build) and each goes
- *                 live on its Play Store listing (screens/app-build.ts, content/showcase.ts);
+ *   0.30 → 0.74   still day: on the monitor Current Affairs Daily GK, then BeWorld (a
+ *                 description and their real screens on a phone carousel, each named) and each
+ *                 goes live on its Play Store listing (screens/app-build.ts, content/showcase.ts);
  *                 the desk phones show the real app cards, whose downloads badges stamp in
  *                 with a burst of confetti as each listing goes live;
  *   0.74 → 0.90   dusk falls; the monitor, phones and day props fade;
@@ -29,6 +29,7 @@ import { easeInOut, easeOut, lerp, progress } from '../lib/math';
 import { bindLottie, type LottieAnimation } from '../lib/lottie';
 import { qs, qsa, setAttr, svgEl } from '../lib/svg';
 import scalerLogo from '../assets/apps/scaler-logo.webp?url';
+import { doneAt, SECONDS as chapter } from '../content/pacing';
 import { beworldShowcase, scalerModules } from '../content/showcase';
 import { appBuild, liveAt } from '../screens/app-build';
 import { appCard } from '../screens/app-card';
@@ -45,12 +46,14 @@ const TYPING = typingJson as unknown as LottieAnimation;
  * the real hold maps onto the stops below: [hold, inner] pairs — the pipeline, the builds (one
  * project after the other, at their own pace), dusk and night, then the rest for the shelf.
  */
-const SECONDS = 42;
-const PIPELINE = 2.5;
+const SECONDS = chapter['05-hyderabad'];
+const PIPELINE = 2.2;
+/** The Scaler card that opens the night: long enough to read. */
+const SCALER_INTRO = 4;
 /** Dusk and night: studying with Scaler, module by module, on the monitor. */
-const NIGHT = 14;
-/** Both apps; then dusk, night, and the rest for the shelf (from 0.86). */
-const BUILDS = SECONDS * 0.855 - PIPELINE - NIGHT;
+const NIGHT = SCALER_INTRO + 7.2;
+/** Both apps; then dusk, night, and the rest for the shelf. */
+const BUILDS = SECONDS * doneAt(SECONDS) - PIPELINE - NIGHT;
 const STAGES: Array<[number, number]> = [
   [0, 0],
   [PIPELINE / SECONDS, 0.32],
@@ -285,9 +288,11 @@ const scene: SceneModule = {
       monitor
         ? scalerStudy(monitor, scalerModules, STUDY, scalerLogo, {
             kicker: 'NOW LEARNING · BY NIGHT',
+            // The card's share of the study window (which spans 0.745 → 0.995 of the 0.74 → 1 night).
+            share: SCALER_INTRO / ((NIGHT * (STUDY[1] - STUDY[0])) / (1 - 0.74)),
             title: 'Scaler Academy',
             about:
-              'After work at BeWorld, Suman studies software engineering with Scaler (Dec 2023 – Feb 2025): data structures and algorithms, low- and high-level design, system design, databases, concurrency, and a capstone project.',
+              'After work at BeWorld, I study software engineering with Scaler (Dec 2023 – Feb 2025): data structures and algorithms, low- and high-level design, system design, databases, concurrency, and a capstone project.',
           })
         : null,
       // Badges stamp in as each Play Store listing goes live.

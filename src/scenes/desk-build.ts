@@ -1,7 +1,7 @@
 /**
  * A desk chapter that builds on the big monitor (chapters 09b, 11a and 11b): Suman's back view hands over to his hands on the keyboard (the typing Lottie),
- * and the monitor shows the product being built (screens/app-build.ts: its code file by file,
- * its real pages sliding through a browser window, a production build, then the deployed site).
+ * and the monitor shows the product (screens/app-build.ts: what it is, then its real screens
+ * one at a time, each named, then the live listing or deployed site).
  * `extra` can take the monitor afterwards (e.g. Khyaati's Razorpay checkout). Scroll-driven.
  */
 import type { EngineData, Screen, SceneModule } from '../engine/types';

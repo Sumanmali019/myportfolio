@@ -9,6 +9,7 @@
  *   - `weight`  → hold length in screen-heights of scroll (bubbles need ~0.6 each)
  *   - `links`   → keys from buildLinks() in schema.ts, overlaid as real <a> links
  */
+import { weightOf } from './pacing';
 import type { SceneInput } from './schema';
 
 export const scenes = [
@@ -67,8 +68,8 @@ export const scenes = [
     city: 'Kolkata',
     station: 'stop',
     palette: 'mint',
-    // 38 s at 1× (scenes/03-cloudcraftz.ts SECONDS × AUTO_SPEED 0.4): lessons, then each app.
-    weight: 15.2,
+    // Seconds per chapter live in content/pacing.ts: lessons, then each app.
+    weight: weightOf('03-kolkata'),
     description:
       'The first desk, at Cloudcraftz. The monitor runs QOMIX test suites; the QOMIX app card lands on a phone with a 10K+ downloads badge, and a card for Tan90 builds in beside it. The downloads odometer starts at 10K.',
     links: [],
@@ -94,6 +95,8 @@ export const scenes = [
   {
     id: '04-flight-hyd',
     module: '04-flight-hyd',
+    // No build-up into the flight: the scene just starts.
+    enter: 0,
     svg: '04-flight-hyd.svg',
     title: 'Kolkata → Hyderabad',
     section: 'Flight to Hyderabad',
@@ -116,17 +119,18 @@ export const scenes = [
     city: 'Hyderabad',
     station: 'stop',
     palette: 'day',
-    // 42 s at 1× (scenes/05-beworld.ts SECONDS × AUTO_SPEED 0.4): pipeline, each app, then
-    // the night studying Scaler module by module.
-    weight: 16.8,
+    // Pipeline, each app, then the night studying Scaler module by module.
+    weight: weightOf('05-hyderabad'),
     description:
-      'The BeWorld office in Hyderabad, from day to night. By day, the release pipeline on the monitor lights up stage by stage; then Suman builds the apps on it — BeWorld, the Bengali social hub, then Current Affairs Daily GK — their Flutter code typing out beside a carousel of their real screens, and each goes live on its Play Store listing. The desk phones show their logos; BeWorld stamps 500K+ downloads and Current Affairs 50K+, and the odometer races up. Then dusk falls: the monitor fades, the lamp comes on, and by night he studies with Scaler on the same monitor — the Scaler curriculum ticks off module by module, DSA, LLD, HLD, System Design, Databases, Concurrency and the Capstone, each with its code typing out.',
+      'The BeWorld office in Hyderabad, from day to night. By day, the release pipeline on the monitor lights up stage by stage; then the monitor presents the apps Suman built — BeWorld, the Bengali social hub, then Current Affairs Daily GK — each with a short description beside a carousel of its real screens, one at a time, each named, and each goes live on its Play Store listing. The desk phones show their logos; BeWorld stamps 500K+ downloads and Current Affairs 50K+, and the odometer races up. Then dusk falls: the monitor fades, the lamp comes on, and by night he studies with Scaler on the same monitor — the Scaler curriculum ticks off module by module, DSA, LLD, HLD, System Design, Databases, Concurrency and the Capstone.',
 
     links: [],
   },
   {
     id: '07-flight-home',
     module: '07-flight-home',
+    // No build-up into the flight: the scene just starts.
+    enter: 0,
     svg: '07-flight-home.svg',
     title: 'Hyderabad → Kolkata',
     section: 'Flight home',
@@ -181,8 +185,8 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'stop',
     palette: 'afternoon',
-    // A whole day: the stand-up, then Jira and Docker at a readable pace.
-    weight: 8,
+    // A whole day: the stand-up, then Jira and Docker.
+    weight: weightOf('09-leading'),
     description:
       'One whole working day at Neura Dynamics, on the big monitor. 10 AM: the team sync, Suman on screen as Tech Lead asking what everyone is working on today, and the team answering one by one. Then his hands come onto the keyboard and the screen moves through the day, each app with its clock: 11:30 AM, the Jira sprint board; 3:15 PM, Docker Desktop bringing the backend stack up container by container; 7:40 PM, VS Code, the SSE chat endpoint typed out, reloaded and tested; 10:20 PM, GitHub, a teammate’s pull request reviewed, checks passing, approved and merged. Outside, the light follows the desk clock from afternoon gold to a sunset to night, and the desk lamp comes on. Role updated: Technical Lead.',
     links: [],
@@ -197,11 +201,10 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'stop',
     palette: 'sky',
-    // 42 s at 1× (scenes/09-neura-apps.ts SECONDS × AUTO_SPEED 0.4): four products, Twilio,
-    // then the "see them live" shelf.
-    weight: 16.8,
+    // Four products, Twilio, then the "see them live" shelf.
+    weight: weightOf('09-neura-apps'),
     description:
-      'Back at the desk, his hands on the keyboard, the big monitor shows what Suman shipped at Neura Dynamics as Tech Lead. For each product the editor types out its whole stack, file by file — the Flutter or React front end, the Python (FastAPI) backend and its Docker setup. Klass Online, an app to learn or teach any skill live, and Ayantra, a calm reflection app: their code types out beside a carousel of their real screens, each release builds and goes live on its Play Store listing, and its desk phone stamps the downloads badge. Then two web platforms: DocPharma, a healthcare quick-commerce supply chain, and MeritHyre, AI-led interviews with a recruiting assistant — their code types out while their pages slide through a browser, and each deploys to production. Last, MeritHyre’s Twilio SMS integration: the A2P 10DLC onboarding ticks off step by step — subaccount, phone number, Trust Hub profiles, brand, campaign — the connection tests OK and it saves.',
+      'Back at the desk, his hands on the keyboard, the big monitor shows what Suman shipped at Neura Dynamics as Tech Lead. Each product gets a short description and its real screens, one at a time, each named. Klass Online, an app to learn or teach any skill live, and Ayantra, a calm reflection app: their screens turn on a carousel, each goes live on its Play Store listing, and its desk phone stamps the downloads badge. Then two web platforms: DocPharma, a healthcare quick-commerce supply chain, and MeritHyre, AI-led interviews with a recruiting assistant — their pages slide through a browser, and each goes live in production. Last, MeritHyre’s Twilio SMS integration: the A2P 10DLC onboarding ticks off step by step — subaccount, phone number, Trust Hub profiles, brand, campaign — the connection tests OK and it saves.',
     links: [],
   },
   {
@@ -215,11 +218,10 @@ export const scenes = [
     city: 'Kolkata',
     station: 'stop',
     palette: 'cocoa',
-    // 36.5 s at 1× (scenes/11-quiet-shelf.ts SECONDS × AUTO_SPEED 0.4): the "Personal work"
-    // card, then the build.
-    weight: 14.6,
+    // The "Personal work" card, then the project.
+    weight: weightOf('11-quiet-shelf'),
     description:
-      'Personal work begins: a card on the big monitor says these are projects Suman builds on his own time, outside the day job — designed, coded and shipped end to end — and The Quiet Shelf and Khyaati Prakashan pop in. First, The Quiet Shelf, a reading and watching community. At the desk, his hands on the keyboard, the big monitor builds it: its React and FastAPI code types out file by file while its real pages slide through a browser — the community feed with reviews and picks, a picks discussion, My Library, Discover, and search — then it deploys to thequietshelf.art, linked to explore.',
+      'Personal work begins: a card on the big monitor says these are projects Suman builds on his own time, outside the day job — designed, coded and shipped end to end — and The Quiet Shelf and Khyaati Prakashan pop in. First, The Quiet Shelf, a reading and watching community. At the desk, his hands on the keyboard, the big monitor shows what it is and slides through its real pages in a browser, each named — the community feed with reviews and picks, a picks discussion, My Library, Discover, and search — then the live site at thequietshelf.art, linked to explore.',
     links: ['quiet-shelf'],
   },
   {
@@ -232,10 +234,9 @@ export const scenes = [
     city: 'Kolkata',
     station: 'stop',
     palette: 'navy',
-    // 36 s at 1× (scenes/11-khyaati.ts SECONDS × AUTO_SPEED 0.4).
-    weight: 14.4,
+    weight: weightOf('11-khyaati'),
     description:
-      'More personal work: Khyaati Prakashan, a publisher’s book marketplace. The big monitor builds it: its React and Go code types out file by file while its real pages slide through a browser — the marketplace, a book page, the cart — and it deploys to khyaatiprakashan.store. Then a reader buys: on the cart, the Razorpay checkout opens for ₹424, UPI is chosen, the payment succeeds and the order is placed.',
+      'More personal work: Khyaati Prakashan, a publisher’s book marketplace. The big monitor shows what it is and slides through its real pages in a browser, each named — the marketplace, a book page, the cart — then the live site at khyaatiprakashan.store. Then a reader buys: on the cart, the Razorpay checkout opens for ₹424, UPI is chosen, the payment succeeds and the order is placed.',
     links: ['khyaati'],
   },
   {
