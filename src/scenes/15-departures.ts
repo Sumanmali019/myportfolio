@@ -1,8 +1,8 @@
 /**
- * 15 · Departures — a split-flap board flips letter by letter to NEXT DESTINATION → LET'S
- * CONNECT. Its rows are the real contact links: each row is a `[data-link]` rect, so LinkLayer
- * puts a focusable control exactly over it. The first row is his email address itself (its
- * button copies it). "See my CV" and "Replay the journey" grow in.
+ * 15 · Departures — a split-flap board flips letter by letter to LET'S CONNECT.
+ * Its rows are the real contact links: each row is a `[data-link]` rect, so LinkLayer puts a
+ * focusable control exactly over it. The first row is his email address itself, in capitals
+ * (its button copies it). "See my CV" and "Replay the journey" grow in.
  */
 import type { SceneModule } from '../engine/types';
 import { clamp, easeOut, progress } from '../lib/math';
@@ -10,7 +10,7 @@ import { boxOf, qs, qsa, setScale, setText, svgEl, svgText } from '../lib/svg';
 
 const FLAPS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const ROWS: Array<[key: string, label: string]> = [
-  // The email row shows the address (data.profile.contact.email, set in prepare).
+  // The email row shows the address (data.profile.contact.email, in capitals, set in prepare).
   ['email', ''],
   ['linkedin', 'LINKEDIN'],
   ['github', 'GITHUB'],
@@ -81,12 +81,18 @@ const scene: SceneModule = {
     const cell = (b.w - (small ? 24 : 48)) / cols;
     const size = cell * 0.78;
     const x = b.x + (small ? 12 : 24);
-    svgText(parent, x, b.y + size * 1.4, 'NEXT DESTINATION', {
-      'font-size': size * 0.55,
-      fill: '#a3a9c2',
-      'letter-spacing': 2,
-    });
-    flaps.push(...flapRow(parent, x, b.y + size * 3, cell, "LET'S CONNECT", 0.04, cols, size));
+    flaps.push(
+      ...flapRow(
+        parent,
+        x,
+        b.y + size * (small ? 3.9 : 2.5),
+        cell,
+        "LET'S CONNECT",
+        0.04,
+        cols,
+        size,
+      ),
+    );
     const rowSize = size * 0.62;
     const rowCell = cell * 0.62;
     const rowCols = 9;
@@ -94,11 +100,11 @@ const scene: SceneModule = {
     // Room for the row's text left of its button.
     const rowRoom = b.w - (small ? 12 : 36) - (small ? 84 : 120);
     ROWS.forEach(([key, label], i) => {
-      const text = key === 'email' ? email : label;
+      const text = key === 'email' ? email.toUpperCase() : label;
       const cols = key === 'email' ? text.length : rowCols;
       const c = key === 'email' ? Math.min(rowCell, rowRoom / text.length) : rowCell;
       const sz = rowSize * (c / rowCell);
-      const ry = b.y + size * 4.6 + i * rowSize * 2.3;
+      const ry = b.y + size * (small ? 5.6 : 4.2) + i * rowSize * 2.3;
       svgEl(
         'rect',
         {

@@ -18,10 +18,10 @@ const tl = buildTimeline(
 );
 
 describe('pacing', () => {
-  it('runs three and a half minutes', () => {
+  it('runs about four minutes (with the Neura lessons and the CI/CD chapter)', () => {
     const seconds = tl.total / AUTO_SPEED;
-    expect(seconds).toBeGreaterThan(207);
-    expect(seconds).toBeLessThan(213);
+    expect(seconds).toBeGreaterThan(241);
+    expect(seconds).toBeLessThan(248);
   });
 
   it('starts the flights without a build-up transition', () => {

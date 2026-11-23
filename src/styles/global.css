@@ -210,67 +210,168 @@ button {
   }
 }
 
-/* ------------------------------------------------------------ begin hint */
-/* First screen: "Scroll or press play to begin", just above the player bar; it fades away
-   after 3 seconds (engine/index.ts adds .is-gone), and never shows past the first screen. */
-.begin-hint {
+/* ------------------------------------------------------------ start choice */
+/* First screen: "How would you like to explore?", just above the player bar. Scroll yourself,
+   or auto-play; no answer in 10 seconds and auto-play starts (engine/index.ts sets --start-left
+   and adds .is-done once chosen). It never shows past the first screen. */
+.start-choice {
   position: fixed;
   left: 50%;
   bottom: calc(var(--frame-b, var(--frame-pad, 16px)) + 84px);
   z-index: var(--z-live);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1.1rem;
-  border-radius: 999px;
-  background: rgb(20 18 40 / 0.72);
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  width: min(30rem, calc(100vw - 2 * var(--frame-pad, 16px) - 16px));
+  padding: 0.85rem 0.9rem 0.7rem;
+  border-radius: 18px;
+  background: rgb(20 18 40 / 0.86);
   color: #f1eefa;
-  font-size: 0.9rem;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  pointer-events: none;
-  transform: translateX(-50%);
-  animation: begin-in 0.5s ease both;
+  box-shadow: 0 14px 34px rgb(10 8 30 / 0.4);
+  --start-x: -50%;
+  transform: translateX(var(--start-x));
+  animation: start-in 0.5s ease both;
   transition:
-    opacity 0.6s ease,
-    transform 0.6s ease;
+    opacity 0.45s ease,
+    transform 0.45s ease;
 }
-.begin-hint__play {
-  color: #ff5a4f;
-  font-size: 0.75em;
+.start-choice__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
 }
-.begin-hint__arrow {
-  display: inline-block;
-  animation: begin-bob 1.1s ease-in-out infinite;
+.start-choice__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  width: 100%;
 }
-.begin-hint.is-gone,
-html:not([data-scene='00-intro']) .begin-hint {
+.start-choice__btn {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  overflow: hidden;
+  padding: 0.7rem 0.6rem 0.8rem;
+  border: 2px solid rgb(241 238 250 / 0.28);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.06);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.start-choice__btn svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+}
+.start-choice__label {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.start-choice__hint {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+.start-choice__btn:hover,
+.start-choice__btn:focus-visible {
+  background: rgb(255 255 255 / 0.14);
+  border-color: rgb(241 238 250 / 0.7);
+  transform: translateY(-1px);
+}
+/* Auto-play is the default: it is filled, and its bar empties as the 10 seconds run out. */
+.start-choice__btn--auto {
+  border-color: #ff5a4f;
+  background: #ff5a4f;
+  color: #ffffff;
+}
+.start-choice__btn--auto:hover,
+.start-choice__btn--auto:focus-visible {
+  background: #ff6f65;
+  border-color: #ffffff;
+}
+.start-choice__timer {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 5px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.3);
+}
+.start-choice__timer-bar {
+  display: block;
+  height: 100%;
+  background: #ffffff;
+  transform: scaleX(var(--start-left, 1));
+  transform-origin: left center;
+}
+.start-choice__count {
+  margin: 0;
+  font-size: 0.74rem;
+  opacity: 0.8;
+}
+/* No countdown (reduced motion, test automation): nothing starts by itself. */
+.start-choice.is-manual .start-choice__timer,
+.start-choice.is-manual .start-choice__count {
+  display: none;
+}
+.start-choice.is-done,
+html:not([data-scene='00-intro']) .start-choice {
   opacity: 0;
-  transform: translate(-50%, 10px);
+  transform: translate(var(--start-x), 10px);
   visibility: hidden;
+  pointer-events: none;
   transition:
-    opacity 0.6s ease,
-    transform 0.6s ease,
-    visibility 0s 0.6s;
+    opacity 0.45s ease,
+    transform 0.45s ease,
+    visibility 0s 0.45s;
 }
-@keyframes begin-in {
+@keyframes start-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 10px);
+    transform: translate(var(--start-x), 10px);
   }
 }
-@keyframes begin-bob {
-  50% {
-    transform: translateY(3px);
+/* Wide screens: bottom left, beside the avatar (who stands in the middle). */
+@media (min-width: 1000px) {
+  .start-choice {
+    --start-x: 0px;
+    left: calc(var(--frame-l, var(--frame-pad, 16px)) + 2.5rem);
+    width: 26rem;
   }
 }
+/* Phones: in the open sky above the greeting, under the Skip pill. */
 @media (max-width: 480px) {
-  .begin-hint {
-    font-size: 0.8rem;
-    bottom: calc(var(--frame-b, 12px) + 92px);
+  .start-choice {
+    top: 5.4rem;
+    bottom: auto;
+    gap: 0.45rem;
+    padding: 0.7rem 0.6rem 0.6rem;
+  }
+  .start-choice__title {
+    font-size: 0.85rem;
+  }
+  .start-choice__btn {
+    padding: 0.55rem 0.4rem 0.7rem;
+  }
+  .start-choice__btn svg {
+    width: 22px;
+    height: 22px;
+  }
+  .start-choice__label {
+    font-size: 0.9rem;
+  }
+  .start-choice__hint {
+    font-size: 0.66rem;
   }
 }
-
 /* ------------------------------------------------------------ click card */
 /* The mouse close-up (engine/mouse.ts sets its opacity and lift as a click comes up). */
 .click-card {

@@ -12,6 +12,7 @@ import Player from '../components/Player.astro';
 import SceneText from '../components/SceneText.astro';
 import SeoHead from '../components/SeoHead.astro';
 import SkipTheDay from '../components/SkipTheDay.astro';
+import StartChoice from '../components/StartChoice.astro';
 import Stage from '../components/Stage.astro';
 import {
   buildLinks,
@@ -83,6 +84,7 @@ const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;
         .link-layer,
         .live-layer,
         .player,
+        .start-choice,
         .cv-open,
         .skip__close,
         .track {
@@ -110,6 +112,7 @@ const description = `${profile.headline}, ${profile.city}. ${profile.intro}`;
     <LinkLayer scenes={scenes} links={links} />
     <LiveProjects scenes={scenes} />
     <Player scenes={scenes} />
+    <StartChoice />
     <SceneText scenes={scenes} beats={beats} profile={profile} />
     <script type="application/json" id="engine-data" set:html={json} />
     <script>

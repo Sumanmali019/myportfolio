@@ -2,7 +2,7 @@
  * 11a · Personal work opens: first a "Personal work" card on the big monitor (what these are:
  * projects of his own, outside the day job — The Quiet Shelf and Khyaati Prakashan pop in one
  * by one), then The Quiet Shelf, a reading (and watching) community — community posts and
- * picks, your library, Discover, search. Shown on the big monitor (scenes/desk-build.ts): what
+ * picks, your library, Discover. Shown on the big monitor (scenes/desk-build.ts): what
  * it is, then its real pages sliding through a browser, each named, then the live site at
  * thequietshelf.art.
  */

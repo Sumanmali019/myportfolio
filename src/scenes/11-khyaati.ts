@@ -11,6 +11,7 @@ import { razorpayCheckout } from '../screens/razorpay-checkout';
 import { deskBuildScene } from './desk-build';
 import cart from '../assets/apps/khyaati-3.webp?url';
 import logo from '../assets/apps/khyaati-logo.webp?url';
+import rzp from '../assets/apps/razorpay-logo.webp?url';
 
 /** The chapter in seconds at 1× (weight in content/scenes.ts = SECONDS × AUTO_SPEED). */
 const SECONDS = chapter['11-khyaati'];
@@ -29,5 +30,6 @@ export default deskBuildScene({
       merchant: 'Khyaati Prakashan',
       amount: '₹424',
       logo,
+      rzp,
     }),
 });

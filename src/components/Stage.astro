@@ -20,12 +20,6 @@ const { screens } = Astro.props;
   <div class="scene is-on" data-intro="mobile" set:html={introMobile} />
 </div>
 
-<!-- On the first screen: how to start, at the bottom; it goes after 3 s (engine/index.ts). -->
-<div class="begin-hint" id="begin-hint" aria-hidden="true">
-  Scroll or press <span class="begin-hint__play">▶</span> play to begin
-  <span class="begin-hint__arrow">↓</span>
-</div>
-
 <!-- Suman's hand on the mouse, shown as each on-screen click happens (engine/mouse.ts). -->
 <div class="click-card" id="click-card" aria-hidden="true" set:html={mouseCard} />
 

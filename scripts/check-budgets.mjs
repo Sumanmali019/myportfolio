@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fails the build if the client JavaScript is over 68 KB gzipped (total) or any scene SVG
+ * Fails the build if the client JavaScript is over 71 KB gzipped (total) or any scene SVG
  * is over 120 KB gzipped. Runs after `astro build` against dist/.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -8,8 +8,8 @@ import { join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const DIST = resolve('dist');
-// 68 KB: room for the project descriptions, screen captions and the Scaler study screen.
-const JS_BUDGET = 68 * 1024;
+// 71 KB: room for the project descriptions, screen captions, the Scaler study screen and the\n// hand-built cloud / CI/CD platform screens.
+const JS_BUDGET = 71 * 1024;
 const SVG_BUDGET = 120 * 1024;
 
 function walk(dir) {

@@ -141,7 +141,7 @@ export const CUES: Record<string, Array<[number, SoundName]>> = {
     [0.588, 'thud'],
     [0.605, 'sparkle'],
   ],
-  // The workday: the call ends, then each window (Jira, Docker, VS Code at dusk, GitHub).
+  // The workday: the call ends, then each window (Jira, Docker, VS Code at dusk, GitHub), each app first as a lesson.
   '09-leading': [
     // The stand-up (call over hold 0 → 0.3): your popup, then each teammate's reply popup
     // (Faisal, Rajat, Priya) with the same chime.
@@ -151,16 +151,17 @@ export const CUES: Record<string, Array<[number, SoundName]>> = {
     [0.216, 'join'],
     [0.3, 'blip'],
     [0.35, 'swoosh'],
-    // Jira (window 0.365 → 0.545): each ticket picked up, dragged across, dropped.
-    [0.379, 'click'],
-    [0.381, 'drag'],
-    [0.423, 'drop'],
-    [0.437, 'click'],
-    [0.439, 'drag'],
-    [0.48, 'drop'],
-    [0.495, 'click'],
-    [0.497, 'drag'],
-    [0.534, 'drop'],
+    // Jira (window 0.365 → 0.545): the lesson first (to 0.433, scenes/09-leading.ts), then the
+    // board, each ticket picked up, dragged across, dropped.
+    [0.442, 'click'],
+    [0.443, 'drag'],
+    [0.469, 'drop'],
+    [0.478, 'click'],
+    [0.479, 'drag'],
+    [0.505, 'drop'],
+    [0.514, 'click'],
+    [0.515, 'drag'],
+    [0.538, 'drop'],
     [0.56, 'swoosh'],
     [0.77, 'swoosh'],
     [0.79, 'lamp'],
@@ -284,6 +285,7 @@ function bedFor(scene: string, hold: number): BedKind | null {
       return hold < 0.62 ? 'office' : 'night';
     case '09-leading':
       return hold < 0.77 ? 'home' : 'night';
+    case '09-cicd':
     case '09-neura-apps':
       return 'home';
     case '15-departures':

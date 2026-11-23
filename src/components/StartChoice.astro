@@ -1,0 +1,39 @@
+---
+/**
+ * First screen: how do you want to travel? Two clear choices over the picture, just above the
+ * player bar — scroll through it yourself, or auto-play it like a video. If you don't pick one
+ * within 10 seconds, auto-play starts by itself (a bar and a count show the time left). It goes
+ * as soon as you choose, scroll, press play or leave the first screen (engine/index.ts).
+ */
+---
+
+<section
+  class="start-choice"
+  id="start-choice"
+  aria-labelledby="start-choice-title"
+  data-start-choice
+>
+  <p class="start-choice__title" id="start-choice-title">How would you like to explore?</p>
+  <div class="start-choice__row">
+    <button type="button" class="start-choice__btn" data-start="scroll">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3a5 5 0 0 0-5 5v8a5 5 0 0 0 10 0V8a5 5 0 0 0-5-5zm-1 4h2v4h-2z"></path>
+      </svg>
+      <span class="start-choice__label">Scroll myself</span>
+      <span class="start-choice__hint">At your own pace</span>
+    </button>
+    <button type="button" class="start-choice__btn start-choice__btn--auto" data-start="auto">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 5v14l11-7z"></path>
+      </svg>
+      <span class="start-choice__label">Auto-play</span>
+      <span class="start-choice__hint">Sit back, it plays like a video</span>
+      <span class="start-choice__timer" aria-hidden="true">
+        <span class="start-choice__timer-bar"></span>
+      </span>
+    </button>
+  </div>
+  <p class="start-choice__count" data-start-count-line>
+    Auto-play starts in <span data-start-count>10s</span>
+  </p>
+</section>

@@ -16,8 +16,6 @@ import ten901 from '../assets/apps/ten90-1.webp?url';
 import ten902 from '../assets/apps/ten90-2.webp?url';
 import ten903 from '../assets/apps/ten90-3.webp?url';
 import ten904 from '../assets/apps/ten90-4.webp?url';
-import ten905 from '../assets/apps/ten90-5.webp?url';
-import ten906 from '../assets/apps/ten90-6.webp?url';
 import ten90Logo from '../assets/apps/ten90-logo.webp?url';
 import beworld1 from '../assets/apps/beworld-1.webp?url';
 import beworld2 from '../assets/apps/beworld-2.webp?url';
@@ -51,12 +49,26 @@ import quietshelf1 from '../assets/apps/quietshelf-1.webp?url';
 import quietshelf2 from '../assets/apps/quietshelf-2.webp?url';
 import quietshelf3 from '../assets/apps/quietshelf-3.webp?url';
 import quietshelf4 from '../assets/apps/quietshelf-4.webp?url';
-import quietshelf5 from '../assets/apps/quietshelf-5.webp?url';
 import quietshelfLogo from '../assets/apps/quietshelf-logo.webp?url';
 import khyaati1 from '../assets/apps/khyaati-1.webp?url';
 import khyaati2 from '../assets/apps/khyaati-2.webp?url';
 import khyaati3 from '../assets/apps/khyaati-3.webp?url';
 import khyaatiLogo from '../assets/apps/khyaati-logo.webp?url';
+
+import azure2 from '../assets/apps/cicd-azure-2.webp?url';
+import azure3 from '../assets/apps/cicd-azure-3.webp?url';
+import azureLogo from '../assets/apps/azure-logo.webp?url';
+import devops1 from '../assets/apps/cicd-azure-1.webp?url';
+import devops2 from '../assets/apps/cicd-devops-2.webp?url';
+import devopsLogo from '../assets/apps/azure-devops-logo.webp?url';
+import gcp1 from '../assets/apps/cicd-gcp-1.webp?url';
+import gcp2 from '../assets/apps/cicd-gcp-2.webp?url';
+import gcp3 from '../assets/apps/cicd-gcp-3.webp?url';
+import gcpLogo from '../assets/apps/gcp-logo.webp?url';
+import github1 from '../assets/apps/cicd-github-1.webp?url';
+import github2 from '../assets/apps/cicd-github-2.webp?url';
+import github3 from '../assets/apps/cicd-github-3.webp?url';
+import githubLogo from '../assets/apps/github-logo.webp?url';
 
 import type { DiagramKind } from '../screens/scaler-diagrams';
 
@@ -74,6 +86,10 @@ export interface Showcase {
   captions: string[];
   /** Accent colour for the window tab, progress bar and caption. */
   accent: string;
+  /** Seconds each screenshot is on show (default PACE.shot in screens/app-build.ts). */
+  shotSeconds?: number;
+  /** Seconds the project's close takes after its screens (default PACE.live). */
+  liveSeconds?: number;
   /** A project of Suman's own (personal work), not for an employer: its screen says so. */
   personal?: boolean;
   /** Its Play Store listing, shown once the release is live (mobile apps). */
@@ -88,7 +104,20 @@ export interface Showcase {
    * A web app instead: its screens are desktop screenshots (shown in a browser window, not on
    * phones) and, once deployed, the live site at `url` replaces the Play Store listing.
    */
-  site?: { url: string; title: string };
+  site?: {
+    url: string;
+    title: string;
+    /**
+     * For a cloud or CI/CD platform's console rather than a product's site (chapter 09a):
+     * how its screens are labelled.
+     */
+    console?: {
+      /** In the window's tab, e.g. "cloud services". */
+      tab: string;
+      /** Beside the screen count, e.g. "CLOUD · AZURE". */
+      kind: string;
+    };
+  };
 }
 
 /** What Suman learns first, on the same monitor, while we still see him from behind. */
@@ -145,6 +174,45 @@ export const learning: Lesson[] = [
       '  return <button onClick={() => setN(n + 1)}>',
       '    Hi {name} · {n}</button>;',
       '}',
+    ],
+  },
+];
+
+/**
+ * Chapter 09: what Suman picks up as Tech Lead, in the same lesson format as chapter 03 —
+ * a syllabus on the left, the topic's notes typing out on the right (screens/lead-learning.ts).
+ */
+export const leadLearning: Lesson[] = [
+  {
+    topic: 'Jira',
+    color: '#2684ff',
+    code: [
+      'Sprint 24: plan, estimate, assign',
+      'Epics break down into small tickets',
+      'To Do → In Progress → Review → Done',
+      'The burndown shows if we are on track',
+    ],
+  },
+  {
+    topic: 'Docker',
+    color: '#1d8fe0',
+    code: [
+      'FROM python:3.12-slim',
+      'COPY . /app',
+      'RUN pip install -r requirements.txt',
+      '$ docker compose up -d --build',
+      '# postgres · redis · api · worker',
+    ],
+  },
+  {
+    topic: 'Backend',
+    color: '#3fa3e8',
+    code: [
+      '@router.post("/chat/stream")',
+      'async def chat(req: ChatRequest):',
+      '    return EventSourceResponse(',
+      '        stream_reply(req))',
+      '$ pytest  →  all tests pass',
     ],
   },
 ];
@@ -251,12 +319,10 @@ export const showcase: Showcase[] = [
     about:
       'An exam app for teachers: set the answer key, print OMR bubble sheets, scan the students’ sheets with the phone camera and get graded reports in seconds.',
     stack: ['Flutter', 'Dart', 'OMR scanning', 'PDF export'],
-    shots: [ten901, ten902, ten903, ten904, ten905, ten906],
+    shots: [ten901, ten902, ten903, ten904],
     captions: [
       'Exam list with sync and visibility status',
-      'Exam details with scanning and reports',
       'Answer key setup with MCQ and true/false',
-      'Exams list grouped by class',
       'Scan answer sheets to generate a report',
       'OMR bubble sheet preview and PDF export',
     ],
@@ -408,6 +474,119 @@ export const neuraShowcase: Showcase[] = [
   },
 ];
 
+/**
+ * Chapter 09a, cloud engineering & CI/CD, before the Neura Dynamics work. Two halves, four
+ * platforms: the cloud services (Azure, Google Cloud), then how the products get tested, built and
+ * shipped (Azure DevOps — repos, tests and pipelines — and GitHub Actions). Azure and Azure DevOps
+ * are kept apart: Azure is the cloud, Azure DevOps is the delivery tooling. Real console screens,
+ * with anything private (accounts, tenant, subscription and resource ids, hostnames, teammates'
+ * names, ticket titles) painted out of the Azure ones before they were added to src/assets/apps/.
+ */
+export const ciCdShowcase: Showcase[] = [
+  {
+    key: 'azure',
+    name: 'Azure',
+    logo: azureLogo,
+    about:
+      'Cloud engineering on Azure: resource groups for each environment in one subscription, with Azure Front Door and Storage serving the web front ends on their custom domains.',
+    stack: ['Azure Front Door', 'Azure Storage', 'Resource Manager', 'Azure CLI'],
+    shots: [azure2, azure3],
+    captions: [
+      'Azure Front Door serving the landing site on its custom domain',
+      'Resource groups for each environment in one subscription',
+    ],
+    accent: '#1e90ff',
+    // Screens flash by; then the platform's own UI plays slowly (screens/cloud-flow.ts).
+    shotSeconds: 0.6,
+    liveSeconds: 4,
+    site: {
+      url: 'portal.azure.com',
+      title: 'Microsoft Azure',
+      console: {
+        tab: 'cloud engineering',
+        kind: 'CLOUD · AZURE',
+      },
+    },
+  },
+  {
+    key: 'gcp',
+    name: 'Google Cloud',
+    logo: gcpLogo,
+    about:
+      'Backend services on Cloud Run, scaled on demand, with request, latency and instance metrics to watch them and the billing reports to keep costs in check.',
+    stack: ['Cloud Run', 'Docker', 'Cloud Monitoring', 'Billing reports'],
+    shots: [gcp1, gcp2, gcp3],
+    captions: [
+      'Cloud Run overview with services, regions and request scaling',
+      'One service’s metrics: requests, latency and container instances',
+      'Billing report with the month’s cost by service',
+    ],
+    accent: '#4285f4',
+    // Screens flash by; then the platform's own UI plays slowly (screens/cloud-flow.ts).
+    shotSeconds: 0.6,
+    liveSeconds: 4,
+    site: {
+      url: 'console.cloud.google.com',
+      title: 'Google Cloud',
+      console: {
+        tab: 'cloud services',
+        kind: 'CLOUD · GOOGLE',
+      },
+    },
+  },
+  {
+    key: 'azure-devops',
+    name: 'Azure DevOps',
+    logo: devopsLogo,
+    about:
+      'Azure DevOps for the repos, the boards and the testing: Cypress tests run before every release, then pipelines deploy the backend and web front ends. Release efficiency up 35% and fewer deployment errors.',
+    stack: ['Azure Repos', 'Azure Pipelines', 'Cypress', 'Azure Boards'],
+    shots: [devops1, devops2],
+    captions: [
+      'Production pipeline run deploying the admin front end',
+      'Boards tracking the Cypress testing work and its pipeline',
+    ],
+    accent: '#2f80d8',
+    // Screens flash by; then the platform's own UI plays slowly (screens/cloud-flow.ts).
+    shotSeconds: 0.6,
+    liveSeconds: 4,
+    site: {
+      url: 'dev.azure.com',
+      title: 'Azure DevOps',
+      console: {
+        tab: 'repos · tests · ci/cd',
+        kind: 'CI/CD · AZURE DEVOPS',
+      },
+    },
+  },
+  {
+    key: 'github-actions',
+    name: 'GitHub Actions',
+    logo: githubLogo,
+    about:
+      'Every push runs lint, type checks, unit tests, the build with size budgets, end-to-end tests and Lighthouse CI; green builds deploy to GitHub Pages on their own.',
+    stack: ['GitHub Actions', 'pnpm', 'Playwright', 'Lighthouse CI'],
+    shots: [github1, github2, github3],
+    captions: [
+      'Workflow run: build, then deploy to GitHub Pages',
+      'Build log with the static site bundled and sized',
+      'CI job: lint, typecheck, unit, build, e2e and Lighthouse',
+    ],
+    accent: '#3fb950',
+    // Screens flash by; then the platform's own UI plays slowly (screens/cloud-flow.ts).
+    shotSeconds: 0.6,
+    liveSeconds: 4,
+    site: {
+      url: 'github.com/actions',
+      title: 'GitHub Actions',
+      console: {
+        tab: 'ci/cd workflow',
+        kind: 'CI/CD · GITHUB',
+      },
+    },
+  },
+];
+
 /** Every app with a logo and screens, for lookups by `key`. */
 /**
  * Personal work, each a chapter of its own (11a, 11b): The Quiet Shelf, a reading (and
@@ -422,13 +601,12 @@ export const quietShelfShowcase: Showcase[] = [
     about:
       'A personal project: a reading and watching community. Post reviews, ask for picks, keep Currently Reading / Read Later / Completed lists, and discover books with their film adaptations.',
     stack: ['React', 'FastAPI', 'Python', 'Tailwind CSS'],
-    shots: [quietshelf1, quietshelf2, quietshelf3, quietshelf4, quietshelf5],
+    shots: [quietshelf1, quietshelf2, quietshelf3, quietshelf4],
     captions: [
       'Community feed of book and film reviews',
       'Discussion thread asking for book picks',
       'Personal library of books being read',
       'Discover books paired with film adaptations',
-      'Browse movies by genre with ratings',
     ],
     accent: '#c9a27a',
     site: { url: 'thequietshelf.art', title: 'The Quiet Shelf' },
@@ -458,6 +636,7 @@ export const khyaatiShowcase: Showcase[] = [
 export const allShowcase: Showcase[] = [
   ...showcase,
   ...beworldShowcase,
+  ...ciCdShowcase,
   ...neuraShowcase,
   ...quietShelfShowcase,
   ...khyaatiShowcase,

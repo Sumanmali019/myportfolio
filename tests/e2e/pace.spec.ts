@@ -20,6 +20,25 @@ test.describe('pace', () => {
     await expect(page.locator('html')).toHaveAttribute('data-travel', 'manual');
   });
 
+  test('the first screen asks: scroll yourself, or auto-play', async ({ page }) => {
+    await openJourney(page);
+    const choice = page.locator('[data-start-choice]');
+    await expect(choice).toBeVisible();
+    await expect(choice.getByRole('button', { name: /Scroll myself/ })).toBeVisible();
+    await choice.getByRole('button', { name: /Auto-play/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-travel', 'auto');
+    await expect(choice).toBeHidden();
+  });
+
+  test('choosing to scroll yourself keeps it manual', async ({ page }) => {
+    await openJourney(page);
+    const choice = page.locator('[data-start-choice]');
+    await choice.getByRole('button', { name: /Scroll myself/ }).click();
+    await expect(choice).toBeHidden();
+    await page.waitForTimeout(1200);
+    await expect(page.locator('html')).toHaveAttribute('data-travel', 'manual');
+  });
+
   test('your own scroll pauses playback', async ({ page }) => {
     await openJourney(page);
     await page.keyboard.press('k');
@@ -102,7 +121,7 @@ test.describe('pace', () => {
     });
   });
 
-  test('counts down 15 s at a shelf, and opening a project stops the countdown', async ({
+  test('counts down 10 s at a shelf, and opening a project stops the countdown', async ({
     page,
   }) => {
     await openJourney(page);
@@ -114,11 +133,11 @@ test.describe('pace', () => {
     const shelf = page.locator(`.shelf[data-live-scene="${index}"]`);
     await expect(shelf).toHaveClass(/is-asking/, { timeout: 8000 });
     const count = shelf.locator('[data-live-count]');
-    // It counts down from 15 s (read it, wait, read again: it has gone down by ~2–3 s).
+    // It counts down from 10 s (read it, wait, read again: it has gone down by ~2–3 s).
     await expect(count).toHaveText(/^\d+s$/);
     const secs = async () => Number((await count.textContent())?.replace('s', ''));
     const first = await secs();
-    expect(first).toBeLessThanOrEqual(15);
+    expect(first).toBeLessThanOrEqual(10);
     await page.waitForTimeout(2500);
     const later = await secs();
     expect(first - later).toBeGreaterThanOrEqual(1);

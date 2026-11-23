@@ -19,7 +19,9 @@ export interface TransitionPlanSpec {
 export const PLANS: Record<string, TransitionPlanSpec> = {
   // Tech Lead day → the Neura work: the same desk, so the monitor (and the desk, his hands on
   // the keyboard) stay put; only what is around them changes.
-  '09-leading>09-neura-apps': { pin: ['monitor', 'desk', 'typing'] },
+  '09-leading>09-cicd': { pin: ['monitor', 'desk', 'typing'] },
+  // …then the CI/CD chapter at the same desk, and on to the products he shipped.
+  '09-cicd>09-neura-apps': { pin: ['monitor', 'desk', 'typing'] },
 };
 
 export const planFor = (from: string, to: string): TransitionPlanSpec =>

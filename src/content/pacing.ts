@@ -4,14 +4,15 @@
  * AUTO_SPEED, the scene modules split the same seconds between their parts, and the "see it
  * live" shelf (content/live.ts) takes the last few seconds of its chapter.
  *
- * The whole journey is meant to run about 3½ minutes (see tests/unit/pacing.test.ts).
+ * The whole journey is meant to run about 4 minutes (see tests/unit/pacing.test.ts).
  */
 import { AUTO_SPEED } from '../engine/pace';
 
 export const SECONDS = {
   '03-kolkata': 26,
   '05-hyderabad': 31,
-  '09-leading': 16,
+  '09-leading': 24,
+  '09-cicd': 24,
   '09-neura-apps': 34,
   '11-quiet-shelf': 14,
   '11-khyaati': 13.5,

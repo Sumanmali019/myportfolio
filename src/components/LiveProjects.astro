@@ -6,7 +6,7 @@
  * reverses (engine/shelf.ts). On the shelf each one is a real link to the live project — its
  * store listing or site — opening in a new tab. Hidden shelves are inert.
  * The journey then waits here and asks: open one, or say no and carry on (engine/index.ts).
- * With no answer it carries on by itself after 15 s; a bar and a count show the time left.
+ * With no answer it carries on by itself after 10 s; a bar and a count show the time left.
  */
 import type { Scene } from '../content/schema';
 import { liveTrays } from '../content/live';
@@ -37,7 +37,7 @@ const shelves = liveTrays
         </div>
         <div class="skip-ad">
           <span class="skip-ad__sub" aria-hidden="true">
-            Continuing in <span data-live-count>15s</span>
+            Continuing in <span data-live-count>10s</span>
           </span>
           <button
             type="button"

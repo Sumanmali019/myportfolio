@@ -1,6 +1,6 @@
 /**
  * Pace: how the view follows the scroll, and the two ways to travel (chosen on the first
- * screen, components/ScrollMode.astro).
+ * screen, components/StartChoice.astro).
  *
  * The view does not jump to wherever the scroll is: it chases it every frame, easing in and
  * out, with a top speed (in screen-heights per second). However hard the wheel or touchpad

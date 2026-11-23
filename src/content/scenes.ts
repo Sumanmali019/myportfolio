@@ -144,21 +144,6 @@ export const scenes = [
     links: [],
   },
   {
-    id: '08-interview',
-    module: '08-interview',
-    svg: '08-interview.svg',
-    title: 'Kolkata, 2024 — the Neura Dynamics interview',
-    section: 'Neura Dynamics interview',
-    date: '2024-04',
-    city: 'Kolkata',
-    station: 'stop',
-    palette: 'lilac',
-    weight: 2.4,
-    description:
-      'Back home in Kolkata, the monitor shows a video call: Suman interviews with Neura Dynamics, the interviewer asks and he answers, then he smiles and leaves the call. A new mail lands in his inbox; he opens it, and the offer letter PDF zooms in with a green check and confetti.',
-    links: [],
-  },
-  {
     id: '10-open-source',
     module: '10-open-source',
     svg: '10-open-source.svg',
@@ -176,6 +161,22 @@ export const scenes = [
     links: ['flutter-pr'],
   },
   {
+    id: '08-interview',
+    module: '08-interview',
+    svg: '08-interview.svg',
+    title: 'Kolkata, 2024 — the Neura Dynamics interview',
+    section: 'Neura Dynamics interview',
+    // After the Flutter PR merged (May 2024): the chapters are in calendar order.
+    date: '2024-05',
+    city: 'Kolkata',
+    station: 'stop',
+    palette: 'lilac',
+    weight: 2.4,
+    description:
+      'Back home in Kolkata, the monitor shows a video call: Suman interviews with Neura Dynamics, the interviewer asks and he answers, then he smiles and leaves the call. A new mail lands in his inbox; he opens it, and the offer letter PDF zooms in with a green check and confetti.',
+    links: [],
+  },
+  {
     id: '09-leading',
     module: '09-leading',
     svg: '09-leading.svg',
@@ -185,10 +186,27 @@ export const scenes = [
     city: 'Kolkata · Remote',
     station: 'stop',
     palette: 'afternoon',
-    // A whole day: the stand-up, then Jira and Docker.
+    // A whole day: the stand-up, then Jira, Docker and the backend, each a lesson and then at work.
     weight: weightOf('09-leading'),
     description:
-      'One whole working day at Neura Dynamics, on the big monitor. 10 AM: the team sync, Suman on screen as Tech Lead asking what everyone is working on today, and the team answering one by one. Then his hands come onto the keyboard and the screen moves through the day, each app with its clock: 11:30 AM, the Jira sprint board; 3:15 PM, Docker Desktop bringing the backend stack up container by container; 7:40 PM, VS Code, the SSE chat endpoint typed out, reloaded and tested; 10:20 PM, GitHub, a teammate’s pull request reviewed, checks passing, approved and merged. Outside, the light follows the desk clock from afternoon gold to a sunset to night, and the desk lamp comes on. Role updated: Technical Lead.',
+      'One whole working day at Neura Dynamics, on the big monitor. 10 AM: the team sync, Suman on screen as Tech Lead asking what everyone is working on today, and the team answering one by one. Then his hands come onto the keyboard and the screen moves through the day, each stop with its clock, first as a lesson in the style of his first desk (a syllabus that ticks off, the notes typing out), then the tool at work. 11:30 AM, Learning Jira, then the sprint board with tickets moving across it; 3:15 PM, Learning Docker, then Docker Desktop bringing the backend stack up container by container; 7:40 PM, Learning Backend, then VS Code with the SSE chat endpoint typed out, reloaded and tested; 10:20 PM, GitHub, a teammate’s pull request reviewed, checks passing, approved and merged. Outside, the light follows the desk clock from afternoon gold to a sunset to night, and the desk lamp comes on. Role updated: Technical Lead.',
+    links: [],
+  },
+  {
+    id: '09-cicd',
+    module: '09-cicd',
+    svg: '09-cicd.svg',
+    title: 'Neura Dynamics — cloud engineering & CI/CD',
+    section: 'Cloud & CI/CD',
+    date: '2024-12',
+    city: 'Kolkata · Remote',
+    station: 'stop',
+    palette: 'sky',
+    // The card, then Azure, Google Cloud, Azure DevOps and GitHub Actions: the screens flash by, then the
+    // platform's own UI plays slowly (screens/cloud-flow.ts).
+    weight: weightOf('09-cicd'),
+    description:
+      'At the same desk, his hands on the keyboard, the big monitor opens a Cloud & CI/CD card: the cloud services and pipelines behind the products he leads, every change built, tested and shipped automatically. Then four platforms, one at a time: the cloud first, then testing and CI/CD. Each starts with a short description and its real console screens flashing by, each named, then its own UI plays slowly. Azure, the cloud: Azure Front Door and the resource groups, then the environment built up, a resource group, storage, Front Door and a custom domain with TLS, before the edge serves requests. Google Cloud: the Cloud Run services overview, one service’s metrics and the billing report, then a Cloud Run rollout: build, push, deploy the new revision, move the traffic across and watch requests arrive on new instances. Azure DevOps, for the repos, tests and pipelines: the production pipeline run and the boards with the Cypress testing work, then a merge to main, the Cypress tests and a release deploying stage by stage as its log streams. GitHub Actions: the workflow run, its build log and the CI job, then the workflow’s jobs, lint, type checks, unit tests, build, end-to-end tests and Lighthouse, ticking green before the deploy. Each ends with a stamp: live, running, deployed, passing.',
     links: [],
   },
   {
@@ -221,7 +239,7 @@ export const scenes = [
     // The "Personal work" card, then the project.
     weight: weightOf('11-quiet-shelf'),
     description:
-      'Personal work begins: a card on the big monitor says these are projects Suman builds on his own time, outside the day job — designed, coded and shipped end to end — and The Quiet Shelf and Khyaati Prakashan pop in. First, The Quiet Shelf, a reading and watching community. At the desk, his hands on the keyboard, the big monitor shows what it is and slides through its real pages in a browser, each named — the community feed with reviews and picks, a picks discussion, My Library, Discover, and search — then the live site at thequietshelf.art, linked to explore.',
+      'Personal work begins: a card on the big monitor says these are projects Suman builds on his own time, outside the day job — designed, coded and shipped end to end — and The Quiet Shelf and Khyaati Prakashan pop in. First, The Quiet Shelf, a reading and watching community. At the desk, his hands on the keyboard, the big monitor shows what it is and slides through its real pages in a browser, each named — the community feed with reviews and picks, a picks discussion, My Library, and Discover — then the live site at thequietshelf.art, linked to explore.',
     links: ['quiet-shelf'],
   },
   {
@@ -251,7 +269,7 @@ export const scenes = [
     palette: 'evening',
     weight: 1.8,
     description:
-      'An airport departures board flips letter by letter: next destination — let’s connect. Its rows are the contact links: his email address (with a Copy button), LinkedIn, GitHub and Résumé; below, See my CV and Replay the journey.',
+      'An airport departures board flips letter by letter to let’s connect. Its rows are the contact links: his email address in capitals (with a Copy button), LinkedIn, GitHub and Résumé; below, See my CV and Replay the journey.',
     links: ['email', 'linkedin', 'github', 'resume', 'cta-cv', 'restart'],
   },
 ] satisfies SceneInput[];

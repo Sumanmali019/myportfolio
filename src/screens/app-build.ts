@@ -42,7 +42,12 @@ const GLIDE = 0.7;
 const FADE = 0.35;
 
 /** How long one project plays, in seconds at 1×. */
-export const appSeconds = (app: Showcase): number => PACE.shot * app.shots.length + PACE.live;
+export const appSeconds = (app: Showcase): number => shotsSeconds(app) + liveSeconds(app);
+
+/** A project's screens: each gets `app.shotSeconds` (default PACE.shot), all of them together. */
+const shotsSeconds = (app: Showcase): number => (app.shotSeconds ?? PACE.shot) * app.shots.length;
+/** What follows its screens: `app.liveSeconds` (default PACE.live). */
+const liveSeconds = (app: Showcase): number => app.liveSeconds ?? PACE.live;
 
 /** How long a list of projects plays, in seconds at 1×. */
 export const buildSeconds = (apps: Showcase[]): number =>
@@ -64,8 +69,8 @@ export function appWindows(apps: Showcase[], start: number, end: number): AppWin
   let t = start;
   return apps.map((app) => {
     const a = t;
-    const live = a + PACE.shot * app.shots.length * k;
-    const b = live + PACE.live * k;
+    const live = a + shotsSeconds(app) * k;
+    const b = live + liveSeconds(app) * k;
     t = b;
     return { a, live, b, k };
   });
@@ -136,16 +141,25 @@ export interface AppBuildOptions {
   /** Hold progress from which the whole screen is hidden again (another screen follows). */
   stop?: number;
   /**
+   * Windows [from, to) of hold progress in which the whole screen is hidden, so another screen
+   * mounted beneath it shows instead (chapter 09a: each platform's own UI after its screens).
+   */
+  gaps?: Array<[number, number]>;
+  /**
    * A card before the first project (from `start` to `learnEnd`), introducing what follows,
    * e.g. "Personal work": a title, a line about it, and the projects popping in one by one.
    */
   preface?: {
+    /** The file in the window's tab (default "personal/README.md"). */
+    file?: string;
     kicker: string;
     title: string;
     about: string;
     accent: string;
     items: Array<{ logo: string; name: string; note: string }>;
     footer: string;
+    /** Only the logos in the tiles, centred, no names (for many tiles side by side). */
+    logosOnly?: boolean;
   };
 }
 
@@ -159,6 +173,7 @@ export function appBuild(
   const learnEnd = opts.learnEnd ?? (lessons.length ? LEARN_END : start);
   const end = opts.end ?? 1;
   const stop = opts.stop ?? Infinity;
+  const gaps = opts.gaps ?? [];
   const { g, x, y, w, h, u } = screenFrame(rect);
   const fs = Math.min(u * 2.4, h / 22);
   const th = fs * 2.3; // title bar
@@ -290,7 +305,7 @@ export function appBuild(
   const preParts: Array<{ el: SVGGElement; at: number }> = [];
   let preStatus: SVGTextElement | null = null;
   if (pre) {
-    tab(preG, 'personal/README.md', pre.accent);
+    tab(preG, pre.file ?? 'personal/README.md', pre.accent);
     svgEl('rect', { x, y: bodyY, width: fs * 0.3, height: bodyH, fill: pre.accent }, preG);
     statusBar(preG);
     preStatus = svgText(preG, x + fs, y + h - sb / 2 + fs * 0.32, '', {
@@ -326,8 +341,11 @@ export function appBuild(
     const tw = (w - fs * 4 - gap * (n - 1)) / n;
     const th2 = fs * 4.6;
     const ty = bodyY + bodyH - th2 - fs * 2.8;
+    // The tiles come in one by one, spaced so that the last (and the footer) is fully in before
+    // the card ends, however many there are.
+    const step = n > 1 ? Math.min(0.2, 0.4 / (n - 1)) : 0;
     pre.items.forEach((it, i) => {
-      const tile = piece(0.32 + i * 0.2);
+      const tile = piece(0.3 + i * step);
       const tx = lx + i * (tw + gap);
       svgEl(
         'rect',
@@ -344,22 +362,24 @@ export function appBuild(
         tile,
       );
       const L = th2 - fs * 1.4;
+      const lgx = pre.logosOnly ? tx + (tw - L) / 2 : tx + fs * 0.7;
       svgEl(
         'rect',
-        { x: tx + fs * 0.7, y: ty + fs * 0.7, width: L, height: L, rx: L * 0.22, fill: '#fff' },
+        { x: lgx, y: ty + fs * 0.7, width: L, height: L, rx: L * 0.22, fill: '#fff' },
         tile,
       );
       svgEl(
         'image',
         {
           href: it.logo,
-          x: tx + fs * 0.7 + L * 0.1,
+          x: lgx + L * 0.1,
           y: ty + fs * 0.7 + L * 0.1,
           width: L * 0.8,
           height: L * 0.8,
         },
         tile,
       );
+      if (pre.logosOnly) return;
       const nx = tx + fs * 1.4 + L;
       svgText(tile, nx, ty + fs * 2, it.name, {
         'font-size': fs * 1.05,
@@ -373,7 +393,7 @@ export function appBuild(
         }),
       );
     });
-    const foot = piece(0.32 + n * 0.2);
+    const foot = piece(0.3 + (n - 1) * step + 0.12);
     svgText(foot, lx, bodyY + bodyH - fs * 1.1, pre.footer, {
       'font-size': fs * 0.78,
       fill: pre.accent,
@@ -533,7 +553,11 @@ export function appBuild(
     const group = svgEl('g', { 'data-app': app.key }, g);
     const site = app.site;
     // The window's tab: the product and what this is (no code is shown).
-    tab(group, `${app.name} · ${site ? 'web platform' : 'mobile app'}`, app.accent);
+    tab(
+      group,
+      `${app.name} · ${site ? (site.console?.tab ?? 'web platform') : 'mobile app'}`,
+      app.accent,
+    );
     svgEl(
       'image',
       {
@@ -620,7 +644,9 @@ export function appBuild(
       status,
       app,
       web: !!site,
-      kind: `${app.personal ? 'PERSONAL · ' : ''}${site ? 'WEB PLATFORM' : 'MOBILE APP'}`,
+      kind: `${app.personal ? 'PERSONAL · ' : ''}${
+        site ? (site.console?.kind ?? 'WEB PLATFORM') : 'MOBILE APP'
+      }`,
       page,
       ...about,
     };
@@ -656,7 +682,7 @@ export function appBuild(
     });
     return stamp;
   };
-  const siteRelease = (group: SVGGElement, app: Showcase, site: { url: string }) => {
+  const siteRelease = (group: SVGGElement, app: Showcase, site: NonNullable<Showcase['site']>) => {
     svgEl('rect', { x, y: bodyY, width: w, height: bodyH, fill: '#ffffff' }, group);
     tab(group, `${site.url} · production`, app.accent);
     statusBar(group);
@@ -850,7 +876,8 @@ export function appBuild(
 
   return {
     update({ reduced, hold }) {
-      g.style.display = hold < start || hold >= stop ? 'none' : '';
+      const gap = gaps.some(([from, to]) => hold >= from && hold < to);
+      g.style.display = hold < start || hold >= stop || gap ? 'none' : '';
       const learning = lessons.length > 0 && hold < learnEnd;
       learn.style.display = learning ? '' : 'none';
 
@@ -936,7 +963,7 @@ export function appBuild(
         const k = Math.max(1, b.app.shots.length);
         const sp = progress(hold, wi.a, wi.live) * k;
         const shot = Math.min(k - 1, Math.floor(sp));
-        const glide = reduced ? 0.01 : Math.min(0.8, GLIDE / PACE.shot);
+        const glide = reduced ? 0.01 : Math.min(0.8, GLIDE / (b.app.shotSeconds ?? PACE.shot));
         const pos = shot === 0 ? 0 : shot - 1 + smooth(progress(sp - shot, 0, glide));
         if (b.page) b.page(pos);
         else placeRing(b, pos);

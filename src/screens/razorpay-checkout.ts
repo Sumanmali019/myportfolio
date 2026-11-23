@@ -22,10 +22,16 @@ const METHODS: Array<[string, string]> = [
   ['Wallet', 'Mobikwik, Freecharge'],
 ];
 
+/** Razorpay's logo is 512 × 118 (src/assets/apps/razorpay-logo.webp): centred on (cx, cy), `w` wide. */
+function logoImage(parent: SVGElement, href: string, cx: number, cy: number, w: number) {
+  const h = (w * 118) / 512;
+  return svgEl('image', { href, x: cx - w / 2, y: cy - h / 2, width: w, height: h }, parent);
+}
+
 export function razorpayCheckout(
   rect: SVGGraphicsElement,
   win: Window,
-  opts: { page: string; merchant: string; amount: string; logo: string },
+  opts: { page: string; merchant: string; amount: string; logo: string; rzp: string },
 ): Screen {
   const { g, x, y, w, h } = screenFrame(rect);
   const root = svgEl('g', {}, g);
@@ -88,10 +94,20 @@ export function razorpayCheckout(
     fill: '#ffffff',
     class: 'title-text',
   });
-  svgText(modal, mx + pad, my + mh - pad, 'Secured by Razorpay', {
+  // "Secured by" and Razorpay's own logo, on a white badge (its navy needs a light ground).
+  const badgeW = Math.min(lw - pad * 2, fs * 8.4);
+  const badgeH = fs * 2.5;
+  const badgeY = my + mh - pad - badgeH;
+  svgText(modal, mx + pad, badgeY - fs * 0.6, 'Secured by', {
     'font-size': fs * 0.6,
     fill: '#dbeafe',
   });
+  svgEl(
+    'rect',
+    { x: mx + pad, y: badgeY, width: badgeW, height: badgeH, rx: fs * 0.45, fill: '#ffffff' },
+    modal,
+  );
+  logoImage(modal, opts.rzp, mx + pad + badgeW / 2, badgeY + badgeH / 2, badgeW - fs * 1.2);
 
   // Payment options.
   const rx = mx + lw + pad;
@@ -102,6 +118,9 @@ export function razorpayCheckout(
     fill: INK,
     class: 'title-text',
   });
+  // Razorpay's logo at the top right of the options.
+  const headW = fs * 5.2;
+  logoImage(modal, opts.rzp, rx + rw - headW / 2, my + pad + fs * 0.55, headW);
   const rowH = fs * 2.5;
   const rows = METHODS.map(([title, sub], i) => {
     const ry = my + pad + fs * 2 + i * (rowH + fs * 0.45);

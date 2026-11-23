@@ -10,7 +10,7 @@
 import { BubbleLayer } from '../bubbles/bubble';
 import { clamp } from '../lib/math';
 import { setOpacity } from '../lib/svg';
-import { pace } from './pace';
+import { pace, type Mode } from './pace';
 import { player } from './player';
 import { shelves, SPAN as SHELF_SPAN } from './shelf';
 import { CUES, sound } from './sound';
@@ -18,7 +18,9 @@ import { clickCard } from './mouse';
 import { journeyClock } from './daylight';
 
 /** How long a shelf waits for an answer before the journey carries on by itself. */
-const ASK_SECONDS = 15;
+const ASK_SECONDS = 10;
+/** How long the first screen waits for you to pick scroll or auto-play before auto-play starts. */
+const START_SECONDS = 10;
 import { applyCounters, downloadsAt, monthIndex, yearOf } from './clock';
 import { currentLayout, watchLayout, type Layout } from './layout';
 import { SceneLoader, type Mounted } from './loader';
@@ -501,8 +503,29 @@ function boot(): void {
       travel.syncAuto(u);
     },
   });
-  // It starts playing, like a video (not under test automation, nor with reduced motion).
-  if (!reduced && !navigator.webdriver) window.setTimeout(() => travel.setMode('auto', viewU), 700);
+  // First screen: scroll yourself, or auto-play (components/StartChoice.astro). With no answer in
+  // START_SECONDS auto-play starts by itself. Not with reduced motion nor under test automation:
+  // there nothing starts on its own (the buttons still work).
+  const choice = $<HTMLElement>('[data-start-choice]');
+  const countdown = !reduced && !navigator.webdriver;
+  const startCount = choice?.querySelector<HTMLElement>('[data-start-count]');
+  const start = { open: !!choice, since: 0, last: 0, shown: -1, cv: false };
+  choice?.classList.toggle('is-manual', !countdown);
+  const choose = (mode: Mode) => {
+    if (!start.open) return;
+    start.open = false;
+    choice?.classList.add('is-done');
+    choice?.setAttribute('inert', '');
+    if (mode === 'auto') travel.setMode('auto', viewU);
+  };
+  for (const b of choice?.querySelectorAll<HTMLButtonElement>('[data-start]') ?? [])
+    b.addEventListener('click', () => choose(b.dataset.start === 'auto' ? 'auto' : 'manual'));
+  // Playing it from the player bar is a choice too.
+  travel.onChange((m) => m === 'auto' && choose('auto'));
+  // The CV over the journey stops the clock.
+  skip.onToggle((open) => (start.cv = open));
+  // No first screen to ask on: it plays by itself, like a video.
+  if (!choice && countdown) window.setTimeout(() => travel.setMode('auto', viewU), 700);
   // The CV over the journey: everything holds still while it is open.
   skip.onToggle((open) => {
     if (open) {
@@ -510,23 +533,28 @@ function boot(): void {
       scroller?.stop();
     } else scroller?.start();
   });
+  const NAV_KEYS = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End'];
   // Any input of your own while it plays hands the journey back to you.
   const takeOver = (e: Event) => {
     if (travel.mode() !== 'auto') return;
     // Tapping a control (Skip links, a shelf link, the player) is an answer, not a take-over.
     const t = e.target;
     if (t instanceof Element && t.closest('button, a, [role="slider"], .player, dialog')) return;
-    if (
-      e instanceof KeyboardEvent &&
-      !['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End'].includes(e.key)
-    )
-      return;
+    if (e instanceof KeyboardEvent && !NAV_KEYS.includes(e.key)) return;
     travel.setMode('manual');
   };
   window.addEventListener('wheel', takeOver, { passive: true });
   // A drag, not a tap: a plain tap anywhere shouldn't pause it.
   window.addEventListener('touchmove', takeOver, { passive: true });
   window.addEventListener('keydown', takeOver);
+  // Scrolling yourself on the first screen answers it too: you chose to scroll.
+  const ownScroll = (e: Event) => {
+    if (e instanceof KeyboardEvent && !NAV_KEYS.includes(e.key)) return;
+    choose('manual');
+  };
+  window.addEventListener('wheel', ownScroll, { passive: true });
+  window.addEventListener('touchmove', ownScroll, { passive: true });
+  window.addEventListener('keydown', ownScroll);
 
   loop = startLoop(({ now, dt, idle }) => {
     const total = tl.total;
@@ -547,6 +575,25 @@ function boot(): void {
       travel.holdAt(gate.u);
     }
     viewU = travel.step(target, dt, { snap, reduced });
+    // The first screen's question: moved on without answering = you scroll; no answer in time =
+    // auto-play. The clock waits while the tab is hidden or the CV is open.
+    if (start.open && choice) {
+      const gap = start.last ? now - start.last : 0;
+      start.last = now;
+      if (viewU > 0.05) choose('manual');
+      else if (countdown) {
+        if (!start.since) start.since = now;
+        else if (start.cv || gap > 500) start.since += gap;
+        const left = Math.max(0, START_SECONDS - (now - start.since) / 1000);
+        choice.style.setProperty('--start-left', (left / START_SECONDS).toFixed(4));
+        const secs = Math.ceil(left);
+        if (startCount && secs !== start.shown) {
+          start.shown = secs;
+          startCount.textContent = `${secs}s`;
+        }
+        if (left <= 0) choose('auto');
+      }
+    }
     for (const g of gates) {
       const asking = !g.passed && Math.abs(viewU - g.u) < 0.02;
       if (g.el.classList.contains('is-asking') !== asking)
@@ -630,9 +677,6 @@ function boot(): void {
     scenes: scenes.map((s) => s.id),
     frame: () => lastFrame,
   };
-  // "Scroll or press play to begin" (first screen): shown for 3 seconds, then it goes.
-  const hint = $<HTMLElement>('#begin-hint');
-  if (hint) setTimeout(() => hint.classList.add('is-gone'), 3000);
   root.dataset.engine = 'ready';
 }
 

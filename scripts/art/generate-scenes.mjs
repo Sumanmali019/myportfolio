@@ -549,6 +549,22 @@ const OSS = (() => {
     throw new Error('flutter Lottie: calendar / screens / camera not where expected');
   // Its wall calendar goes: no calendars in the journey.
   cal.shapes = [];
+  // The "Official Flutter Contributor" banner sat on the very bottom of the frame, under the
+  // player controls (and a wide frame crops the room's top and bottom too). As it pops in, the
+  // contributors page lifts a little and the banner, smaller, takes the room that frees up
+  // above the controls (it pivots on its own centre).
+  const banner = anim.layers.find((l) => l.nm === 'banner');
+  const camera = anim.layers[0];
+  const camPos = camera.ks.p.k;
+  if (!banner || banner.ks.p.k[1] !== 810 || !banner.ks.s.a || camPos.at(-1).t !== 216)
+    throw new Error('flutter Lottie: banner / camera not where expected');
+  banner.ks.p.k = [720, 680, 0];
+  banner.ks.s.k = banner.ks.s.k.map((kf) => ({
+    ...kf,
+    s: kf.s.map((v, i) => (i < 2 ? v * 0.62 : v)),
+  }));
+  const camEase = { o: camPos.at(-1).o, i: camPos.at(-1).i };
+  camPos.push({ t: 246, s: [720, 370, 0], ...camEase }, { t: 264, s: [720, 310, 0], ...camEase });
   // The google-cla bot's comment on the PR: Google's logo as its avatar, over the CLA badge.
   const pr = anim.layers.find((l) => l.nm === 'screen: pull request');
   if (!pr) throw new Error('flutter Lottie: no pull request screen');
@@ -672,8 +688,8 @@ const GREETING = [
 ];
 
 /**
- * A desk where one product is built on the big monitor (chapters 11a, 11b; as 09b): the room,
- * the monitor (`app-build` screen, the beat anchor, and a link to the live site), a mug, Suman
+ * A desk where one product is built on the big monitor (chapters 09a, 11a, 11b; as 09b): the room,
+ * the monitor (`app-build` screen, the beat anchor, and a link to the live site, if any), a mug, Suman
  * from behind and his typing hands (shown by the scene module).
  */
 function buildDesk(L, pfx, link, room = {}) {
@@ -685,7 +701,7 @@ function buildDesk(L, pfx, link, room = {}) {
       'monitor',
       4,
       g(monitorAt(L, { 'data-screen': 'app-build' }, mon), { 'data-anchor': 'monitor' }) +
-        rect(mon[0], mon[1], mon[2], mon[3], 'none', { 'data-link': link }),
+        (link ? rect(mon[0], mon[1], mon[2], mon[3], 'none', { 'data-link': link }) : ''),
     ),
     me(L, 'back', { d: 0.9, m: 0.48 }, { d: 810, m: 195 }),
     part(
@@ -1241,9 +1257,9 @@ const SCENES = {
             }) +
             g(
               rect(sx, sy, sw, sh, '#0f1220') +
-                app('jira-board', 'Jira  ·  Sprint 24', '11:30 AM', '#2684ff') +
-                app('docker', 'Docker Desktop', '3:15 PM', '#1d8fe0') +
-                app('backend', 'VS Code  ·  neura-backend', '7:40 PM', '#3fa3e8') +
+                app('jira-board', 'Learning Jira', '11:30 AM', '#2684ff') +
+                app('docker', 'Learning Docker', '3:15 PM', '#1d8fe0') +
+                app('backend', 'Learning Backend', '7:40 PM', '#3fa3e8') +
                 app('github', 'GitHub  ·  Pull requests', '10:20 PM', '#a68cf0'),
               { 'data-phase': 'work', opacity: 0 },
             ),
@@ -1268,6 +1284,12 @@ const SCENES = {
         ),
       ),
     ];
+  },
+
+  /* 09a — the CI/CD pipeline, before the Neura work: the same desk and big monitor, no phones;
+     the monitor shows Azure, Google Cloud, Azure DevOps and GitHub Actions (scenes/09-cicd.ts). */
+  '09-cicd'(L, pfx) {
+    return buildDesk(L, pfx, null);
   },
 
   /* 09b — Neura Dynamics, the work: as in chapter 03, the big monitor builds what he ships as
@@ -1407,7 +1429,7 @@ const SCENES = {
     ];
   },
 
-  /* 15 — departures board: NEXT DESTINATION → LET'S CONNECT, with contact rows. */
+  /* 15 — departures board: LET'S CONNECT, with contact rows. */
   '15-departures'(L) {
     const m = L.m;
     const floorY = m ? 760 : 720;
@@ -1436,14 +1458,6 @@ const SCENES = {
               : rect(980, 615, 390, 72, C.teal, { rx: 36, 'data-link': 'restart' }),
             { 'data-cta': true },
           ),
-      ),
-      part(
-        'suitcase',
-        4,
-        m
-          ? rect(306, 744, 50, 74, C.mustard, { rx: 8 }) + rect(322, 732, 18, 14, C.dark, { rx: 4 })
-          : rect(440, 700, 90, 130, C.mustard, { rx: 12 }) +
-              rect(468, 678, 34, 24, C.dark, { rx: 6 }),
       ),
       // Suman at the bottom centre (on mobile; beside the window on desktop).
       me(L, 'front', { d: 0.85, m: 0.46 }, { d: 250, m: 195 }),
@@ -1573,6 +1587,7 @@ function render(id, layoutName) {
     '04-interview': 'iv',
     '08-interview': 'in',
     '09-leading': 'ld',
+    '09-cicd': 'cc',
     '09-neura-apps': 'na',
     '11-quiet-shelf': 'qs',
     '11-khyaati': 'kp',
